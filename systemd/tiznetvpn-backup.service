@@ -1,0 +1,26 @@
+[Unit]
+Description=TiznetVPN Telegram KV-format backup
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=tiznetvpn
+Group=tiznetvpn
+WorkingDirectory=/opt/tiznetvpn
+EnvironmentFile=/etc/tiznetvpn/tiznetvpn.env
+Environment=NODE_ENV=production
+Environment=DATA_DIR=/var/lib/tiznetvpn
+Environment=DB_BACKUP_DIR=/var/backups/tiznetvpn
+ExecStart=/usr/bin/node /opt/tiznetvpn/scripts/run-cron.mjs backup
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+RestrictSUIDSGID=true
+ReadWritePaths=/var/lib/tiznetvpn
