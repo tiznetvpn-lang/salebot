@@ -2312,10 +2312,11 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.2-ubuntu26.4';
+const VERSION = '1.8.3-ubuntu26.5';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
-const KV_BACKUP_CRON = '0 */12 * * *';
+const KV_BACKUP_CRON = '0 */3 * * *';           // هر ۳ ساعت (هماهنگ با systemd/tiznetvpn-backup.timer)
+const KV_BACKUP_MIN_INTERVAL_MS = 2.5 * 60 * 60 * 1000; // فاصلهٔ ایمنی کمتر از بازهٔ ۳ ساعت تا ارسال بعدی رد نشود
 const KV_BACKUP_LAST_KEY = 'system:kv_backup_last_at';
 const KV_BACKUP_LOCK_KEY = 'system:kv_backup_lock';
 const KV_RESTORE_LOCK_KEY = 'system:kv_restore_lock';
@@ -8573,7 +8574,7 @@ async function sendKvBackup(env, scheduledTime) {
   const recipients = adminIds(env);
   if (!recipients.length) throw new Error('kv_backup_admins_unconfigured');
   const lastSent = Number(await kvGet(env, KV_BACKUP_LAST_KEY, 0) || 0);
-  if (lastSent && now - lastSent < 11 * 60 * 60 * 1000) return { skipped: 'already_sent' };
+  if (lastSent && now - lastSent < KV_BACKUP_MIN_INTERVAL_MS) return { skipped: 'already_sent' };
   const lock = await kvGet(env, KV_BACKUP_LOCK_KEY, null);
   const lockAt = Number(lock && lock.started_at || 0);
   if (lockAt && now - lockAt < 30 * 60 * 1000) return { skipped: 'already_running' };

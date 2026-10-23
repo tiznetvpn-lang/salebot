@@ -11,7 +11,7 @@ if (!['reminders', 'backup'].includes(task)) {
   try {
     runtime = createRuntime();
     const event = {
-      cron: task === 'backup' ? '0 */12 * * *' : '30 5 * * *',
+      cron: task === 'backup' ? '0 */3 * * *' : '30 5 * * *',
       scheduledTime: Date.now()
     };
     await APP.scheduled(event, runtime.env, {

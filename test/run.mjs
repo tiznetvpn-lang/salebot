@@ -14,6 +14,17 @@ if (!webhookScript.includes('drop_pending_updates: false') || src.includes('bot_
 if (src.includes("'/setup'") || src.includes("'/diag'")) throw new Error('Legacy /setup and /diag routes must stay removed from src/worker.js');
 const pkgVersion = JSON.parse(fs.readFileSync(path.join(here, '..', 'package.json'), 'utf8')).version;
 if (!src.includes("const VERSION = '" + pkgVersion + "';")) throw new Error('VERSION در src/worker.js با package.json یکی نیست');
+
+// زمان‌بندی بکاپ خودکار KV: worker، اسکریپت cron و timer باید همه یک بازه داشته باشند،
+// وگرنه اجرای دستی backup بی‌صدا به مسیر یادآوری می‌رود یا ارسال‌ها رد می‌شوند.
+const workerSource = fs.readFileSync(srcPath, 'utf8');
+const cronScriptSource = fs.readFileSync(path.join(here, '..', 'scripts', 'run-cron.mjs'), 'utf8');
+const backupTimerUnit = fs.readFileSync(path.join(here, '..', 'systemd', 'tiznetvpn-backup.timer'), 'utf8');
+const backupCronMatch = workerSource.match(/const KV_BACKUP_CRON = '([^']+)'/);
+if (!backupCronMatch || backupCronMatch[1] !== '0 */3 * * *') throw new Error('KV_BACKUP_CRON باید هر ۳ ساعت باشد');
+if (!cronScriptSource.includes("'0 */3 * * *'")) throw new Error('زمان‌بندی scripts/run-cron.mjs با KV_BACKUP_CRON یکی نیست');
+if (!backupTimerUnit.includes('OnCalendar=*-*-* 00/3:00:00 UTC')) throw new Error('systemd timer بکاپ باید هر ۳ ساعت اجرا شود');
+if (!workerSource.includes('KV_BACKUP_MIN_INTERVAL_MS') || workerSource.includes('11 * 60 * 60 * 1000')) throw new Error('فاصلهٔ ایمنی بکاپ با بازهٔ ۳ ساعته هماهنگ نیست');
 src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser;');
 // eslint-disable-next-line no-eval
 eval(src);
@@ -563,9 +574,19 @@ const backupData = JSON.parse(backupJson);
 assert(backupFile.filename.endsWith('.json.gz') && backupData.format === 'tiznetvpn-kv-backup' && backupData.entry_count === backupData.entries.length && backupData.entries.some(x => x.key === 'o:' + oid), 'فایل بکاپ فشرده تمام رکوردهای KV شامل سفارش‌ها را نگه می‌دارد');
 assert(backupJson.includes('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee') && !backupJson.includes('shetab-test-secret') && !backupJson.includes('s3cret'), 'بکاپ بی‌رمز credential ذخیره‌شده در KV را دارد، اما Secretهای محیط Worker را استخراج نمی‌کند');
 const scheduledBackupStart = TG.length;
-await APP.scheduled({ cron: '0 */12 * * *', scheduledTime: Date.now() + 1000 }, env, {});
+await APP.scheduled({ cron: backupCronMatch[1], scheduledTime: Date.now() + 1000 }, env, {});
 const backupDocument = TG.slice(scheduledBackupStart).find(x => x.method === 'sendDocument' && String(x.params.chat_id) === String(ADMIN));
-assert(backupDocument && String(backupDocument.params.document_name || '').endsWith('.json.gz') && backupDocument.params.document_type === 'application/gzip' && (await kvJson('system:kv_backup_last_at')), 'کرون ۱۲ساعته فایل JSON gzip را به مدیر می‌فرستد و زمان ارسال را ثبت می‌کند');
+assert(backupDocument && String(backupDocument.params.document_name || '').endsWith('.json.gz') && backupDocument.params.document_type === 'application/gzip' && (await kvJson('system:kv_backup_last_at')), 'کرون بکاپ (هر ۳ ساعت) فایل JSON gzip را به مدیر می‌فرستد و زمان ارسال را ثبت می‌کند');
+
+// فاصلهٔ ایمنی: با بازهٔ ۳ ساعته، ارسال بعدی پس از ۳ ساعت باید انجام شود و پس از ۱ ساعت رد شود.
+const HOUR = 60 * 60 * 1000;
+const backupBase = Date.now() + 1000;
+const after3hStart = TG.length;
+await APP.scheduled({ cron: backupCronMatch[1], scheduledTime: backupBase + 3 * HOUR }, env, {});
+assert(TG.slice(after3hStart).some((x) => x.method === 'sendDocument'), 'بکاپ بعدی پس از ۳ ساعت دوباره ارسال می‌شود');
+const after1hStart = TG.length;
+await APP.scheduled({ cron: backupCronMatch[1], scheduledTime: backupBase + 3 * HOUR + HOUR }, env, {});
+assert(!TG.slice(after1hStart).some((x) => x.method === 'sendDocument'), 'بکاپ زودتر از بازهٔ ۳ ساعته ارسال تکراری نمی‌کند');
 
 // ادمین روش خودکار را از تنظیمات روشن می‌کند
 await press(ADMIN, 'a_set');

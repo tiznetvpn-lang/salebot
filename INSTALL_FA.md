@@ -257,7 +257,7 @@ sudo -u tiznetvpn env ENV_FILE=/etc/tiznetvpn/tiznetvpn.env \
 
 ## مرحلهٔ ۱۰ — فعال‌کردن timerها و بکاپ محلی
 
-پس از تنظیم Bot Token و ادمین‌ها، timerها را فعال کنید:
+پس از تنظیم Bot Token و ادمین‌ها، timerها را فعال کنید (تایمر بکاپ فقط با تأیید `SWITCH` در نصب فعال می‌شود؛ اگر رد کردید، این دستور را بزنید):
 
 ```bash
 sudo systemctl enable --now \
@@ -268,7 +268,7 @@ sudo systemctl list-timers --all | grep tiznetvpn
 ```
 
 - `tiznetvpn-reminders.timer`: روزانه 05:30 UTC.
-- `tiznetvpn-backup.timer`: هر ۱۲ ساعت بکاپ فشردهٔ KV را به چت مدیران می‌فرستد.
+- `tiznetvpn-backup.timer`: هر ۳ ساعت (00:00، 03:00، …، 21:00 UTC — یعنی ۰۳:۳۰، ۰۶:۳۰، … به‌وقت تهران) بکاپ فشردهٔ KV را به چت مدیران می‌فرستد.
 - `tiznetvpn-dbbackup.timer`: روزانه 02:15 UTC یک snapshot SQLite در `/var/backups/tiznetvpn` می‌سازد و فایل‌های بیش از ۱۴ روز را حذف می‌کند.
 
 برای اجرای دستی فقط بکاپ محلی:

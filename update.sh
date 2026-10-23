@@ -304,14 +304,26 @@ chmod 0750 "$INSTALL_DIR/update.sh" "$INSTALL_DIR/install.sh" 2>/dev/null || tru
 # ---------------------------------------------------------------------------
 if [[ -d /run/systemd/system ]] && command -v systemctl >/dev/null 2>&1; then
   UNIT_CHANGED=0
+  CHANGED_TIMERS=''
   while IFS= read -r unit; do
     target="/etc/systemd/system/$(basename "$unit")"
     if ! cmp -s "$unit" "$target"; then
       install -m 0644 "$unit" "$target"
       UNIT_CHANGED=1
+      case "$unit" in
+        *.timer) CHANGED_TIMERS="$CHANGED_TIMERS $(basename "$unit")" ;;
+      esac
     fi
   done < <(find "$INSTALL_DIR/systemd" -maxdepth 1 -type f \( -name '*.service' -o -name '*.timer' \))
   (( UNIT_CHANGED )) && systemctl daemon-reload || true
+  # زمان‌بندی تایمر تغییر کرده؟ ری‌استارت تا برنامهٔ جدید فوراً اعمال شود.
+  for timer in $CHANGED_TIMERS; do
+    if systemctl is-enabled "$timer" >/dev/null 2>&1; then
+      systemctl restart "$timer" && say "تایمر به‌روزرسانی شد: $timer" || warn "ری‌استارت $timer ناموفق بود."
+    else
+      warn "$timer به‌روزرسانی شد ولی غیرفعال است؛ برای فعال‌سازی: sudo systemctl enable --now $timer"
+    fi
+  done
   restart_service || { rollback; fail 'ری‌استارت سرویس ناموفق بود.'; }
 else
   warn 'systemd فعال نیست؛ سرویس را دستی ری‌استارت کنید.'
@@ -341,4 +353,11 @@ say "به‌روزرسانی به ${NEW_VERSION} کامل شد."
 printf '  نسخهٔ فعال: %s\n' "${LIVE_VERSION:-$NEW_VERSION}"
 printf '  بکاپ کد:  %s\n' "$CODE_BACKUP"
 printf '  بازگشت:   sudo bash %s/update.sh --rollback\n' "$INSTALL_DIR"
-printf '  وضعیت:    sudo systemctl status %s --no-pager\n\n' "$SERVICE"
+printf '  وضعیت:    sudo systemctl status %s --no-pager\n' "$SERVICE"
+if [[ -d /run/systemd/system ]] && command -v systemctl >/dev/null 2>&1; then
+  list_output=$(systemctl list-timers --all 2>/dev/null | grep -E 'tiznetvpn' || true)
+  if [[ -n "$list_output" ]]; then
+    printf '\n  تایمرها:\n%s\n' "$list_output"
+  fi
+fi
+printf '\n'
