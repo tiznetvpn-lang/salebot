@@ -33,7 +33,12 @@ say()  { printf '\n\033[1;36m[update]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[update] هشدار:\033[0m %s\n' "$*" >&2; }
 fail() { printf '\n\033[1;31m[update] خطا:\033[0m %s\n' "$*" >&2; exit 1; }
 
-usage() { sed -n '2,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+usage() {
+  awk 'NR==1 { next }
+       /^#/  { sub(/^# ?/, ""); if ($0 !~ /^=+$/) print; next }
+       /^$/  { next }
+             { exit }' "${BASH_SOURCE[0]}"
+}
 
 # ---------------------------------------------------------------------------
 # اجرای دوباره از یک کپی موقت (پیش از تجزیهٔ آرگومان‌ها تا گزینه‌ها حفظ شوند)؛
@@ -45,6 +50,14 @@ if [[ "${TIZNET_UPDATE_REEXEC:-0}" != '1' ]]; then
   cat "${BASH_SOURCE[0]}" > "$SELF_COPY"
   TIZNET_UPDATE_REEXEC=1 TIZNET_UPDATE_SELF="$SELF_COPY" exec bash "$SELF_COPY" "$@"
 fi
+
+TMP_DIR=''
+cleanup() {
+  [[ -n "${TMP_DIR:-}" ]] && rm -rf "$TMP_DIR"
+  [[ -n "${SELF_COPY:-}" ]] && rm -f "$SELF_COPY"
+  return 0
+}
+trap cleanup EXIT
 
 while (($#)); do
   case "$1" in
@@ -152,12 +165,6 @@ prompt_token() {
 TMP_DIR=$(mktemp -d /tmp/tiznetvpn-update.XXXXXX)
 NEW_DIR="$TMP_DIR/new"
 mkdir -p "$NEW_DIR"
-cleanup() {
-  rm -rf "$TMP_DIR"
-  [[ -n "${SELF_COPY:-}" ]] && rm -f "$SELF_COPY"
-  return 0
-}
-trap cleanup EXIT
 
 download_release() {
   local dest="$TMP_DIR/release.tar.gz" url
