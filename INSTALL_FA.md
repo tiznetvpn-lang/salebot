@@ -315,6 +315,31 @@ sudo bash /opt/tiznetvpn/update.sh
 
 اگر ترجیح می‌دهید کاملاً دستی عمل کنید: `sudo systemctl stop tiznetvpn.service`، `sudo systemctl start tiznetvpn-dbbackup.service`، جایگزینی محتویات `/opt/tiznetvpn`، اصلاح مجوزها (`root:tiznetvpn`، پوشه `0750`، فایل `0640`) و سپس `sudo systemctl start tiznetvpn.service`.
 
+## بازیابی سریع وقتی ربات یا Mini App از کار افتاده
+
+اول وضعیت را ببینید (هیچ تغییری نمی‌دهد):
+
+```bash
+sudo bash /opt/tiznetvpn/recover.sh --diagnose
+```
+
+سپس بازیابی/نصب تمیز با حفظ توکن ربات و دیتابیس:
+
+```bash
+sudo bash /opt/tiznetvpn/recover.sh --yes
+```
+
+اگر `recover.sh` را ندارید:
+
+```bash
+sudo curl -fsSL -o /opt/tiznetvpn/recover.sh https://raw.githubusercontent.com/tiznetvpn-lang/salebot/main/recover.sh
+sudo chmod 0755 /opt/tiznetvpn/recover.sh
+```
+
+چه می‌کند: بکاپ کامل از کد/env/دیتابیس/Nginx/units → دانلود بسته از GitHub → `node --check` و اجرای تست‌ها → جایگزینی کد (env و دیتابیس بیرون از مسیر نصب‌اند و حفظ می‌شوند) → نصب و فعال‌سازی units → بازسازی کانفیگ Nginx با دامنهٔ درست → بررسی سلامت محلی و HTTPS → گزارش وضعیت ربات و وبهوک. با `--set-webhook` وبهوک هم تنظیم می‌شود.
+
+> اگر `/etc/tiznetvpn/tiznetvpn.env` هم پاک شده باشد، `recover.sh` متوقف می‌شود (چون بدون توکن، ربات بازسازی نمی‌شود). در آن حالت `install.sh` را اجرا کنید و توکن BotFather را دوباره وارد کنید؛ توکن قبلی با ساخت ربات جدید از کار نمی‌افتد.
+
 ## اگر سایت بالا نیامد
 
 ```bash
