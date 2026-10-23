@@ -13,7 +13,7 @@
 | Mini App و دارایی‌ها | پوشهٔ محلی `public/` |
 | HTTPS و Reverse Proxy | Nginx + گواهی Certbot/Let's Encrypt |
 | یادآوری انقضا | systemd timer هر روز ساعت 05:30 UTC |
-| بکاپ KV به تلگرام | systemd timer هر ۱۲ ساعت، در 00:00 و 12:00 UTC |
+| بکاپ KV به تلگرام | systemd timer هر ۳ ساعت (۰۰/۰۳/…/۲۱ UTC) |
 | بکاپ محلی دیتابیس | SQLite snapshot روزانه با نگهداری پیش‌فرض ۱۴ روز |
 
 آداپتور SQLite همان متدهای مورد نیاز کد Worker (`get`، `put`، `delete` و `list`) را فراهم می‌کند؛ بنابراین کد منطق فروش مجبور به بازنویسی یا استفاده از Cloudflare نیست. هیچ وابستگی npm زمان اجرا نصب نمی‌شود؛ SQLite از `node:sqlite` خود Node.js استفاده می‌کند.
@@ -100,7 +100,7 @@ sudo bash /opt/tiznetvpn/update.sh
 - `scripts/setup-webhook.mjs` — انتقال وبهوک Telegram؛ اجرای آن نیازمند گزینهٔ تأیید صریح است.
 - `scripts/run-cron.mjs` — اجرای یادآوری و بکاپ KV از systemd timer.
 - `scripts/backup-sqlite.mjs` — ساخت snapshot محلی SQLite و پاک‌سازی فایل‌های قدیمی.
-- `systemd/` و `nginx/` — فایل‌های نمونهٔ سرویس/تایمر و Reverse Proxy.
+- `systemd/` و `nginx/` — فایل‌های نمونهٔ سرویس/تایمر (بکاپ KV هر ۳ ساعت) و Reverse Proxy.
 - `test/` — تست یکپارچهٔ خرید و تست SQLite.
 
 ## امنیت و نگهداری
