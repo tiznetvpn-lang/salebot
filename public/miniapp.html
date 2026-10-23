@@ -1178,6 +1178,119 @@
     .agent-state-pill { flex:0 0 auto; }
     @media(max-width:900px){.agent-admin-grid{grid-template-columns:minmax(0,1fr)}.agent-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:520px){.agent-stat-grid,.agent-price-grid{grid-template-columns:minmax(0,1fr)}.agent-wallet-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.agent-wallet-controls .admin-field{grid-column:1/-1}.agent-wallet-controls button{width:100%}}
+
+    /* ── نمای مشتری: چیدمان اپ‌مانند با حفظ پالت آبی تیزنت ───────────── */
+    .customer-top { display:none; }
+    .customer-mode .customer-top { display:block; }
+    .customer-mode .main { max-width:600px !important; margin:0 auto; padding-bottom:calc(122px + var(--safe-bottom)) !important; }
+    .customer-mode .topbar { min-height:56px; margin-bottom:12px; border-bottom-color:rgba(127,183,244,.12); }
+    .customer-mode .customer-brand img { height:29px; }
+    .customer-mode .customer-notice { margin-top:12px; }
+
+    .customer-hero { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:17px 18px; border-radius:24px; border:1px solid rgba(127,183,244,.22);
+      background:radial-gradient(240px 150px at 88% -20%, rgba(101,208,247,.24), transparent 72%), linear-gradient(140deg,#0e3a6d,#0a2346 78%);
+      box-shadow:0 18px 44px rgba(0,8,24,.36); }
+    .customer-hero-main { display:flex; align-items:center; gap:12px; min-width:0; }
+    .customer-avatar { width:48px; height:48px; flex:0 0 48px; border-radius:16px; display:grid; place-items:center; font-size:18px; font-weight:850; color:#04152e;
+      background:linear-gradient(140deg,#a6e8ff,#3ea9ea); box-shadow:0 10px 24px rgba(23,120,200,.38); }
+    .customer-hero-copy { min-width:0; }
+    .customer-hero-copy small { display:block; color:#9dc3e8; font-size:11px; }
+    .customer-hero-copy h2 { margin:3px 0 0; font-size:19px; font-weight:850; line-height:1.5; overflow-wrap:anywhere; }
+    .customer-hero-copy p { margin:5px 0 0; color:#a8c3e2; font-size:11px; line-height:1.7; }
+    .customer-refresh { width:40px; height:40px; flex:0 0 40px; border-radius:14px; display:grid; place-items:center; border:1px solid rgba(127,183,244,.3);
+      background:rgba(9,44,82,.72); color:#c3e6ff; cursor:pointer; transition:transform .18s, background .18s; }
+    .customer-refresh svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+    .customer-refresh:active { transform:scale(.94); }
+    .customer-refresh.busy svg { animation:customer-spin .8s linear infinite; }
+    @keyframes customer-spin { to { transform:rotate(360deg); } }
+
+    .customer-kpis { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:12px; }
+    .customer-kpi { padding:13px 14px; border-radius:18px; border:1px solid rgba(127,183,244,.18);
+      background:linear-gradient(150deg,rgba(14,60,113,.86),rgba(7,32,64,.92)); box-shadow:0 10px 26px rgba(0,10,30,.26); }
+    .customer-kpi span { display:block; color:#a4bfe0; font-size:11px; }
+    .customer-kpi strong { display:block; margin-top:6px; font-size:20px; font-weight:850; color:#f2f8ff; overflow-wrap:anywhere; }
+    .customer-kpi strong small { margin-right:4px; color:#9db6d4; font-size:10px; font-weight:650; }
+
+    .customer-quick { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:12px; }
+    .customer-quick-tile { display:flex; align-items:center; gap:11px; min-width:0; padding:13px; border-radius:18px; text-align:right; font:inherit; color:#eaf5ff;
+      border:1px solid rgba(127,183,244,.2); background:linear-gradient(150deg,rgba(15,62,116,.9),rgba(8,36,70,.92)); cursor:pointer;
+      transition:transform .16s, border-color .16s; }
+    .customer-quick-tile:hover { border-color:rgba(136,205,255,.5); }
+    .customer-quick-tile:active { transform:scale(.97); }
+    .customer-quick-icon { width:38px; height:38px; flex:0 0 38px; border-radius:13px; display:grid; place-items:center; color:#9fd8ff;
+      background:rgba(63,160,235,.16); border:1px solid rgba(127,196,255,.24); }
+    .customer-quick-icon svg { width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+    .customer-quick-tile strong { display:block; font-size:12px; font-weight:800; }
+    .customer-quick-tile small { display:block; margin-top:3px; color:#9cb6d6; font-size:10px; }
+
+    .customer-mode .pending-orders { margin:12px 0 0; }
+    .customer-mode .pending-order { align-items:center; gap:12px; padding:13px 14px; border-radius:18px; border:1px solid rgba(246,200,107,.42);
+      background:linear-gradient(120deg,rgba(246,200,107,.15),rgba(8,30,58,.93) 64%); }
+    .pending-order-head { display:flex; align-items:center; gap:10px; min-width:0; }
+    .pending-order-icon { width:36px; height:36px; flex:0 0 36px; border-radius:13px; display:grid; place-items:center; color:#ffd278;
+      background:rgba(246,200,107,.16); border:1px solid rgba(246,200,107,.3); }
+    .pending-order-icon svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+    .customer-mode .pending-order strong { font-size:12px; color:#ffe6b0; }
+    .customer-mode .pending-order small { color:#d9c59b; font-size:10px; }
+    .customer-mode .pending-order .outline-btn { border-color:rgba(246,200,107,.5); background:rgba(246,200,107,.14); color:#ffe1a6; }
+
+    .customer-mode .wallet-card { margin-top:14px; padding:18px; border-radius:22px; border:1px solid rgba(136,205,255,.34);
+      background:radial-gradient(280px 170px at 12% -10%, rgba(120,215,255,.3), transparent 72%), linear-gradient(140deg,#104f92,#0a2a55 82%);
+      box-shadow:0 18px 44px rgba(0,10,32,.44); }
+    .customer-mode .wallet-card .panel-head h3 { font-size:12px; color:#d9edff; }
+    .customer-mode .wallet-card .panel-head p { color:#b9d5f0; }
+    .customer-mode .wallet-card .stat-icon { color:#cdeaff; background:rgba(6,32,64,.35); border-color:rgba(197,227,255,.35); }
+    .customer-mode .wallet-card .stat-value { margin-top:10px; font-size:27px; color:#fff; }
+    .customer-mode .wallet-card .stat-unit { font-size:11px; color:#bcd9f5; }
+    .customer-mode .wallet-card .stat-foot { color:#c3dcf5; font-size:10px; }
+    .customer-mode .wallet-card .mini-note { display:none; }
+    .customer-wallet-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin-top:15px; }
+    .customer-wallet-actions button { min-height:43px; border-radius:13px; font-size:11px; font-weight:800; cursor:pointer; transition:transform .16s, filter .16s; }
+    .customer-wallet-actions button:active { transform:scale(.97); }
+    .customer-wallet-charge { border:0; color:#04152e; background:linear-gradient(110deg,#a6e8ff,#4fb6f0); box-shadow:0 10px 24px rgba(10,90,150,.35); }
+    .customer-wallet-history { border:1px solid rgba(197,227,255,.45); color:#eaf5ff; background:rgba(6,32,64,.4); }
+
+    .customer-mode .plans-grid { grid-template-columns:minmax(0,1fr) !important; gap:10px; }
+    .customer-mode .store-plan { min-height:0; padding:16px; border-radius:20px; border-color:rgba(127,183,244,.24);
+      background:linear-gradient(150deg,rgba(17,66,122,.94),rgba(8,36,70,.95)); box-shadow:0 14px 34px rgba(0,10,30,.3); }
+    .customer-mode .store-plan:hover { transform:none; border-color:rgba(136,205,255,.42); box-shadow:0 14px 34px rgba(0,10,30,.3); }
+    .customer-mode .plan-card-orbit,
+    .customer-mode .plan-summary,
+    .customer-mode .plan-card-foot,
+    .customer-mode .plan-card-emblem { display:none; }
+    .customer-mode .store-plan h3 { margin:7px 0 2px; font-size:17px; }
+    .customer-mode .plan-specs { margin-top:10px; }
+    .customer-mode .store-plan-price-row { margin-top:12px; align-items:center; }
+    .customer-mode .store-plan .btn-primary { margin-top:12px; }
+    .customer-mode .customer-summary { grid-template-columns:minmax(0,1fr) !important; gap:10px; }
+
+    /* تب‌ها به نوار پایین شناور تبدیل می‌شوند (متن و شناسه‌ها بدون تغییر) */
+    .customer-mode .customer-tabs { position:fixed; z-index:40; left:50%; bottom:calc(12px + var(--safe-bottom)); transform:translateX(-50%);
+      width:min(560px,calc(100% - 22px)); margin:0; padding:7px; gap:4px; border-radius:24px; border:1px solid rgba(136,197,255,.26);
+      background:rgba(6,26,52,.94); backdrop-filter:blur(20px); box-shadow:0 18px 45px rgba(0,8,24,.55); }
+    .customer-mode .customer-tabs [role="tab"] { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+      min-height:54px; padding:6px 4px; border:1px solid transparent; border-radius:18px; color:#9fbcdd; font-size:11px; font-weight:750;
+      background:transparent; }
+    .customer-mode .customer-tabs [role="tab"]::before { content:""; width:20px; height:20px; background-color:currentColor;
+      -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-position:center; mask-position:center;
+      -webkit-mask-size:20px 20px; mask-size:20px 20px; }
+    .customer-mode .customer-tabs [data-customer-tab="buy"]::before { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 9.5h16l-1.3-5H5.3L4 9.5ZM5 9.5v9A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5v-9'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 9.5h16l-1.3-5H5.3L4 9.5ZM5 9.5v9A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5v-9'/></svg>"); }
+    .customer-mode .customer-tabs [data-customer-tab="orders"]::before { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M7 3.5h8l4 4V20H5V5a1.5 1.5 0 0 1 2-1.5ZM14 4v4h4M8 12h8M8 16h8'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M7 3.5h8l4 4V20H5V5a1.5 1.5 0 0 1 2-1.5ZM14 4v4h4M8 12h8M8 16h8'/></svg>"); }
+    .customer-mode .customer-tabs [data-customer-tab="history"]::before { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='8'/><path d='M12 8v4l3 2'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='8'/><path d='M12 8v4l3 2'/></svg>"); }
+    .customer-mode .customer-tabs [data-customer-tab="referrals"]::before { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='9' cy='8' r='3.5'/><path d='M2.5 20v-1a6.5 6.5 0 0 1 13 0v1M17 7h4M19 5v4'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='9' cy='8' r='3.5'/><path d='M2.5 20v-1a6.5 6.5 0 0 1 13 0v1M17 7h4M19 5v4'/></svg>"); }
+    .customer-mode .customer-tabs [role="tab"][aria-selected="true"] { color:#04152e; border-color:transparent;
+      background:linear-gradient(135deg,#a9e7ff,#4fb6f0); box-shadow:0 10px 24px rgba(24,126,200,.4); }
+    .customer-mode .customer-tabs [role="tab"]:focus-visible { outline:2px solid #91caff; outline-offset:2px; }
+    .customer-mode .toast { bottom:calc(96px + var(--safe-bottom)); }
+
+    @media (max-width:420px) {
+      .customer-hero { padding:15px; border-radius:22px; }
+      .customer-hero-copy h2 { font-size:17px; }
+      .customer-kpi strong { font-size:18px; }
+      .customer-quick-tile { padding:11px; gap:9px; border-radius:16px; }
+      .customer-quick-icon { width:34px; height:34px; flex-basis:34px; border-radius:12px; }
+      .customer-mode .customer-tabs [role="tab"] { font-size:10px; min-height:50px; }
+    }
   </style>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -1433,6 +1546,34 @@
 
 
     <section class="page hidden" id="storePage">
+      <div class="customer-top">
+        <div class="customer-hero">
+          <div class="customer-hero-main">
+            <span class="customer-avatar" id="customerHeroAvatar" aria-hidden="true">؟</span>
+            <div class="customer-hero-copy"><small>خوش آمدید</small><h2>سلام، <span id="customerGreeting">دوست عزیز</span> 👋</h2><p>سرویس، کیف پول و سفارش‌هایت در یک نگاه</p></div>
+          </div>
+          <button class="customer-refresh" id="customerRefresh" type="button" aria-label="به‌روزرسانی اطلاعات"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg></button>
+        </div>
+        <div class="customer-kpis" id="customerKpis" aria-live="polite">
+          <article class="customer-kpi"><span>اشتراک فعال</span><strong>—<small>سرویس</small></strong></article>
+          <article class="customer-kpi"><span>نزدیک‌ترین انقضا</span><strong>—<small>روز</small></strong></article>
+          <article class="customer-kpi"><span>حجم باقی‌مانده</span><strong>—<small>گیگ</small></strong></article>
+          <article class="customer-kpi"><span>موجودی کیف پول</span><strong>—<small>تومان</small></strong></article>
+        </div>
+        <div class="pending-orders" id="customerPendingOrders"></div>
+        <article class="panel wallet-card" id="customerWalletCard">
+          <div class="panel-head"><div><h3>موجودی کیف پول</h3><p>قابل استفاده برای پرداخت سریع</p></div><span class="stat-icon">◈</span></div>
+          <strong class="stat-value" id="customerBalance">—<span class="stat-unit">تومان</span></strong>
+          <div class="stat-foot"><span>مجموع خریدهای ثبت‌شده</span><span id="customerSpent">—</span></div>
+          <div class="customer-wallet-actions"><button class="customer-wallet-charge" id="customerWalletCharge" type="button">شارژ کیف پول</button><button class="customer-wallet-history" id="customerWalletHistory" type="button">تاریخچه تراکنش‌ها</button></div>
+        </article>
+        <div class="customer-quick">
+          <button class="customer-quick-tile" type="button" data-customer-quick="plans"><span class="customer-quick-icon"><svg viewBox="0 0 24 24"><path d="M4 9.5h16l-1.3-5H5.3L4 9.5ZM5 9.5v9A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5v-9"/></svg></span><span><strong>خرید سرویس</strong><small>انتخاب پلن و پرداخت</small></span></button>
+          <button class="customer-quick-tile" type="button" data-customer-quick="mysubs"><span class="customer-quick-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 10h8M8 14h5"/></svg></span><span><strong>سرویس‌های من</strong><small>وضعیت و مصرف اشتراک</small></span></button>
+          <button class="customer-quick-tile" type="button" data-customer-quick="wallet"><span class="customer-quick-icon"><svg viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H18v3"/><rect x="3" y="8" width="18" height="11" rx="3"/><path d="M16 13.5h2"/></svg></span><span><strong>کیف پول</strong><small>شارژ و تراکنش‌ها</small></span></button>
+          <button class="customer-quick-tile" type="button" data-customer-quick="support"><span class="customer-quick-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/></svg></span><span><strong>پشتیبانی ۲۴</strong><small>گفت‌وگو با تیم تیزنت</small></span></button>
+        </div>
+      </div>
       <div class="customer-tabs" role="tablist" aria-label="بخش‌های حساب مشتری">
         <button id="customerTabButtonBuy" type="button" role="tab" aria-selected="true" aria-controls="customerTabBuy" data-customer-tab="buy">خرید</button>
         <button id="customerTabButtonOrders" type="button" role="tab" aria-selected="false" aria-controls="customerTabOrders" data-customer-tab="orders" tabindex="-1">سفارشات</button>
@@ -1448,12 +1589,10 @@
       <div class="plans-grid" id="customerPlansGrid"><article class="store-plan"><p>برای مشاهدهٔ پلن‌ها، مینی‌اپ را از داخل تلگرام باز کنید.</p></article></div>
       <div class="customer-summary">
         <article class="panel"><div class="panel-head"><div><h3>اشتراک‌های من</h3><p id="customerSubCaption">وضعیت زندهٔ اشتراک‌های شما</p></div><span class="status paid" id="customerSubCount">۰ اشتراک</span></div><div class="customer-sub-list" id="customerSubsList"><div class="empty-state">برای نمایش اشتراک‌ها، مینی‌اپ را از داخل ربات باز کنید.</div></div></article>
-        <article class="panel"><div class="panel-head"><div><h3>موجودی کیف پول</h3><p>قابل استفاده برای پرداخت سریع</p></div><span class="stat-icon">◈</span></div><strong class="stat-value" style="font-size:22px;margin-top:18px" id="customerBalance">—<span class="stat-unit">تومان</span></strong><div class="stat-foot" style="margin-top:8px"><span>مجموع خریدهای ثبت‌شده</span><span id="customerSpent">—</span></div><div class="mini-note" style="margin-top:12px">در صورت کمبود موجودی، پرداخت بانکی را در همین صفحه انتخاب کنید.</div></article>
       </div>
       <div class="customer-notice" id="customerNotice">🔒 پرداخت بانکی با مبلغ تومان و معادل ریالی روشن انجام می‌شود؛ رسید دستی برای تأیید ادمین همین‌جا ثبت می‌شود.</div>
       </section>
       <section class="customer-tab-panel" id="customerTabOrders" role="tabpanel" aria-labelledby="customerTabButtonOrders" hidden>
-      <div class="pending-orders" id="customerPendingOrders"></div>
       <article class="panel customer-history-panel">
         <div class="panel-head"><div><h3>سابقه و پیگیری سفارش‌ها</h3><p>خرید و تمدید؛ وضعیت سفارش‌های باز را از همین‌جا ببینید.</p></div><span class="status pending">۵۰ مورد اخیر</span></div>
         <div class="table-wrap customer-history-table"><table><thead><tr><th>شناسه</th><th>نوع</th><th>پلن / سرور</th><th>مبلغ</th><th>روش</th><th>تاریخ</th><th>وضعیت</th><th>پیگیری</th></tr></thead><tbody id="customerOrdersBody"><tr><td colspan="8" style="text-align:center;color:#8798b2;padding:24px">برای نمایش سابقه، مینی‌اپ را از داخل تلگرام باز کنید.</td></tr></tbody></table></div>
@@ -1576,6 +1715,8 @@
     let livePollBusy = false;
     let dashboardDrill = null;
     let subscriptionActionContext = null;
+    let botUsername = '';
+    let supportUsername = '';
 
     function toast(text) {
       const el=document.getElementById('toast');
@@ -1718,6 +1859,7 @@
     function setCustomerTab(tab) {
       const allowed=['buy','orders','history','referrals'];
       if(!allowed.includes(tab))return;
+      const changed=customerTab!==tab;
       customerTab=tab;
       document.querySelectorAll('[data-customer-tab]').forEach(button=>{
         const active=button.dataset.customerTab===tab;
@@ -1725,6 +1867,7 @@
         button.tabIndex=active?0:-1;
       });
       document.querySelectorAll('.customer-tab-panel').forEach(panel=>{panel.hidden=panel.id!=='customerTab'+tab.charAt(0).toUpperCase()+tab.slice(1);});
+      if(changed&&isCustomer&&document.body.classList.contains('customer-mode'))window.scrollTo({top:0,behavior:'smooth'});
     }
     function setRole(customer) {
       if(liveMode&&!adminRole) customer=true;
@@ -2275,8 +2418,32 @@
       const note=document.getElementById('planDataNote');if(note)note.textContent='پیش‌نمایش طراحی: آمار و قیمت‌ها نمونه‌ای هستند.';
     }
     function renderPreviewCustomer() {
-      const demo={customer:{first_name:'مریم',username:'maryam_a',tg_id:'1001',balance:250000,total_spent:1180000},referral:{referral_code:'DEMO1234',invite_link:'https://t.me/TiznetVPNBot?start=ref_DEMO1234',joined_count:2,points_balance:85,purchase_count:4,free_rewards_available:0,next_reward_progress:2,free_reward_ready:false,free_reward_panel_ready:true},subscriptions:[{sid:'DEMO',panel_id:'DEMO-DE',plan_id:'DEMO-PLUS',panel_name:'آلمان',plan_name:'ویژه · ۳۰ روزه',status:'active',status_label:'فعال',usage_used:28.4,usage_total:50,usage_unlimited:false,usage_remaining:21.6,days_remaining:14,expires_at:new Date(Date.now()+14*86400000).toISOString(),link:''}],orders:[{id:'TZN-1042',type:'renew',type_label:'تمدید',plan:'ویژه · آلمان',amount:590000,method:'کیف پول',status:'approved',status_label:'تکمیل‌شده',created_at:Date.now()-3600000},{id:'TZN-1041',type:'buy',type_label:'خرید جدید',plan:'اقتصادی · ترکیه',amount:390000,method:'خودکار',status:'approved',status_label:'تکمیل‌شده',created_at:Date.now()-7200000}],transactions:[{id:'TZN-1042',kind:'sale',label:'تمدید',description:'ویژه · آلمان',amount:590000,direction:'out',method:'کیف پول',status:'approved',status_label:'تکمیل‌شده',created_at:Date.now()-3600000},{id:'WT-1001',kind:'wallet_topup',label:'شارژ کیف پول',description:'کارت‌به‌کارت دستی',amount:250000,direction:'in',method:'دستی',status:'approved',status_label:'تکمیل‌شده',created_at:Date.now()-86400000}],transactions_partial:false,orders_partial:false,plans:[{panel_id:'DEMO-DE',plan_id:'DEMO-ECO',panel_name:'آلمان',title:'اقتصادی',gb:30,days:30,price:390000},{panel_id:'DEMO-DE',plan_id:'DEMO-PLUS',panel_name:'آلمان',title:'ویژه',gb:50,days:30,price:590000},{panel_id:'DEMO-NL',plan_id:'DEMO-PRO',panel_name:'هلند',title:'حرفه‌ای',gb:120,days:90,price:1490000}]};
+      const demo={customer:{first_name:'مریم',username:'maryam_a',tg_id:'1001',balance:250000,total_spent:1180000},referral:{referral_code:'DEMO1234',invite_link:'https://t.me/TiznetVPNBot?start=ref_DEMO1234',joined_count:2,points_balance:85,purchase_count:4,free_rewards_available:0,next_reward_progress:2,free_reward_ready:false,free_reward_panel_ready:true},subscriptions:[{sid:'DEMO',panel_id:'DEMO-DE',plan_id:'DEMO-PLUS',panel_name:'آلمان',plan_name:'ویژه · ۳۰ روزه',status:'active',status_label:'فعال',usage_used:28.4,usage_total:50,usage_unlimited:false,usage_remaining:21.6,days_remaining:14,expires_at:new Date(Date.now()+14*86400000).toISOString(),link:''}],orders:[{id:'TZN-1042',type:'renew',type_label:'تمدید',plan:'ویژه · آلمان',amount:590000,method:'کیف پول',status:'approved',status_label:'تکمیل‌شده',created_at:Date.now()-3600000},{id:'TZN-1041',type:'buy',type_label:'خرید جدید',plan:'اقتصادی · ترکیه',amount:390000,method:'خودکار',status:'approved',status_label:'تکمیل‌شده',created_at:Date.now()-7200000}],transactions:[{id:'TZN-1042',kind:'sale',label:'تمدید',description:'ویژه · آلمان',amount:590000,direction:'out',method:'کیف پول',status:'approved',status_label:'تکمیل‌شده',created_at:Date.now()-3600000},{id:'WT-1001',kind:'wallet_topup',label:'شارژ کیف پول',description:'کارت‌به‌کارت دستی',amount:250000,direction:'in',method:'دستی',status:'approved',status_label:'تکمیل‌شده',created_at:Date.now()-86400000}],transactions_partial:false,orders_partial:false,pending_orders:[{id:'DEMO-1043',type:'charge',type_label:'شارژ کیف پول',plan:'شارژ کیف پول',amount:100000,pay_amount:100000,method:'دستی',payment_method:'manual',status:'pending',status_label:'در انتظار',created_at:Date.now()-900000}],plans:[{panel_id:'DEMO-DE',plan_id:'DEMO-ECO',panel_name:'آلمان',title:'اقتصادی',gb:30,days:30,price:390000},{panel_id:'DEMO-DE',plan_id:'DEMO-PLUS',panel_name:'آلمان',title:'ویژه',gb:50,days:30,price:590000},{panel_id:'DEMO-NL',plan_id:'DEMO-PRO',panel_name:'هلند',title:'حرفه‌ای',gb:120,days:90,price:1490000}]};
       renderCustomer(demo,true);
+    }
+    function renderCustomerOverview(data,isPreview) {
+      const info=data||{};
+      const c=info.customer||{};
+      const displayName=String(c.first_name||'').trim()||(c.username?'@'+String(c.username):'دوست عزیز');
+      const greeting=document.getElementById('customerGreeting');if(greeting)greeting.textContent=displayName;
+      const avatar=document.getElementById('customerHeroAvatar');if(avatar)avatar.textContent=initials(c.first_name||c.username||'؟');
+      if(info.support) supportUsername=String(info.support).replace(/^@/,'');
+      const subs=Array.isArray(info.subscriptions)?info.subscriptions:[];
+      const active=subs.filter(s=>s&&s.status==='active');
+      const days=active.map(s=>s.days_remaining).filter(v=>v!=null&&Number.isFinite(Number(v))).map(Number);
+      const nearest=days.length?Math.min(...days):null;
+      const remaining=active.map(s=>Number(s.usage_remaining)).filter(v=>Number.isFinite(v)&&v>=0);
+      const totalRemaining=remaining.length?remaining.reduce((a,b)=>a+b,0):null;
+      const kpis=[
+        {label:'اشتراک فعال',value:fmt(active.length),unit:'سرویس'},
+        {label:'نزدیک‌ترین انقضا',value:nearest==null?'—':fmt(nearest),unit:nearest==null?'':'روز'},
+        {label:'حجم باقی‌مانده',value:totalRemaining==null?'—':fmtDec(totalRemaining),unit:totalRemaining==null?'':'گیگ'},
+        {label:'موجودی کیف پول',value:fmt(c.balance||0),unit:'تومان'}
+      ];
+      const box=document.getElementById('customerKpis');
+      if(box)box.innerHTML=kpis.map(item=>`<article class="customer-kpi"><span>${esc(item.label)}</span><strong>${esc(item.value)}${item.unit?`<small>${esc(item.unit)}</small>`:''}</strong></article>`).join('');
+      const hero=document.querySelector('.customer-hero');
+      if(hero)hero.classList.toggle('preview-data',!!isPreview);
     }
     function renderCustomerOrders(orders, partial) {
       const body=document.getElementById('customerOrdersBody');
@@ -2309,7 +2476,7 @@
       if(!box)return;
       box.innerHTML=rows.map(o=>{
         const exact=o.pay_amount!=null?money(o.pay_amount):money(o.amount||0);
-        return `<article class="pending-order"><div><strong>سفارش در انتظار · ${esc(o.plan||typeText(o))}</strong><small>#${esc(o.id)} · ${esc(exact)} · ${esc(o.method||'در انتظار پرداخت')}</small></div><button class="outline-btn" data-track-order="${esc(o.id)}">پیگیری سفارش</button></article>`;
+        return `<article class="pending-order"><div class="pending-order-head"><span class="pending-order-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></svg></span><div><strong>سفارش در انتظار پرداخت · ${esc(o.plan||typeText(o))}</strong><small>#${esc(o.id)} · ${esc(exact)} · ${esc(o.method||'در انتظار پرداخت')}</small></div></div><button class="outline-btn" data-track-order="${esc(o.id)}">پیگیری سفارش</button></article>`;
       }).join('');
     }
     function customerFreeErrorText(code) {
@@ -2447,7 +2614,7 @@
       renderPendingOrders(data.pending_orders||[]);
       const c=data.customer||{};
       updateAccountTrigger(c);
-      const greeting=document.getElementById('customerGreeting');if(greeting)greeting.textContent=c.first_name||'دوست عزیز';
+      renderCustomerOverview(data,isPreview);
       const balance=document.getElementById('customerBalance');if(balance)balance.innerHTML=esc(fmt(c.balance||0))+'<span class="stat-unit">تومان</span>';
       const spent=document.getElementById('customerSpent');if(spent)spent.textContent=money(c.total_spent||0);
       const subs=Array.isArray(data.subscriptions)?data.subscriptions:[];
@@ -3046,6 +3213,30 @@
       if(parsed.protocol!=='https:')return;
       if(tg&&typeof tg.openLink==='function')tg.openLink(parsed.toString());else window.open(parsed.toString(),'_blank','noopener,noreferrer');
     }
+    function openTelegramTarget(url) {
+      let parsed;try{parsed=new URL(url);}catch(_){return false;}
+      if(parsed.protocol!=='https:')return false;
+      if(tg&&typeof tg.openTelegramLink==='function'){tg.openTelegramLink(parsed.toString());return true;}
+      if(tg&&typeof tg.openLink==='function'){tg.openLink(parsed.toString());return true;}
+      window.open(parsed.toString(),'_blank','noopener,noreferrer');return true;
+    }
+    function openCustomerBot(payload) {
+      const user=String(botUsername||'').replace(/^@/,'').trim();
+      if(!user){toast('نام کاربری ربات تنظیم نشده؛ این بخش را از داخل تلگرام باز کنید.');return;}
+      openTelegramTarget('https://t.me/'+user+(payload?'?start='+encodeURIComponent(payload):''));
+    }
+    function openCustomerSupport() {
+      const handle=String(supportUsername||'').replace(/^@/,'').trim();
+      if(!handle){toast('شناسهٔ پشتیبانی هنوز توسط مدیریت تنظیم نشده است.');return;}
+      openTelegramTarget('https://t.me/'+handle);
+    }
+    function handleCustomerQuick(kind) {
+      if(kind==='support'){openCustomerSupport();return;}
+      if(kind==='wallet'){document.getElementById('customerWalletCard')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
+      setCustomerTab('buy');
+      const target=document.getElementById(kind==='mysubs'?'customerSubsList':'storePlans');
+      if(target)target.scrollIntoView({behavior:'smooth',block:'start'});
+    }
     function setNavForRole() {
       const visible=page=>!liveMode?!['agents','agent'].includes(page):(adminRole?['overview','orders','customers','agents','plans','servers','store','settings'].includes(page):agentRole?page==='agent':page==='store');
       document.querySelectorAll('#sideNav [data-page],#mobileNav [data-page]').forEach(b=>{b.style.display=visible(b.dataset.page)?'':'none';});
@@ -3118,6 +3309,17 @@
     document.getElementById('planCreate').addEventListener('click',()=>{if(!livePanels.length)loadManagedPlans().then(()=>openPlanEditor(null)).catch(()=>toast('فهرست سرورها بارگذاری نشد.'));else openPlanEditor(null);});
     document.getElementById('settingsForm').addEventListener('submit',e=>{e.preventDefault();saveSettingsForm(e.target);});
     document.getElementById('customerFreeClaim').addEventListener('click',()=>claimFreeSubscription());
+    document.getElementById('customerRefresh').addEventListener('click',async e=>{
+      const button=e.currentTarget;if(!button)return;
+      button.classList.add('busy');
+      try{
+        if(liveMode){await loadCustomer();toast('اطلاعات به‌روزرسانی شد.');}
+        else {renderPreviewCustomer();toast('پیش‌نمایش با دادهٔ نمونه به‌روزرسانی شد.');}
+      }catch(_){toast('به‌روزرسانی انجام نشد؛ دوباره تلاش کنید.');}
+      finally{setTimeout(()=>button.classList.remove('busy'),700);}
+    });
+    document.getElementById('customerWalletCharge').addEventListener('click',()=>openCustomerBot('miniapp_wallet'));
+    document.getElementById('customerWalletHistory').addEventListener('click',()=>{setCustomerTab('history');window.scrollTo({top:0,behavior:'smooth'});});
     document.getElementById('referralCopyLink').addEventListener('click',()=>copyReferralLink());
     document.getElementById('referralShareLink').addEventListener('click',()=>shareReferralLink());
     document.getElementById('referralRedeemButton').addEventListener('click',()=>redeemCustomerReferralPoints());
@@ -3171,6 +3373,7 @@
       const link=e.target.closest('[data-web-url]');if(link){e.preventDefault();openExternal(link.dataset.webUrl);return;}
       const buy=e.target.closest('[data-buy-panel]');if(buy){openPlanCheckout(buy.dataset.buyPanel,buy.dataset.buyPlan,'');return;}
       const renew=e.target.closest('[data-renew-sub]');if(renew){openPlanCheckout(renew.dataset.panelId,renew.dataset.planId,renew.dataset.renewSub);return;}
+      const quickTile=e.target.closest('[data-customer-quick]');if(quickTile){handleCustomerQuick(quickTile.dataset.customerQuick);return;}
       const follow=e.target.closest('[data-track-order]');if(follow){openOrderTracking(follow.dataset.trackOrder);return;}
       const method=e.target.closest('[data-pay-method]');if(method&&!method.disabled){startCheckout(method.dataset.payMethod);return;}
       const retry=e.target.closest('[data-retry-checkout]');if(retry&&checkoutContext){startCheckout(checkoutContext.method);return;}
@@ -3209,6 +3412,7 @@
       try {
         const boot=await api('/api/miniapp/bootstrap');
         liveMode=true;profile=boot.profile||{};adminRole=boot.role==='admin';agentRole=boot.role==='agent';
+        botUsername=String(boot.bot_username||'');supportUsername=String(boot.support||'').replace(/^@/,'');
         setNavForRole();
         const toggle=document.getElementById('roleToggle');
         if(toggle){toggle.style.display=adminRole?'':'none';toggle.textContent='نمای مشتری';}
