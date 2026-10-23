@@ -24,6 +24,7 @@ BACKUP_DIR="${TIZNET_BACKUP_DIR:-/var/backups/tiznetvpn}"
 SERVICE="${TIZNET_SERVICE:-tiznetvpn.service}"
 REF="${TIZNET_REF:-main}"
 SERVICE_USER="${TIZNET_SERVICE_USER:-tiznetvpn}"
+SERVICE_GROUP="${TIZNET_SERVICE_GROUP:-}"
 DRY_RUN=0
 ASSUME_YES=0
 DO_ROLLBACK=0
@@ -33,6 +34,17 @@ warn() { printf '\033[1;33m[update] هشدار:\033[0m %s\n' "$*" >&2; }
 fail() { printf '\n\033[1;31m[update] خطا:\033[0m %s\n' "$*" >&2; exit 1; }
 
 usage() { sed -n '2,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+
+# ---------------------------------------------------------------------------
+# اجرای دوباره از یک کپی موقت (پیش از تجزیهٔ آرگومان‌ها تا گزینه‌ها حفظ شوند)؛
+# چون محتویات INSTALL_DIR — از جمله همین فایل — جایگزین می‌شود.
+# ---------------------------------------------------------------------------
+SELF_COPY="${TIZNET_UPDATE_SELF:-}"
+if [[ "${TIZNET_UPDATE_REEXEC:-0}" != '1' ]]; then
+  SELF_COPY=$(mktemp /tmp/tiznetvpn-update.XXXXXX.sh)
+  cat "${BASH_SOURCE[0]}" > "$SELF_COPY"
+  TIZNET_UPDATE_REEXEC=1 TIZNET_UPDATE_SELF="$SELF_COPY" exec bash "$SELF_COPY" "$@"
+fi
 
 while (($#)); do
   case "$1" in
@@ -54,29 +66,33 @@ command -v curl >/dev/null 2>&1 || fail 'curl نصب نیست: apt-get install -
 command -v tar  >/dev/null 2>&1 || fail 'tar نصب نیست.'
 command -v node >/dev/null 2>&1 || fail 'Node.js پیدا نشد؛ نصب اولیه را بررسی کنید.'
 
-# ---------------------------------------------------------------------------
-# اجرای دوباره از یک کپی موقت؛ چون محتویات INSTALL_DIR (همین فایل) جایگزین می‌شود.
-# ---------------------------------------------------------------------------
-SELF_COPY="${TIZNET_UPDATE_SELF:-}"
-if [[ "${TIZNET_UPDATE_REEXEC:-0}" != '1' ]]; then
-  SELF_COPY=$(mktemp /tmp/tiznetvpn-update.XXXXXX.sh)
-  cat "${BASH_SOURCE[0]}" > "$SELF_COPY"
-  TIZNET_UPDATE_REEXEC=1 TIZNET_UPDATE_SELF="$SELF_COPY" \
-    TIZNET_REPO="$REPO" TIZNET_REF="$REF" \
-    exec bash "$SELF_COPY" "$@"
+if [[ -z "$SERVICE_GROUP" ]]; then
+  if id -g "$SERVICE_USER" >/dev/null 2>&1; then
+    SERVICE_GROUP="$SERVICE_USER"
+  else
+    SERVICE_GROUP='root'
+    warn "گروه سرویس «$SERVICE_USER» وجود ندارد؛ مالکیت فایل‌ها با root:root تنظیم می‌شود."
+  fi
 fi
+
+
 
 # ---------------------------------------------------------------------------
 # بازگشت به آخرین بکاپ کد
 # ---------------------------------------------------------------------------
 latest_code_backup() { ls -1t "$BACKUP_DIR"/code-*.tar.gz 2>/dev/null | head -n1; }
 
+unit_available() {
+  [[ -d /run/systemd/system ]] && command -v systemctl >/dev/null 2>&1 \
+    && systemctl cat "$SERVICE" >/dev/null 2>&1
+}
+
 restart_service() {
-  if [[ -d /run/systemd/system ]] && command -v systemctl >/dev/null 2>&1; then
+  if unit_available; then
     systemctl restart "$SERVICE" || return 1
     return 0
   fi
-  warn 'systemd در دسترس نیست؛ سرویس ری‌استارت نشد.'
+  warn "unit «$SERVICE» در systemd ثبت نشده؛ ری‌استارت خودکار انجام نشد."
   return 0
 }
 
@@ -96,7 +112,7 @@ if (( DO_ROLLBACK )); then
   say "بازگشت به بکاپ: $BACKUP"
   find "$INSTALL_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
   tar -xzf "$BACKUP" -C "$INSTALL_DIR"
-  chown -R root:"$SERVICE_USER" "$INSTALL_DIR" 2>/dev/null || true
+  chown -R root:"$SERVICE_GROUP" "$INSTALL_DIR" 2>/dev/null || true
   find "$INSTALL_DIR" -type d -exec chmod 0750 {} \; 2>/dev/null || true
   find "$INSTALL_DIR" -type f -exec chmod 0640 {} \; 2>/dev/null || true
   restart_service || warn 'ری‌استارت سرویس ناموفق بود.'
@@ -244,7 +260,7 @@ rollback() {
   set +e
   find "$INSTALL_DIR" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
   tar -xzf "$CODE_BACKUP" -C "$INSTALL_DIR"
-  chown -R root:"$SERVICE_USER" "$INSTALL_DIR" 2>/dev/null
+  chown -R root:"$SERVICE_GROUP" "$INSTALL_DIR" 2>/dev/null
   find "$INSTALL_DIR" -type d -exec chmod 0750 {} \; 2>/dev/null
   find "$INSTALL_DIR" -type f -exec chmod 0640 {} \; 2>/dev/null
   restart_service
@@ -271,7 +287,7 @@ for keep in .env data node_modules; do
   fi
 done
 
-chown -R root:"$SERVICE_USER" "$INSTALL_DIR"
+chown -R root:"$SERVICE_GROUP" "$INSTALL_DIR"
 find "$INSTALL_DIR" -type d -exec chmod 0750 {} \;
 find "$INSTALL_DIR" -type f -exec chmod 0640 {} \;
 chmod 0750 "$INSTALL_DIR/update.sh" "$INSTALL_DIR/install.sh" 2>/dev/null || true
@@ -289,7 +305,7 @@ if [[ -d /run/systemd/system ]] && command -v systemctl >/dev/null 2>&1; then
     fi
   done < <(find "$INSTALL_DIR/systemd" -maxdepth 1 -type f \( -name '*.service' -o -name '*.timer' \))
   (( UNIT_CHANGED )) && systemctl daemon-reload || true
-  systemctl restart "$SERVICE" || { rollback; fail 'ری‌استارت سرویس ناموفق بود.'; }
+  restart_service || { rollback; fail 'ری‌استارت سرویس ناموفق بود.'; }
 else
   warn 'systemd فعال نیست؛ سرویس را دستی ری‌استارت کنید.'
 fi
