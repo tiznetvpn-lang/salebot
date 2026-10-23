@@ -1,0 +1,24 @@
+Copyright (c) 2026 TiznetVPN — All rights reserved.
+
+این نرم‌افزار و کلیهٔ فایل‌های همراه آن (کد، مستندات، طرح رابط کاربری و دارایی‌های
+تصویری) دارایی اختصاصی TiznetVPN است.
+
+هیچ بخشی از این پروژه، بدون اجازهٔ کتبی صاحب حق، مجاز به کپی، توزیع، انتشار عمومی،
+فروش مجدد، تغییر، یا استفاده در محصول دیگر نیست. استفادهٔ مجاز صرفاً برای اجرای
+نمونهٔ خریداری‌شده/تحویل‌شده توسط خود صاحب امتیاز روی سرور خودش است.
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE
+USE OF THIS SOFTWARE.
+
+--- Third-party components (not covered by the notice above) ---
+
+* QR Code Generator for JavaScript — Copyright (c) 2009 Kazuhiko Arase,
+  MIT License. Full text: src/vendor/QRCODE-MIT.txt
+* Vazirmatn font — SIL Open Font License 1.1. Full text: public/assets/Vazirmatn-OFL.txt
+* Yekan font — SIL Open Font License 1.1. Full text: public/assets/Yekan-OFL.txt
+
+Third-party components remain under their own licenses and their notices must be
+kept intact when this project is deployed or redistributed.

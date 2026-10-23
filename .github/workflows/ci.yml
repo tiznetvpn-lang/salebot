@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'arena/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: tests (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['24.x']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Shell syntax (installer / updater)
+        run: |
+          bash -n install.sh
+          bash -n update.sh
+
+      - name: Syntax check (app)
+        run: npm run check
+
+      - name: Integration tests (bot + Mini App API)
+        run: npm run test:worker
+
+      - name: SQLite KV tests
+        run: npm run test:sqlite
+
+      - name: Guard — no secrets committed
+        run: |
+          if git grep -nE '[0-9]{8,10}:AA[A-Za-z0-9_-]{30,}' -- . ':!.github' ; then
+            echo '::error::A Telegram bot token pattern was found in the repository.'
+            exit 1
+          fi
+          if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+            echo '::error::.env must never be committed.'
+            exit 1
+          fi
