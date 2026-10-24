@@ -10,6 +10,8 @@
 #
 #   --ref main            شاخه/تگ/کامیت مبدأ (پیش‌فرض: main)
 #   --repo OWNER/REPO     مخزن مبدأ
+#   --domain NAME         دامنهٔ سایت؛ Nginx و گواهی HTTPS را برای همین دامنه اصلاح می‌کند
+#   --email ADDR          ایمیل Certbot (اگر قبلاً حساب Let's Encrypt ساخته شده لازم نیست)
 #   --dry-run             فقط دانلود و تست؛ چیزی روی سرور تغییر نمی‌کند
 #   --yes                 بدون پرسش تأیید
 #   --rollback            بازگشت به آخرین بکاپ کد در /var/backups/tiznetvpn
@@ -28,6 +30,8 @@ SERVICE_GROUP="${TIZNET_SERVICE_GROUP:-}"
 DRY_RUN=0
 ASSUME_YES=0
 DO_ROLLBACK=0
+DOMAIN_ARG="${TIZNET_DOMAIN:-}"
+CERTBOT_EMAIL="${TIZNET_CERTBOT_EMAIL:-}"
 
 say()  { printf '\n\033[1;36m[update]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[update] هشدار:\033[0m %s\n' "$*" >&2; }
@@ -64,6 +68,8 @@ while (($#)); do
     --ref)      [[ $# -ge 2 ]] || fail 'مقدار --ref داده نشد.'; REF=$2; shift 2 ;;
     --repo)     [[ $# -ge 2 ]] || fail 'مقدار --repo داده نشد.'; REPO=$2; shift 2 ;;
     --dry-run)  DRY_RUN=1; shift ;;
+    --domain)   [[ $# -ge 2 ]] || fail 'مقدار --domain داده نشد.'; DOMAIN_ARG=$2; shift 2 ;;
+    --email)    [[ $# -ge 2 ]] || fail 'مقدار --email داده نشد.'; CERTBOT_EMAIL=$2; shift 2 ;;
     --yes|-y)   ASSUME_YES=1; shift ;;
     --rollback) DO_ROLLBACK=1; shift ;;
     -h|--help)  usage; exit 0 ;;
@@ -338,7 +344,7 @@ done
 chown -R root:"$SERVICE_GROUP" "$INSTALL_DIR"
 find "$INSTALL_DIR" -type d -exec chmod 0750 {} \;
 find "$INSTALL_DIR" -type f -exec chmod 0640 {} \;
-chmod 0750 "$INSTALL_DIR/update.sh" "$INSTALL_DIR/install.sh" "$INSTALL_DIR/scripts/check-shetab.sh" 2>/dev/null || true
+chmod 0750 "$INSTALL_DIR/update.sh" "$INSTALL_DIR/install.sh" "$INSTALL_DIR/scripts/check-shetab.sh" "$INSTALL_DIR/scripts/fix-domain.sh" 2>/dev/null || true
 
 # ---------------------------------------------------------------------------
 # systemd (فقط اگر واقعاً تغییر کرده باشد)
@@ -394,8 +400,35 @@ if [[ -n "$LIVE_VERSION" && "$LIVE_VERSION" != "$NEW_VERSION" ]]; then
   warn "نسخهٔ گزارش‌شده توسط سرویس (${LIVE_VERSION}) با بستهٔ ${NEW_VERSION} یکی نیست."
 fi
 
-if grep -q '__DOMAIN__' /etc/nginx/sites-available/tiznetvpn 2>/dev/null; then
-  warn 'فایل Nginx هنوز دامنهٔ واقعی ندارد. یک‌بار مقدار __DOMAIN__ را با دامنهٔ خود جایگزین کنید.'
+# ---------------------------------------------------------------------------
+# دامنه و HTTPS — اصلاح خودکار (جای‌نگهدار Nginx، گواهی، env)
+# ---------------------------------------------------------------------------
+DOMAIN_HINT="$DOMAIN_ARG"
+if [[ -z "$DOMAIN_HINT" ]]; then
+  DOMAIN_HINT=$(grep -E '^PUBLIC_BASE_URL=' "$ENV_FILE" 2>/dev/null | tail -n1 \
+    | sed -E 's#^PUBLIC_BASE_URL=##; s#^"?https?://##; s#[:/].*$##; s#"$##' || true)
+fi
+if [[ -z "$DOMAIN_HINT" && -f /etc/nginx/sites-available/tiznetvpn ]]; then
+  DOMAIN_HINT=$(awk '/^[[:space:]]*server_name/ { gsub(/;/,"",$2); print $2; exit }' /etc/nginx/sites-available/tiznetvpn 2>/dev/null || true)
+  [[ "$DOMAIN_HINT" == '__DOMAIN__' ]] && DOMAIN_HINT=''
+fi
+FIX_DOMAIN_SH="$INSTALL_DIR/scripts/fix-domain.sh"
+if [[ ! -f "$FIX_DOMAIN_SH" ]]; then
+  warn 'اسکریپت اصلاح دامنه پیدا نشد؛ فقط وضعیت Nginx را گزارش می‌کنم.'
+  grep -q '__DOMAIN__' /etc/nginx/sites-available/tiznetvpn 2>/dev/null \
+    && warn 'فایل Nginx هنوز __DOMAIN__ دارد؛ دامنه روی این سرور پاسخ نمی‌دهد.'
+elif [[ -z "$DOMAIN_HINT" ]]; then
+  warn 'دامنه‌ای برای اصلاح پیدا نشد؛ اجرا کنید: sudo bash '"$FIX_DOMAIN_SH"' bot.example.com'
+else
+  say "اصلاح و بررسی دامنه: ${DOMAIN_HINT}"
+  FIX_ARGS=("$DOMAIN_HINT")
+  [[ -n "$CERTBOT_EMAIL" ]] && FIX_ARGS+=(--email "$CERTBOT_EMAIL")
+  (( DRY_RUN )) && FIX_ARGS+=(--check)
+  if bash "$FIX_DOMAIN_SH" "${FIX_ARGS[@]}"; then
+    say 'دامنه بررسی شد.'
+  else
+    warn "اصلاح کامل نشد؛ جزئیات بالا را ببینید. اجرای دوباره: sudo bash ${FIX_DOMAIN_SH} ${DOMAIN_HINT}"
+  fi
 fi
 
 say "به‌روزرسانی به ${NEW_VERSION} کامل شد."

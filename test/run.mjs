@@ -125,6 +125,8 @@ let tgRejectDecorated = 0; // اگر > 0 باشد، اولین پیام با د�
 let midSeq = 100;
 globalThis.fetch = async (url, init = {}) => {
   const u = String(url);
+  // آزمون دامنه از سمت سرور: خود Worker آدرس عمومی را صدا می‌زند.
+  if (u === 'https://bot.tiznet.site/healthz') return Response.json({ ok: true, version: pkgVersion }, { status: 200 });
   if (u.startsWith('https://api.telegram.org/file/botTEST/')) return new Response(new Uint8Array([137,80,78,71,13,10,26,10]), { status: 200, headers: { 'Content-Type': 'image/png' } });
   if (u.startsWith('https://api.telegram.org/')) {
     const method = u.split('/').pop();
@@ -157,6 +159,7 @@ globalThis.fetch = async (url, init = {}) => {
     }
     if (method === 'getFile') return Response.json({ ok: true, result: { file_path: 'photos/receipt.png' } });
     if (method === 'setWebhook') return Response.json({ ok: true, result: true });
+    if (method === 'getWebhookInfo') return Response.json({ ok: true, result: { url: 'https://bot.tiznet.site/webhook', pending_update_count: 0 } });
     if (method === 'sendMessage' || method === 'sendDocument')
       return Response.json({ ok: true, result: { message_id: ++midSeq, chat: { id: params.chat_id } } });
     if (method === 'sendPhoto')
@@ -476,7 +479,7 @@ assert((await kvJson('cfg')).card_manual_enabled === false, 'ادمین کارت
 await press(U1, 'buy');
 await press(U1, 'bp:' + pid);
 await press(U1, `bl:${pid}:${plid}`);
-assert(!JSON.stringify(lastMsgTo(U1, 'editMessageText').params.reply_markup).includes('payc:'), 'روش دستی خاموش از صفحه پرداخت مخفی شد');
+assert(!JSON.stringify(lastMsgTo(U1, 'editMessageText').params.reply_markup || {}).includes('payc:'), 'روش دستی خاموش از صفحه پرداخت مخفی شد');
 await press(U1, `payc:${pid}:${plid}`);
 assert(lastMsgTo(U1).params.text.includes('غیرفعال شده'), 'callback قدیمی روش دستی خاموش را نمی‌تواند اجرا کند');
 await press(ADMIN, 'a_set');
@@ -584,8 +587,7 @@ assert(w1.status === 'approved' && (await kvJson('u:' + U1)).balance === balBefo
 // رد سفارش و کپی مبلغ ریالی در مسیر دستی
 await press(U2, `payc:${pid}:${plid}`);
 const manualPayMsg = lastMsgTo(U2);
-const manualCopy = manualPayMsg.params.reply_markup.inline_keyboard.flat().find((b) => b.copy_text);
-assert(manualCopy && manualCopy.copy_text.text === '1200000' && manualPayMsg.params.text.includes('1,200,000 ریال'), 'پرداخت دستی معادل ریالی و دکمهٔ کپی را نشان می‌دهد');
+assert(!manualPayMsg.params.reply_markup?.inline_keyboard && manualPayMsg.params.text.includes('1,200,000 ریال'), 'پرداخت دستی معادل ریالی را در متن نشان می‌دهد و دکمهٔ شیشه‌ای ندارد');
 await sendText(U2, 'رسید تستی رد');
 const pend3 = await kvJson('pend');
 const roid = pend3[pend3.length - 1];
@@ -677,16 +679,15 @@ await sendText(U3, '/start');
 await press(U3, 'buy');
 await press(U3, 'bp:' + pid);
 await press(U3, `bl:${pid}:${plid}`);
-const detailButtons = lastMsgTo(U3, 'editMessageText').params.reply_markup;
-assert(JSON.stringify(detailButtons).includes('payx:' + pid + ':' + plid), 'گزینه کارت‌به‌کارت خودکار فقط با secret فعال نمایش داده شد');
+const detailMsg = lastMsgTo(U3, 'editMessageText');
+assert(!detailMsg.params.reply_markup?.inline_keyboard, 'صفحهٔ جزئیات پلن برای مشتری بدون دکمهٔ شیشه‌ای است');
 await press(U3, `payx:${pid}:${plid}`);
 const pendAuto = await kvJson('pend');
 const autoId = pendAuto.find((id) => { const x = kv.m.get('o:' + id); return x && JSON.parse(x).tg_id === U3; });
 const autoOrder = await kvJson('o:' + autoId);
 assert(autoOrder && autoOrder.payment_method === 'shetab' && autoOrder.pay_amount >= autoOrder.amount + 10 && autoOrder.pay_amount <= autoOrder.amount + 999, 'مبلغ یکتای خرید ۱۰ تا ۹۹۹ تومان بیشتر از مبلغ پایه است');
 const autoPayMsg = lastMsgTo(U3);
-const autoCopy = autoPayMsg.params.reply_markup.inline_keyboard.flat().find((b) => b.copy_text);
-assert(autoCopy && autoCopy.copy_text.text === String(autoOrder.pay_amount * 10) && autoPayMsg.params.text.includes((autoOrder.pay_amount * 10).toLocaleString('en-US') + ' ریال'), 'پرداخت خودکار معادل ریالی و دکمهٔ کپی را نشان می‌دهد');
+assert(!autoPayMsg.params.reply_markup?.inline_keyboard && autoPayMsg.params.text.includes((autoOrder.pay_amount * 10).toLocaleString('en-US') + ' ریال'), 'پرداخت خودکار معادل ریالی را در متن نشان می‌دهد و دکمهٔ شیشه‌ای ندارد');
 const hBeforeAuto = hUsers.size;
 let badKeyResp = await shetabPostAt('/api/shetab-verify', { amount: autoOrder.pay_amount, recipeId: 'BADKEY' }, 'wrong-key');
 assert(badKeyResp.status === 401 && hUsers.size === hBeforeAuto, 'secret اشتباه درخواست پرداخت را رد کرد');
@@ -1181,7 +1182,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #08080a') && miniAppSource.includes('--brand-blue:#8f2234') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت یاقوتی روی مشکی متالیک در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.25-ubuntu26.27';"), 'شمارهٔ نسخهٔ سرور 1.8.25-ubuntu26.27 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.26-ubuntu26.28';"), 'شمارهٔ نسخهٔ سرور 1.8.26-ubuntu26.28 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم «آبی زنده»') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #cc5c6b, #c62840 52%, #8c0b28)'), 'تم زندهٔ یاقوتی روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ آبی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #9b3049;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها یاقوتی و متالیک‌اند');
@@ -1591,7 +1592,8 @@ tgMemberStatus = 'left';
 await sendText(GATE_USER, '/start');
 const gatePress = lastMsgTo(GATE_USER);
 const gateButtons = lookupButtons(gatePress);
-assert(gatePress && String(gatePress.params.text || '').includes('عضویت در کانال') && gateButtons.some((b) => b.url === 'https://t.me/testchannel') && gateButtons.some((b) => b.callback_data === 'jc:check'), 'با روشن‌بودن قفل، کاربر غیرعضو پیام «عضویت در کانال» با دکمهٔ کانال و دکمهٔ بررسی می‌گیرد');
+const gateKeyboard = (gatePress.params.reply_markup && gatePress.params.reply_markup.keyboard || []).flat().map((b) => String(b.text || ''));
+assert(gatePress && String(gatePress.params.text || '').includes('عضویت در کانال') && String(gatePress.params.text || '').includes('https://t.me/testchannel') && gateKeyboard.includes('✅ عضو شدم، بررسی کن') && !gateButtons.length, 'با روشن‌بودن قفل، کاربر غیرعضو پیام «عضویت در کانال» با لینک کانال در متن و دکمهٔ بررسی روی کیبورد پایین می‌گیرد (بدون دکمهٔ شیشه‌ای)');
 assert(TG.filter((x) => x.method === 'getChatMember' && Number(x.params.user_id) === GATE_USER).length >= 1, 'عضویت کاربر با getChatMember از تلگرام پرسیده می‌شود');
 
 // --- عضویت بعدی: دکمهٔ بررسی باید قفل را باز کند ---
@@ -1789,7 +1791,7 @@ assert(iconOnly.text === 'خرید اشتراک' && iconOnly.icon_custom_emoji_i
 const kbRouteMark = TG.length;
 await sendText(ADMIN, 'خرید اشتراک');
 const kbRouteTexts = TG.slice(kbRouteMark).filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN)).map((x) => String(x.params.text || ''));
-assert(kbRouteTexts.some((t) => t.includes('لوکیشن') || t.includes('سرور')), 'پیام متنی کاربر (بدون ایموجی) باز هم مسیر «خرید اشتراک» را از کیبورد پایین چت اجرا می‌کند');
+assert(kbRouteTexts.some((t) => t.includes('اپ فروش') || t.includes('لوکیشن') || t.includes('سرور')), 'پیام متنی کاربر (بدون ایموجی) باز هم مسیر «خرید اشتراک» را از کیبورد پایین چت اجرا می‌کند');
 await kv.put('ui:btn_icons', JSON.stringify({}));
 globalThis.__resetBtnUI();
 
@@ -2047,6 +2049,66 @@ for (let i = 0; i < 10; i++) {
   if (r.status === 429) { throttled = true; break; }
 }
 assert(throttled, 'تلاش‌های پیاپی ورود از یک IP محدود می‌شوند');
+
+// ---------- دامنه و HTTPS ----------
+console.log('\n— دامنه و HTTPS —');
+const domainNoAdmin = await miniApi('/api/miniapp/admin/domain', userInit);
+assert(domainNoAdmin.status === 403, 'گزارش دامنه فقط برای مدیر است');
+env.PUBLIC_BASE_URL = 'https://bot.tiznet.site';
+env.MINIAPP_URL = 'https://bot.tiznet.site/miniapp';
+const domainReport = await miniApi('/api/miniapp/admin/domain', adminInit);
+assert(domainReport.status === 200 && domainReport.json.ok && domainReport.json.public_base_url === 'https://bot.tiznet.site'
+  && domainReport.json.web_url === 'https://bot.tiznet.site/app'
+  && domainReport.json.miniapp_url === 'https://bot.tiznet.site/miniapp'
+  && domainReport.json.shetab_endpoint === 'https://bot.tiznet.site/wp-json/webdide-cv/v1/confirm',
+  'گزارش دامنه آدرس عمومی، نسخهٔ وب، مینی‌اپ و endpoint شتاب را یک‌جا برمی‌گرداند');
+assert(domainReport.json.request_host === 't.test' && domainReport.json.host_match === false, 'گزارش دامنه اختلاف هاست درخواست با آدرس عمومی را تشخیص می‌دهد');
+const domainMatched = await APP.fetch(new Request('https://bot.tiznet.site/api/miniapp/admin/domain', { headers: { 'X-Telegram-Init-Data': adminInit } }), env, {});
+const domainMatchedJson = await domainMatched.json();
+assert(domainMatched.status === 200 && domainMatchedJson.host_match === true && domainMatchedJson.https === true, 'وقتی درخواست روی خود دامنه می‌آید، هاست و HTTPS منطبق گزارش می‌شوند');
+const domainProbed = await APP.fetch(new Request('https://bot.tiznet.site/api/miniapp/admin/domain?probe=1', { headers: { 'X-Telegram-Init-Data': adminInit } }), env, {});
+const domainProbedJson = await domainProbed.json();
+assert(domainProbedJson.probe && domainProbedJson.probe.ok === true && domainProbedJson.probe.status === 200 && domainProbedJson.probe.version === pkgVersion, 'آزمون HTTPS از سمت سرور پاسخ سالم و نسخهٔ فعال را می‌خواند');
+assert(domainProbedJson.webhook && domainProbedJson.webhook.ok === true && domainProbedJson.webhook.match === true && domainProbedJson.webhook.url === 'https://bot.tiznet.site/webhook', 'وبهوک تلگرام با آدرس همین دامنه مقایسه می‌شود');
+env.PUBLIC_BASE_URL = 'https://down.example';
+const domainDown = await APP.fetch(new Request('https://down.example/api/miniapp/admin/domain?probe=1', { headers: { 'X-Telegram-Init-Data': adminInit } }), env, {});
+const domainDownJson = await domainDown.json();
+assert(domainDownJson.probe && domainDownJson.probe.ok === false && domainDownJson.probe.status === 0 && domainDownJson.probe.error, 'اگر دامنه پاسخ ندهد، خطا به‌صورت پیام قابل‌نمایش برمی‌گردد');
+delete env.PUBLIC_BASE_URL;
+delete env.MINIAPP_URL;
+
+// ---------- نسخهٔ وب در مرورگر واقعی + ابزار دامنه ----------
+const isTelegramBlock = miniAppSource.slice(miniAppSource.indexOf('const tgPlatform'), miniAppSource.indexOf('const isTelegram ='));
+assert(miniAppSource.includes("const tgPlatform = String((tg && tg.platform) || 'unknown').toLowerCase();")
+  && isTelegramBlock.length > 0
+  && miniAppSource.includes("/tgWebApp/i.test(location.hash)")
+  && !miniAppSource.includes('const isTelegram = !!tg;'),
+  'نسخهٔ وب در مرورگر با وجود SDK تلگرام، به‌اشتباه «داخل تلگرام» تشخیص داده نمی‌شود');
+assert(miniAppSource.includes('class="web-login-bot"') && miniAppSource.includes('?start=web_login') && miniAppSource.includes('bot_username'),
+  'صفحهٔ ورود وب دکمهٔ «دریافت کد در تلگرام» را از نام ربات می‌سازد');
+const webSessionUnauthorized = await APP.fetch(new Request('https://t.test/api/web/session'), env, {});
+const webSessionUnauthorizedJson = await webSessionUnauthorized.json();
+assert(webSessionUnauthorized.status === 401 && webSessionUnauthorizedJson.bot_username === 'TestShopBot',
+  'پاسخ ۴۰۱ نشست وب نام ربات را برای دکمهٔ دریافت کد برمی‌گرداند');
+assert(miniAppSource.includes('data-stab="domain"') && miniAppSource.includes('function loadDomainStatus')
+  && miniAppSource.includes("api('/api/miniapp/admin/domain'+(probe?'?probe=1':''))"),
+  'تب «دامنه» در تنظیمات مینی‌اپ، سلامت دامنه را با آزمون واقعی HTTPS نشان می‌دهد');
+const fixDomainPath = path.join(here, '..', 'scripts', 'fix-domain.sh');
+const fixDomainSource = fs.readFileSync(fixDomainPath, 'utf8');
+assert(fs.statSync(fixDomainPath).mode & 0o100 && fixDomainSource.includes('nginx -t') && fixDomainSource.includes("s/__DOMAIN__/${DOMAIN}/g")
+  && fixDomainSource.includes('certbot') && fixDomainSource.includes('env_set PUBLIC_BASE_URL') && fixDomainSource.includes('--check'),
+  'اسکریپت fix-domain.sh جای‌نگهدار Nginx، گواهی، env و حالت بررسی را پوشش می‌دهد');
+const updateSource = fs.readFileSync(path.join(here, '..', 'update.sh'), 'utf8');
+assert(updateSource.includes("--domain)") && updateSource.includes('FIX_DOMAIN_SH') && updateSource.includes('FIX_ARGS+=(--check)')
+  && updateSource.includes('scripts/fix-domain.sh'),
+  'update.sh دامنه را با --domain می‌گیرد و در --dry-run فقط بررسی می‌کند');
+
+// ---------- هیچ دکمهٔ شیشه‌ای در چت مشتری ----------
+const adminChatIds = new Set(['999']);
+const customerInline = TG.filter((x) => ['sendMessage', 'editMessageText', 'editMessageCaption', 'sendPhoto'].includes(x.method)
+  && !adminChatIds.has(String(x.params.chat_id))
+  && x.params.reply_markup && Array.isArray(x.params.reply_markup.inline_keyboard) && x.params.reply_markup.inline_keyboard.length);
+assert(customerInline.length === 0, 'هیچ پیامی به مشتری دکمهٔ شیشه‌ای (inline) ندارد؛ ناوبری فقط با کیبورد پایین چت و مینی‌اپ است');
 
 console.log('— تمام —');
 if (process.exitCode) console.error('❌ بعضی تست‌ها شکست خوردند');

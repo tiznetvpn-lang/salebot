@@ -425,6 +425,7 @@ sudo bash /opt/tiznetvpn/update.sh
 | فقط بررسی و تست، بدون تغییر | `sudo bash /opt/tiznetvpn/update.sh --dry-run` |
 | شاخه یا تگ مشخص | `sudo bash /opt/tiznetvpn/update.sh --ref v1.8.1` |
 | بدون پرسش تأیید (cron/اسکریپت) | `sudo bash /opt/tiznetvpn/update.sh --yes` |
+| به‌روزرسانی + ترمیم دامنه و HTTPS | `sudo bash /opt/tiznetvpn/update.sh --yes --domain bot.tiznet.site` |
 | بازگشت به آخرین بکاپ کد | `sudo bash /opt/tiznetvpn/update.sh --rollback` |
 
 > مخزن خصوصی: بار اول اسکریپت توکن را با ورودی مخفی می‌پرسد و در `/etc/tiznetvpn/update.env` با مجوز `0600` ذخیره می‌کند؛ از آن به بعد همان یک خط کافی است. برای اجرای غیرتعاملی، همان فایل را از قبل بسازید.
@@ -457,6 +458,21 @@ sudo chmod 0755 /opt/tiznetvpn/recover.sh
 > اگر `/etc/tiznetvpn/tiznetvpn.env` هم پاک شده باشد، `recover.sh` متوقف می‌شود (چون بدون توکن، ربات بازسازی نمی‌شود). در آن حالت `install.sh` را اجرا کنید و توکن BotFather را دوباره وارد کنید؛ توکن قبلی با ساخت ربات جدید از کار نمی‌افتد.
 
 ## اگر سایت بالا نیامد
+
+اول یک خط، خودِ دامنه را بسنج و همان‌جا ترمیم کن (Nginx، گواهی، env، فایروال، وب‌هوک):
+
+```bash
+sudo bash /opt/tiznetvpn/scripts/fix-domain.sh --check     # فقط گزارش، بدون تغییر
+sudo bash /opt/tiznetvpn/scripts/fix-domain.sh             # ترمیم کامل (دامنه از env/Nginx خوانده می‌شود)
+sudo bash /opt/tiznetvpn/scripts/fix-domain.sh bot.tiznet.site --email you@example.com
+sudo bash /opt/tiznetvpn/scripts/fix-domain.sh --set-webhook   # انتقال وبهوک به همین دامنه
+```
+
+گزارش شش‌بخشی می‌دهد: DNS (و مقایسه با IP عمومی سرور)، پورت‌های ۸۰/۴۴۳ و فایروال، Nginx (جای‌نگهدار `__DOMAIN__`، `server_name`، پورت `proxy_pass`، `sites-enabled`، `nginx -t`)، گواهی Let's Encrypt، `PUBLIC_BASE_URL`/`MINIAPP_URL` و سرویس، و در پایان آزمون واقعی `https://دامنه/healthz` و `/miniapp` و `/app`. اگر دامنه روی Cloudflare است، با `CF_API_TOKEN` و `CF_ZONE_ID` در env و گزینهٔ `--set-dns` رکورد A هم خودکار به IP همین سرور تنظیم می‌شود.
+
+> سلامت دامنه از داخل خود اپ هم دیده می‌شود: مینی‌اپ → تنظیمات → تب **دامنه** (آدرس‌ها، آزمون HTTPS از سمت سرور، وبه‌وک و نسخهٔ فعال).
+
+اگر خواستید دستی بررسی کنید:
 
 ```bash
 # برنامه و دیتابیس

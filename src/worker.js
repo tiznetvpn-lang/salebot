@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.25-ubuntu26.27';
+const VERSION = '1.8.26-ubuntu26.28';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -2953,7 +2953,14 @@ function isAdminChat(env, chatId) {
 }
 function telegramExtra(env, extra, chatId) {
   const safe = Object.assign({}, extra || {});
-  if (miniAppOnlyMode(env) && !isAdminChat(env, chatId) && !isAllowedMiniAppOnlyMarkup(safe.reply_markup)) delete safe.reply_markup;
+  const markup = extra && extra.reply_markup;
+  // در چت مشتری هیچ دکمهٔ شیشه‌ای (inline) فرستاده نمی‌شود؛ ناوبری فقط با کیبورد پایین
+  // چت و مینی‌اپ است. پنل ادمین دست‌نخورده می‌ماند چون ابزار کار مدیر است.
+  if (chatId != null && !isAdminChat(env, chatId)) {
+    const keepsReplyKeyboard = markup && (Array.isArray(markup.keyboard) || isPhoneRequestMarkup(markup) || isJoinGateMarkup(markup));
+    if (markup && Array.isArray(markup.inline_keyboard) && !keepsReplyKeyboard) delete safe.reply_markup;
+    if (miniAppOnlyMode(env) && !isAllowedMiniAppOnlyMarkup(safe.reply_markup)) delete safe.reply_markup;
+  }
   return safe;
 }
 
@@ -4332,11 +4339,8 @@ async function runChatButton(env, u, chatId, id, origin, cfgIn) {
   const cfg = cfgIn || await getCfg(env);
   const reply = mainBotReplyMarkup();
   if (id === 'buy') {
-    if (miniAppOnlyMode(env)) {
-      await sendMiniAppEntry(env, chatId, origin, 'برای خرید اشتراک وارد اپ فروش تیزنت شوید.');
-    } else {
-      await showPanels(env, chatId, null);
-    }
+    // خرید فقط در مینی‌اپ انجام می‌شود؛ چت دکمهٔ شیشه‌ای ندارد.
+    await sendMiniAppEntry(env, chatId, origin, 'برای خرید اشتراک وارد اپ فروش تیزنت شوید.');
     return true;
   }
   if (id === 'support') {
@@ -5614,7 +5618,19 @@ function isPhoneRequestMarkup(markup) {
 }
 
 // کیبورد قفل کانال: فقط دکمه‌های لینک کانال + دکمهٔ بررسی
+const JOIN_CHECK_TEXT = '✅ عضو شدم، بررسی کن';
+// دکمهٔ بررسی عضویت حالا در کیبورد پایین چت است (بدون دکمهٔ شیشه‌ای).
+function joinCheckMarkup() {
+  return { reply_markup: { keyboard: [[{ text: JOIN_CHECK_TEXT }]], resize_keyboard: true, is_persistent: true } };
+}
+function isJoinCheckMarkup(markup) {
+  const kb = markup && markup.keyboard;
+  if (!Array.isArray(kb)) return false;
+  const flat = kb.flat();
+  return flat.length === 1 && !!flat[0] && typeof flat[0] === 'object' && flat[0].text === JOIN_CHECK_TEXT;
+}
 function isJoinGateMarkup(markup) {
+  if (isJoinCheckMarkup(markup)) return true;
   if (!markup || !Array.isArray(markup.inline_keyboard)) return false;
   const rows = markup.inline_keyboard;
   if (!rows.length || rows.length > 6) return false;
@@ -5788,13 +5804,14 @@ async function sendJoinGate(env, chatId, gate, cfg) {
   if (await kvGet(env, key, 0)) return;
   await kvPut(env, key, 1, JOIN_GATE_MSG_TTL);
   const list = (gate.missing && gate.missing.length ? gate.missing : gate.channels) || [];
-  const rows = list.slice(0, 4).map((c) => [{
-    text: '📣 ' + String(c.title || 'کانال').slice(0, 40),
-    url: c.url
-  }]).filter((row) => row[0].url);
-  rows.push([BTN('✅ عضو شدم، بررسی کن', 'jc:check')]);
+  // پیوند کانال‌ها در متن می‌آید و بررسی عضویت با دکمهٔ کیبورد پایین انجام می‌شود؛
+  // دیگر هیچ دکمهٔ شیشه‌ای زیر پیام مشتری نمی‌نشیند.
+  const links = list.slice(0, 4)
+    .filter((c) => c && /^https:\/\//.test(String(c.url || '')))
+    .map((c) => '📣 <a href="' + esc(String(c.url)) + '">' + esc(String(c.title || 'کانال').slice(0, 40)) + '</a>')
+    .join('\n');
   const text = String(conf.join_lock_text || '').trim() || defaultJoinText(gate);
-  await msg(env, chatId, text, KB(rows));
+  await msg(env, chatId, text + (links ? '\n\n' + links : ''), joinCheckMarkup());
 }
 
 async function sendPhoneGate(env, chatId, cfg) {
@@ -7263,6 +7280,11 @@ async function onMessage(env, m, origin) {
       // انتساب امن یک‌بارهٔ عضو جدید به معرف؛ ثبت امتیاز نیز رویداد idempotent دارد.
       if (payload.startsWith('ref_')) await attachNewReferral(env, u, payload.slice(4));
       await clearState(env, u.tg_id);
+      // دکمهٔ «دریافت کد» در صفحهٔ ورود وب: همان کد یکبارمصرف را می‌فرستد.
+      if (payload === 'web_login') {
+        await sendWebLoginCode(env, chatId, u);
+        return;
+      }
       // پیوندهای قدیمی «شارژ کیف پول» نباید به صفحهٔ استارت بیفتند؛ همان‌جا مسیر درست را بگویید.
       if (payload === 'miniapp_wallet') {
         await sendMiniAppEntry(env, chatId, origin,
@@ -7278,9 +7300,31 @@ async function onMessage(env, m, origin) {
     return;
   }
 
+  // بررسی عضویت کانال از کیبورد پایین چت (همان کاری که دکمهٔ شیشه‌ای قبلی می‌کرد).
+  if (text === JOIN_CHECK_TEXT) {
+    const cfgJoin = await getCfg(env);
+    await clearJoinCache(env, u.tg_id, cfgJoin);
+    const gateNow = await accessGate(env, u, cfgJoin);
+    if (gateNow.join_required) {
+      await msg(env, chatId, 'هنوز عضویت شما در همهٔ کانال‌ها دیده نمی‌شود. اول عضو شوید، بعد دوباره همین دکمه را بزنید.', joinCheckMarkup());
+      return;
+    }
+    await kvDel(env, 'jgmsg:' + chatId);
+    if (gateNow.phone_required && !gateNow.phone_verified) {
+      await sendPhoneGate(env, chatId, cfgJoin);
+      return;
+    }
+    if (miniAppOnlyMode(env)) {
+      await showMiniAppOnlyStart(env, chatId, origin);
+      return;
+    }
+    await showHome(env, chatId, u, null, origin, true);
+    return;
+  }
+
   if (text === '/cancel') {
     await clearState(env, u.tg_id);
-    await msg(env, chatId, '❌ عملیات لغو شد.', KB([[BTN('🏠 منوی اصلی', 'home')]]));
+    await msg(env, chatId, '❌ عملیات لغو شد.', mainBotReplyMarkup());
     return;
   }
 
@@ -7337,6 +7381,12 @@ async function onMessage(env, m, origin) {
       await msg(env, chatId, '📥 <b>شناسهٔ ایموجی متحرک</b>\n\nیک پیام حاوی <b>ایموجی متحرک</b> (پریمیومی) برای ربات فوروارد کنید یا همین‌جا بفرستید؛ شناسه را نشان می‌دهم.\n\nعدد نمایش‌داده‌شده را در مینی‌اپ → تنظیمات → «ظاهر دکمه‌های چت» در فیلد همان دکمه بگذارید.', KB([[BTN('❌ انصراف', 's_ui')]]));
       return;
     }
+    // دکمهٔ «دریافت کد» در صفحهٔ ورود وب.
+    if (payload === 'web_login') {
+      await clearState(env, u.tg_id);
+      await sendWebLoginCode(env, chatId, u);
+      return;
+    }
     // لینک معرف: /start ref_CODE؛ فقط برای کاربر جدید و یک بار.
     if (payload.startsWith('ref_')) await attachNewReferral(env, u, payload.slice(4));
     await clearState(env, u.tg_id);
@@ -7347,17 +7397,7 @@ async function onMessage(env, m, origin) {
   // ورود به نسخهٔ وب: کد یکبارمصرف ۱۰ دقیقه‌ای
   if (text === '/login' || text === '/web' || text === '/app') {
     await clearState(env, u.tg_id);
-    const code = webCode();
-    const exp = Date.now() + WEB_LOGIN_TTL * 1000;
-    await kvPut(env, 'web:code:' + code, { tg_id: u.tg_id, exp: exp, at: Date.now() }, WEB_LOGIN_TTL + 60);
-    const base = String(env.PUBLIC_BASE_URL || env.MINIAPP_URL || '').trim().replace(/\/+$/, '');
-    const link = base ? base + '/app' : '';
-    await msg(env, chatId,
-      '🌐 <b>ورود به نسخهٔ وب</b>\n\n' +
-      (link ? 'آدرس: <code>' + esc(link) + '</code>\n\n' : '') +
-      'کد یکبارمصرف: <code>' + code + '</code>\n\n' +
-      'کد را در صفحهٔ ورود وارد کنید. اعتبار: ۱۰ دقیقه و فقط یک‌بار.',
-      mainBotReplyMarkup());
+    await sendWebLoginCode(env, chatId, u);
     return;
   }
 
@@ -7519,6 +7559,86 @@ function shopBaseUrl(env, origin) {
 function shetabEndpointUrl(env, origin) {
   const base = shopBaseUrl(env, origin);
   return base ? base + '/wp-json/webdide-cv/v1/confirm' : '';
+}
+
+// ── گزارش سلامت دامنه برای مدیر: آدرس‌ها، هم‌خوانی هاست و آزمون واقعی HTTPS ──
+// probe=1 یک درخواست واقعی به آدرس عمومی می‌زند (DNS + TLS + Nginx + سرویس).
+async function miniAppAdminDomainReport(env, url, request) {
+  const origin = (() => { try { return new URL(request.url).origin; } catch (e) { return ''; } })();
+  const publicBase = shopBaseUrl(env, '');
+  const miniappUrl = String(env.MINIAPP_URL || '').trim() || (publicBase ? publicBase + '/miniapp' : '');
+  const requestHost = origin ? new URL(origin).host.toLowerCase() : '';
+  let baseHost = '';
+  try { baseHost = publicBase ? new URL(publicBase).host.toLowerCase() : ''; } catch (e) { baseHost = ''; }
+  const report = {
+    ok: true,
+    version: VERSION,
+    public_base_url: publicBase,
+    miniapp_url: miniappUrl,
+    web_url: publicBase ? publicBase + '/app' : '',
+    shetab_endpoint: shetabEndpointUrl(env, origin),
+    request_origin: origin,
+    request_host: requestHost,
+    public_host: baseHost,
+    host_match: !!(baseHost && requestHost && baseHost === requestHost),
+    https: origin.startsWith('https://'),
+    probe: null
+  };
+  if (url.searchParams.get('probe') === '1') {
+    report.probe = await domainProbe(publicBase);
+    report.webhook = await domainWebhookCheck(env, publicBase);
+  }
+  return report;
+}
+
+async function domainProbe(publicBase) {
+  if (!publicBase) return { ok: false, status: 0, ms: 0, error: 'public_base_url_missing' };
+  const started = Date.now();
+  try {
+    const res = await fetch(publicBase + '/healthz', {
+      headers: { 'User-Agent': 'tiznetvpn-domain-check' },
+      signal: AbortSignal.timeout(6000)
+    });
+    const text = await res.text().catch(() => '');
+    let payload = null;
+    try { payload = JSON.parse(text); } catch (e) { payload = null; }
+    return {
+      ok: res.ok,
+      status: res.status,
+      ms: Date.now() - started,
+      version: payload && payload.version ? String(payload.version) : ''
+    };
+  } catch (error) {
+    const message = String((error && error.message) || error || 'fetch_failed');
+    const code = /aborted|timeout/i.test(message) ? 'timeout'
+      : /fetch failed|ENOTFOUND|ECONNREFUSED|ECONNRESET|EAI_AGAIN|certificate/i.test(message) ? 'connection_failed'
+        : message.slice(0, 160);
+    return { ok: false, status: 0, ms: Date.now() - started, error: code };
+  }
+}
+
+async function domainWebhookCheck(env, publicBase) {
+  const token = String(env.BOT_TOKEN || '').trim();
+  if (!token) return { ok: false, error: 'bot_token_missing' };
+  try {
+    const res = await fetch('https://api.telegram.org/bot' + token + '/getWebhookInfo', { signal: AbortSignal.timeout(6000) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data || data.ok !== true) return { ok: false, error: 'telegram_error' };
+    const info = data.result || {};
+    const webhookUrl = String(info.url || '');
+    let expected = '';
+    try { expected = publicBase ? new URL(publicBase).origin + '/webhook' : ''; } catch (e) { expected = ''; }
+    return {
+      ok: true,
+      url: webhookUrl,
+      expected,
+      match: !!(webhookUrl && expected && webhookUrl === expected),
+      pending: Number(info.pending_update_count || 0),
+      last_error: String(info.last_error_message || '').slice(0, 120)
+    };
+  } catch (error) {
+    return { ok: false, error: 'telegram_unreachable' };
+  }
 }
 
 // گزارش «چرا اتصال کار نمی‌کند»: همهٔ چیزهایی که باید با اپ هم‌خوان باشند، یک‌جا.
@@ -8095,6 +8215,23 @@ const WEB_LOGIN_TTL = 600;               // کد ورود ۱۰ دقیقه
 const WEB_LOGIN_MAX_TRIES = 8;           // تلاش مجاز هر IP در هر ۱۰ دقیقه
 const WEB_LOGIN_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
+async function sendWebLoginCode(env, chatId, user) {
+  const code = webCode();
+  const exp = Date.now() + WEB_LOGIN_TTL * 1000;
+  await kvPut(env, 'web:code:' + code, { tg_id: user.tg_id, exp: exp, at: Date.now() }, WEB_LOGIN_TTL + 60);
+  const base = String(env.PUBLIC_BASE_URL || env.MINIAPP_URL || '').trim().replace(/\/+$/, '');
+  const link = base ? base + '/app' : '';
+  const bot = String((await getCfg(env)).bot_username || '').trim().replace(/^@/, '');
+  const tgLink = bot ? 'https://t.me/' + bot + '?start=web_login' : '';
+  await msg(env, chatId,
+    '🌐 <b>ورود به نسخهٔ وب</b>\n\n' +
+    (link ? 'آدرس: <code>' + esc(link) + '</code>\n\n' : '') +
+    'کد یکبارمصرف: <code>' + code + '</code>\n\n' +
+    'کد را در صفحهٔ ورود وارد کنید. اعتبار: ۱۰ دقیقه و فقط یک‌بار.' +
+    (tgLink ? '\n\n🔗 ' + tgLink : ''),
+    mainBotReplyMarkup());
+}
+
 function webCode() {
   const buf = new Uint8Array(8);
   crypto.getRandomValues(buf);
@@ -8221,7 +8358,12 @@ async function webLoginApi(request, env, url) {
 
 async function webSessionApi(request, env, url) {
   const session = await webSessionVerify(env, webReadCookie(request, WEB_SESSION_COOKIE), Date.now());
-  if (!session) return webJson({ ok: false, error: 'unauthorized' }, 401);
+  if (!session) {
+    // نام ربات عمومی است و صفحهٔ ورود با آن دکمهٔ «دریافت کد» می‌سازد.
+    let botUsername = '';
+    try { botUsername = String((await getCfg(env)).bot_username || '').trim().replace(/^@/, ''); } catch (e) { botUsername = ''; }
+    return webJson({ ok: false, error: 'unauthorized', bot_username: botUsername }, 401);
+  }
   const user = await getUser(env, session.id);
   if (!user) return webJson({ ok: false, error: 'user_not_found' }, 404);
   if (user.banned && !isAdmin(env, user.tg_id)) return webJson({ ok: false, error: 'account_blocked' }, 403);
@@ -10410,6 +10552,9 @@ async function miniAppApi(request, env, url) {
     if (path === '/api/miniapp/admin/summary' && request.method === 'GET') {
       const days = miniAppPeriod(url.searchParams.get('days'), 30);
       return miniAppJson(await miniAppAdminSummary(env, days), 200);
+    }
+    if (path === '/api/miniapp/admin/domain' && request.method === 'GET') {
+      return miniAppJson(await miniAppAdminDomainReport(env, url, request), 200);
     }
     if (path === '/api/miniapp/admin/orders' && request.method === 'GET') {
       const daysRaw = url.searchParams.get('days');
