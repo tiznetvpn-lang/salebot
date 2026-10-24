@@ -2318,11 +2318,9 @@ const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از س
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
 const SHETAB_EVENT_TTL = 60 * 86400;           // نگه‌داری رخدادهای بانکی برای پیگیری
 const SHETAB_EVENT_INDEX_CAP = 300;            // حداکثر رخداد در فهرست سریع
-const SHETAB_HEARTBEAT_MS = 6 * 3600 * 1000;   // اگر گوشی این مدت ساکت بماند هشدار داده می‌شود
 const SHETAB_RATE_WINDOW = 15 * 60;            // پنجرهٔ شمارش تلاش ناموفق (ثانیه)
 const SHETAB_RATE_LIMIT = 25;                  // سقف تلاش ناموفق در هر پنجره
 const SHETAB_SCAN_LIMIT = 120;                 // سقف سفارش‌های باز برای جست‌وجوی پشتیبان
-const SHETAB_ALERT_DEDUPE_MS = 60 * 60 * 1000; // فاصلهٔ حداقل بین دو هشدار یکسان
 const SHETAB_STUCK_MS = 30 * 60 * 1000;        // سفارش خودکارِ منتظر بیش از این مدت = نیازمند بررسی
 const SHETAB_SILENCE_MS = 2 * 3600 * 1000;     // اگر اپ این مدت هیچ خبری نداده، گوشی مشکوک است
 const SHETAB_HEARTBEAT_DEDUPE_MS = 6 * 3600 * 1000;
