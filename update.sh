@@ -231,6 +231,24 @@ if (( ! ASSUME_YES )); then
   [[ "${ANSWER,,}" == 'y' || "${ANSWER,,}" == 'yes' ]] || { say 'لغو شد.'; exit 0; }
 fi
 
+# Secret پرداخت خودکار: اگر کلید وجود ندارد یا خالی است، یک مقدار امن ساخته می‌شود
+# تا فعال‌سازی «کارت‌به‌کارت خودکار» فقط با چند کلیک در ربات ممکن باشد.
+if ! grep -qE '^SHETAB_API_SECRET=.+$' "$ENV_FILE" 2>/dev/null; then
+  if command -v openssl >/dev/null 2>&1; then
+    SHETAB_NEW_SECRET=$(openssl rand -hex 32)
+    if grep -qE '^SHETAB_API_SECRET=' "$ENV_FILE" 2>/dev/null; then
+      sed -i "s|^SHETAB_API_SECRET=.*$|SHETAB_API_SECRET=${SHETAB_NEW_SECRET}|" "$ENV_FILE"
+    else
+      printf '\nSHETAB_API_SECRET=%s\n' "$SHETAB_NEW_SECRET" >> "$ENV_FILE"
+    fi
+    say 'Secret پرداخت خودکار (SHETAB_API_SECRET) ساخته شد.'
+    printf '         برای اتصال اپ: sudo grep SHETAB_API_SECRET %s\n' "$ENV_FILE"
+    unset SHETAB_NEW_SECRET
+  else
+    warn 'openssl پیدا نشد؛ SHETAB_API_SECRET را دستی در فایل env تنظیم کنید تا پرداخت خودکار کار کند.'
+  fi
+fi
+
 # ---------------------------------------------------------------------------
 # بکاپ دیتابیس (قبل از هر تغییری)
 # ---------------------------------------------------------------------------
@@ -316,6 +334,14 @@ if [[ -d /run/systemd/system ]] && command -v systemctl >/dev/null 2>&1; then
     fi
   done < <(find "$INSTALL_DIR/systemd" -maxdepth 1 -type f \( -name '*.service' -o -name '*.timer' \))
   (( UNIT_CHANGED )) && systemctl daemon-reload || true
+  # تایمر تازهٔ نگه‌داری پرداخت خودکار: روی نصب‌های قبلی هم فعال شود.
+  if [[ -f /etc/systemd/system/tiznetvpn-shetab.timer ]]; then
+    if ! systemctl is-enabled tiznetvpn-shetab.timer >/dev/null 2>&1; then
+      systemctl enable --now tiznetvpn-shetab.timer >/dev/null 2>&1 \
+        && say 'تایمر نگه‌داری پرداخت خودکار فعال شد: tiznetvpn-shetab.timer' \
+        || warn 'فعال‌سازی tiznetvpn-shetab.timer ناموفق بود؛ دستی اجرا کنید: sudo systemctl enable --now tiznetvpn-shetab.timer'
+    fi
+  fi
   # زمان‌بندی تایمر تغییر کرده؟ ری‌استارت تا برنامهٔ جدید فوراً اعمال شود.
   for timer in $CHANGED_TIMERS; do
     if systemctl is-enabled "$timer" >/dev/null 2>&1; then

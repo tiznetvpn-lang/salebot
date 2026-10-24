@@ -1,0 +1,11 @@
+[Unit]
+Description=Run TiznetVPN Shetab auto-payment maintenance every 10 minutes
+
+[Timer]
+OnCalendar=*:0/10
+Persistent=true
+AccuracySec=30s
+Unit=tiznetvpn-shetab.service
+
+[Install]
+WantedBy=timers.target

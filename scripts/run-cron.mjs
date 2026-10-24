@@ -3,15 +3,15 @@ import APP from '../src/worker.js';
 import { createRuntime } from '../server/runtime.mjs';
 
 const task = String(process.argv[2] || '').trim().toLowerCase();
-if (!['reminders', 'backup'].includes(task)) {
-  console.error('Usage: node scripts/run-cron.mjs <reminders|backup>');
+if (!['reminders', 'backup', 'shetab'].includes(task)) {
+  console.error('Usage: node scripts/run-cron.mjs <reminders|backup|shetab>');
   process.exitCode = 2;
 } else {
   let runtime;
   try {
     runtime = createRuntime();
     const event = {
-      cron: task === 'backup' ? '0 */3 * * *' : '30 5 * * *',
+      cron: task === 'backup' ? '0 */3 * * *' : task === 'shetab' ? '*/10 * * * *' : '30 5 * * *',
       scheduledTime: Date.now()
     };
     await APP.scheduled(event, runtime.env, {

@@ -201,6 +201,8 @@ find "$INSTALL_DIR" -type d -exec chmod 0750 {} \;
 find "$INSTALL_DIR" -type f -exec chmod 0640 {} \;
 
 WEBHOOK_SECRET=$(openssl rand -hex 32)
+# Secret اتصال اپ Shetab Verification؛ اپ همین مقدار را در فیلد API Secret می‌گذارد.
+SHETAB_API_SECRET=$(openssl rand -hex 32)
 {
   printf 'BOT_TOKEN=%s\n' "$BOT_TOKEN"
   printf 'WEBHOOK_SECRET=%s\n' "$WEBHOOK_SECRET"
@@ -208,12 +210,12 @@ WEBHOOK_SECRET=$(openssl rand -hex 32)
   printf 'PUBLIC_BASE_URL=https://%s\n' "$DOMAIN"
   printf 'MINIAPP_URL=https://%s/miniapp\n' "$DOMAIN"
   printf 'HOST=127.0.0.1\nPORT=3000\nDATA_DIR=/var/lib/tiznetvpn\nMAX_REQUEST_BYTES=57671680\n'
-  printf 'MINIAPP_ONLY_MODE=true\nSHETAB_API_SECRET=\n'
+  printf 'MINIAPP_ONLY_MODE=true\nSHETAB_API_SECRET=%s\n' "$SHETAB_API_SECRET"
   printf 'DB_BACKUP_DIR=/var/backups/tiznetvpn\nDB_BACKUP_RETENTION_DAYS=14\n'
 } > "$ENV_FILE"
 chown root:tiznetvpn "$ENV_FILE"
 chmod 0640 "$ENV_FILE"
-unset BOT_TOKEN WEBHOOK_SECRET ADMIN_IDS
+unset BOT_TOKEN WEBHOOK_SECRET ADMIN_IDS SHETAB_API_SECRET
 
 info 'Running project tests'
 runuser -u tiznetvpn -- env HOME=/tmp npm --prefix "$INSTALL_DIR" test
@@ -252,14 +254,22 @@ SWITCH_ACK=''
 read_line "Type SWITCH to move the webhook to ${DOMAIN} now, or press Enter to leave it unchanged: " SWITCH_ACK
 if [[ "${SWITCH_ACK^^}" == 'SWITCH' ]]; then
   runuser -u tiznetvpn -- env ENV_FILE="$ENV_FILE" /usr/bin/node "$INSTALL_DIR/scripts/setup-webhook.mjs" --confirm-switch
-  systemctl enable --now tiznetvpn-reminders.timer tiznetvpn-backup.timer
+  systemctl enable --now tiznetvpn-reminders.timer tiznetvpn-backup.timer tiznetvpn-shetab.timer
   printf '\nWebhook set. Send /start to the bot in Telegram and open its Mini App.\n'
 else
   printf '\nWebhook was not changed. When ready, run:\n'
   printf 'sudo -u tiznetvpn env ENV_FILE=%s /usr/bin/node %s/scripts/setup-webhook.mjs --confirm-switch\n' "$ENV_FILE" "$INSTALL_DIR"
   printf 'Then enable Telegram timers:\n'
-  printf 'sudo systemctl enable --now tiznetvpn-reminders.timer tiznetvpn-backup.timer\n'
+  printf 'sudo systemctl enable --now tiznetvpn-reminders.timer tiznetvpn-backup.timer tiznetvpn-shetab.timer\n'
 fi
+
+printf '\n--- Automatic card-to-card payments (Shetab Verification app) ---\n'
+printf 'In the app set:\n'
+printf '  Server URL : https://%s/wp-json/webdide-cv/v1/confirm\n' "$DOMAIN"
+printf '  API Secret : the SHETAB_API_SECRET value in %s\n' "$ENV_FILE"
+printf '               read it with: sudo grep SHETAB_API_SECRET %s\n' "$ENV_FILE"
+printf 'Then enable "automatic card-to-card" in the bot admin settings.\n'
+printf 'Health check: curl -s -H "Authorization: <secret>" https://%s/api/shetab-verify\n' "$DOMAIN"
 
 printf '\nMini App: https://%s/miniapp\n' "$DOMAIN"
 printf 'Service status: sudo systemctl status tiznetvpn.service --no-pager\n'
