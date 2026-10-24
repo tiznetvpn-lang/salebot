@@ -805,6 +805,24 @@ assert(String(checkReport.params.text).includes('بررسی اتصال پردا�
   && String(checkReport.params.text).includes('آخرین خبر از اپ')
   && String(checkReport.params.text).includes('آماده است'),
   'گزارش بررسی اتصال، وضعیت آدرس/Secret/کارت/سوییچ و آخرین تماس اپ را نشان می‌دهد');
+
+// 🛰 صندوق درخواست‌های ورودی: ابزار قطعی برای پیام «آدرس API اشتباه است» در اپ
+const reqLog = await kvJson('shetab_reqlog');
+assert(Array.isArray(reqLog) && reqLog.length > 0
+  && reqLog.some((e) => String(e.p).startsWith('/wp-json/webdide-cv/v1/confirm') && Number(e.s) > 0)
+  && reqLog.every((e) => typeof e.m === 'string' && e.m.length > 0 && Number(e.at) > 0),
+  'هر درخواست مسیر اپ (موفق یا ناموفق) با روش، مسیر و کد پاسخ در صندوق «درخواست‌های اخیر» ثبت می‌شود');
+await press(ADMIN, 'a_shreq');
+const reqLogView = lastMsgTo(ADMIN, 'editMessageText');
+assert(String(reqLogView.params.text).includes('آخرین درخواست‌های رسیده از سمت گوشی')
+  && String(reqLogView.params.text).includes('/wp-json/webdide-cv/v1/confirm'),
+  'دکمهٔ «درخواست‌های اخیر» مسیر و کد پاسخ تماس‌های اپ را برای ادمین نشان می‌دهد');
+await kv.delete('shetab_reqlog');
+await press(ADMIN, 'a_shreq');
+const reqLogEmpty = lastMsgTo(ADMIN, 'editMessageText');
+assert(String(reqLogEmpty.params.text).includes('هیچ درخواستی از سمت اپ به سرور نرسیده')
+  && String(reqLogEmpty.params.text).includes('/wp-json/'),
+  'در نبود درخواست، گزارش صریح می‌گوید مشکل پیش از سرور است و آدرس تست مرورگر را می‌دهد');
 env.SHETAB_API_SECRET = savedEnvSecret;
 
 // آزمون پرداخت: در تست آدرس عمومی وجود ندارد، پس مسیر داخلی باید سالم باشد

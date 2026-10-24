@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.12-ubuntu26.14';
+const VERSION = '1.8.13-ubuntu26.15';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -5465,6 +5465,12 @@ async function onCallback(env, q, origin) {
     await adminShetabCheck(env, chatId, messageId, origin);
     return;
   }
+  if (data === 'a_shreq') {
+    if (!await needAdmin()) return;
+    await ansCb(env, q.id);
+    await adminShetabReqLog(env, chatId, messageId, origin);
+    return;
+  }
   if (data === 'a_shgen') {
     if (!await needAdmin()) return;
     await ansCb(env, q.id);
@@ -6286,7 +6292,44 @@ async function adminShetabCheck(env, chatId, messageId, origin) {
       : '✅ <b>سمت سرور همه‌چیز آماده است.</b>\nاگر اپ هنوز خطا می‌دهد: Secret را دوباره با «📋 کپی Secret» بردارید و در اپ جای‌گذاری کنید، سپس «🧪 آزمون پرداخت خودکار» را بزنید.');
   const rows = [
     [BTN('📲 تنظیمات اپ', 'a_shapp'), BTN('🧪 آزمون پرداخت', 'a_shtest')],
-    [BTN('📜 رویدادهای بانکی', 'a_shlog')],
+    [BTN('🛰 درخواست‌های اخیر', 'a_shreq'), BTN('📜 رویدادهای بانکی', 'a_shlog')],
+    [BTN('◀️ تنظیمات', 'a_set')]
+  ];
+  if (messageId) await editMsg(env, chatId, messageId, t, KB(rows));
+  else await msg(env, chatId, t, KB(rows));
+}
+
+// «🛰 درخواست‌های اخیر»: تعیین می‌کند پیام «آدرس API اشتباه است» از سمت سرور می‌آید یا نه.
+async function adminShetabReqLog(env, chatId, messageId, origin) {
+  const list = (await kvGet(env, SHETAB_REQLOG_KEY, [])) || [];
+  const entries = Array.isArray(list) ? list.slice(-SHETAB_REQLOG_MAX) : [];
+  const base = wpRestSiteBase(env, origin);
+  let t = '🛰 <b>آخرین درخواست‌های رسیده از سمت گوشی</b>\n\n';
+  if (!entries.length) {
+    t += '❌ <b>هنوز هیچ درخواستی از سمت اپ به سرور نرسیده است.</b>\n\n' +
+      'یعنی مشکل پیش از سرور است: آدرس داخل اپ، DNS/فیلتر، VPN، یا اینترنت گوشی. ' +
+      'Secret و تنظیمات سرور در این حالت نقشی ندارند.\n\n' +
+      'یک آزمون قطعی: همین آدرس را در مرورگر گوشی باز کنید و ببینید چه چیزی نشان می‌دهد:\n' +
+      '<code>' + esc(base + '/wp-json/') + '</code>\n' +
+      '• اگر JSON دیدید → شبکهٔ گوشی سالم است و آدرس/فرمت داخل اپ مشکل دارد.\n' +
+      '• اگر صفحه باز نشد یا خطای شبکه داد → مشکل DNS/فیلتر/VPN گوشی است.';
+  } else {
+    const last = entries[entries.length - 1];
+    t += '🧮 تعداد: ' + faNum(entries.length) + ' درخواست · آخرین: ' + fmtDate(last.at) + '\n\n';
+    t += entries.slice().reverse().map((e) => {
+      const key = e.auth ? ' 🔑' : '';
+      const meta = [];
+      if (e.h) meta.push('🌐 ' + esc(e.h));
+      if (e.ua) meta.push('📱 ' + esc(e.ua));
+      if (e.ip) meta.push('📍 ' + esc(e.ip));
+      const head = '▫️ ' + esc(fmtDate(e.at)) + ' · ' + esc(String(e.m)) + ' <code>' + esc(String(e.p)) + '</code> → <b>' + esc(String(e.s)) + '</b>' + key;
+      return head + (meta.length ? '\n      ' + meta.join(' · ') : '');
+    }).join('\n');
+    t += '\n\n<i>اگر اپ «تست اتصال» را زده باشید ولی ردیف تازه‌ای اضافه نشود، درخواست گوشی به سرور نمی‌رسد.</i>';
+  }
+  const rows = [
+    [BTN('🔄 به‌روزرسانی', 'a_shreq')],
+    [BTN('🔍 بررسی اتصال', 'a_shcheck'), BTN('📲 تنظیمات اپ', 'a_shapp')],
     [BTN('◀️ تنظیمات', 'a_set')]
   ];
   if (messageId) await editMsg(env, chatId, messageId, t, KB(rows));
@@ -9289,7 +9332,7 @@ async function manualBackupDownloadResponse(request, env, url) {
   }
 }
 
-async function fetchHandler(request, env) {
+async function handleRequest(request, env) {
   const url = new URL(request.url);
 
   if (request.method === 'GET' && (url.pathname === '/miniapp' || url.pathname === '/miniapp/')) {
@@ -9390,6 +9433,60 @@ async function fetchHandler(request, env) {
     return await serveMiniAppAsset(env, request, false);
   }
   return new Response('Not found', { status: 404 });
+}
+
+/* ===== ثبت درخواست‌های ورودی مسیر اپ ===== */
+// وقتی اپ پیام «آدرس اشتباه» می‌دهد، اولین سؤال این است: «آیا اصلاً درخواستی از گوشی
+// به سرور رسیده؟». این حلقهٔ کوچک، آخرین درخواست‌های مرتبط با شتاب را نگه می‌دارد تا
+// ادمین از داخل تلگرام ببیند گوشی چه مسیری را و با چه نتیجه‌ای صدا زده است.
+const SHETAB_REQLOG_KEY = 'shetab_reqlog';
+const SHETAB_REQLOG_MAX = 25;
+
+function shouldLogRequest(pathname) {
+  const p = String(pathname || '').toLowerCase();
+  if (!p) return false;
+  // ترافیک خودمان (اپ مینی‌اپ و دارایی‌هایش) را ثبت نمی‌کنیم؛ هر چیز دیگری ثبت می‌شود
+  // تا اگر اپ مسیر غیرمنتظره‌ای صدا زد، ادمین همان را ببیند.
+  if (p.startsWith('/api/miniapp/')) return false;
+  if (p.startsWith('/miniapp')) return false;
+  if (p === '/healthz' || p === '/webhook') return false;
+  return true;
+}
+
+async function shetabLogRequest(env, request, url, status) {
+  try {
+    if (!shouldLogRequest(url.pathname)) return;
+    const forwarded = String(request.headers.get('x-forwarded-for') || '').split(',')[0].trim();
+    const entry = {
+      at: Date.now(),
+      m: String(request.method || 'GET'),
+      p: (url.pathname + (url.search ? url.search : '')).slice(0, 140),
+      s: Number(status) || 0,
+      h: String(url.host || '').slice(0, 80),
+      auth: request.headers.get('authorization') || request.headers.get('x-api-key') ? 1 : 0,
+      ua: String(request.headers.get('user-agent') || '').slice(0, 140),
+      ip: String(request.headers.get('cf-connecting-ip') || request.headers.get('x-real-ip') || forwarded || '').slice(0, 60)
+    };
+    const list = (await kvGet(env, SHETAB_REQLOG_KEY, [])) || [];
+    if (!Array.isArray(list)) return;
+    list.push(entry);
+    while (list.length > SHETAB_REQLOG_MAX) list.shift();
+    await kvPut(env, SHETAB_REQLOG_KEY, list);
+  } catch (e) {}
+}
+
+async function fetchHandler(request, env) {
+  const url = new URL(request.url);
+  const shouldLog = shouldLogRequest(url.pathname);
+  let response;
+  try {
+    response = await handleRequest(request, env);
+  } catch (e) {
+    if (shouldLog) await shetabLogRequest(env, request, url, 500);
+    throw e;
+  }
+  if (shouldLog) await shetabLogRequest(env, request, url, response ? response.status : 0);
+  return response;
 }
 
 async function readGzipBackupText(file) {
