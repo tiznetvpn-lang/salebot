@@ -25,7 +25,7 @@ if (!backupCronMatch || backupCronMatch[1] !== '0 */3 * * *') throw new Error('K
 if (!cronScriptSource.includes("'0 */3 * * *'")) throw new Error('زمان‌بندی scripts/run-cron.mjs با KV_BACKUP_CRON یکی نیست');
 if (!backupTimerUnit.includes('OnCalendar=*-*-* 00/3:00:00 UTC')) throw new Error('systemd timer بکاپ باید هر ۳ ساعت اجرا شود');
 if (!workerSource.includes('KV_BACKUP_MIN_INTERVAL_MS') || workerSource.includes('11 * 60 * 60 * 1000')) throw new Error('فاصلهٔ ایمنی بکاپ با بازهٔ ۳ ساعته هماهنگ نیست');
-src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser; globalThis.__normalizePhone = normalizePhone; globalThis.__isJoinGateMarkup = isJoinGateMarkup; globalThis.__isPhoneRequestMarkup = isPhoneRequestMarkup; globalThis.__accessGate = accessGate; globalThis.__DEFAULT_SETTINGS = DEFAULT_SETTINGS;');
+src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser; globalThis.__normalizePhone = normalizePhone; globalThis.__isJoinGateMarkup = isJoinGateMarkup; globalThis.__isPhoneRequestMarkup = isPhoneRequestMarkup; globalThis.__accessGate = accessGate; globalThis.__DEFAULT_SETTINGS = DEFAULT_SETTINGS; globalThis.__btnSlotFor = btnSlotFor; globalThis.__decorateMarkup = decorateMarkup; globalThis.__btnStyleFor = btnStyleFor; globalThis.__resetBtnUI = () => { BTN_UI_CACHE = { at: 0, colors: true, icons: {} }; };');
 // eslint-disable-next-line no-eval
 eval(src);
 const APP = globalThis.APP;
@@ -121,6 +121,7 @@ let tgMemberStatus = 'member';   // وضعیت عضویت کاربر تستی د
 let tgBotStatus = 'administrator'; // وضعیت خود ربات در کانال
 let tgChatError = '';
 let tgMemberError = '';
+let tgRejectDecorated = 0; // اگر > 0 باشد، اولین پیام با دکمهٔ استایل‌دار رد می‌شود
 let midSeq = 100;
 globalThis.fetch = async (url, init = {}) => {
   const u = String(url);
@@ -134,6 +135,14 @@ globalThis.fetch = async (url, init = {}) => {
       } else params = init.body ? JSON.parse(init.body) : {};
     } catch { params = { _raw: true }; }
     TG.push({ method, params });
+    if (tgRejectDecorated > 0 && (method === 'sendMessage' || method === 'editMessageText')) {
+      const kb = params.reply_markup && (params.reply_markup.inline_keyboard || params.reply_markup.keyboard);
+      const hasDecor = Array.isArray(kb) && kb.flat().some((b) => b && (b.style || b.icon_custom_emoji_id));
+      if (hasDecor) {
+        tgRejectDecorated--;
+        return Response.json({ ok: false, description: 'Bad Request: BUTTON_STYLE_INVALID' }, { status: 400 });
+      }
+    }
     if (method === 'getMe') return Response.json({ ok: true, result: { id: 4242, username: 'TestShopBot' } });
     if (method === 'getChat') {
       if (tgChatError) return Response.json({ ok: false, description: tgChatError }, { status: 400 });
@@ -1172,7 +1181,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg:#04152e') && miniAppSource.includes('--brand-blue:#00409a') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت آبی تیزنت (زمینهٔ تیرهٔ آبی) در بازطراحی نمای مشتری حفظ شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.19-ubuntu26.21';"), 'شمارهٔ نسخهٔ سرور 1.8.19-ubuntu26.21 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.20-ubuntu26.22';"), 'شمارهٔ نسخهٔ سرور 1.8.20-ubuntu26.22 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم «آبی زنده»') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #6ee0ff, #2f86e8 52%, #1a58b4)'), 'تم زندهٔ آبی روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ آبی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #7ad9ff;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها آبی/فیروزه‌ای‌اند');
@@ -1698,6 +1707,118 @@ await sendText(ADMIN, '/cancel');
 // پاک‌کردن قفل‌ها تا تست‌های بعدی تحت‌تأثیر نباشند
 const cfgClean = Object.assign({}, (await kvJson('cfg')) || {}, { join_lock_enabled: false, phone_required: false });
 await kv.put('cfg', JSON.stringify(cfgClean));
+
+
+// ================= رنگ و آیکن دکمه‌های چت =================
+console.log('\n— رنگ و آیکن دکمه‌های چت —');
+assert(globalThis.__btnSlotFor('🛍 خرید اشتراک') === 'buy' && globalThis.__btnSlotFor('💰 کیف پول / شارژ') === 'wallet' && globalThis.__btnSlotFor('⚙️ تنظیمات') === 'settings' && globalThis.__btnSlotFor('سلام دوست من') === '', 'هر دکمه به جایگاه درست خودش وصل می‌شود');
+assert(globalThis.__btnStyleFor('✅ تأیید', 'ok') === 'success' && globalThis.__btnStyleFor('❌ انصراف', 'menu') === 'danger' && globalThis.__btnStyleFor('🛍 خرید اشتراک', 'buy') === 'primary' && globalThis.__btnStyleFor('📊 آمار', 'stats') === '', 'رنگ دکمه از معنی آن می‌آید: سبز تأیید، قرمز انصراف، آبی خرید');
+
+globalThis.__resetBtnUI();
+await sendText(ADMIN, '/start');
+const styledHome = lookupButtons(lastMsgTo(ADMIN));
+const buyStyled = styledHome.find((b) => b.callback_data === 'buy');
+const plainHome = styledHome.find((b) => b.callback_data === 'help');
+assert(buyStyled && buyStyled.style === 'primary' && buyStyled.text === '🛍 خرید اشتراک', 'دکمهٔ خرید در چت رنگ آبی می‌گیرد و متنش دست‌نخورده می‌ماند');
+assert(plainHome && plainHome.text === '📖 راهنما' && !plainHome.style, 'دکمه‌های خنثی رنگ نمی‌گیرند تا صفحه شلوغ نشود');
+
+await press(ADMIN, 's_gate');
+await press(ADMIN, 's_gate_add');
+const cancelBtn = lookupButtons(lastMsgTo(ADMIN)).find((b) => b.text.includes('انصراف'));
+assert(cancelBtn && cancelBtn.style === 'danger', 'دکمهٔ «❌ انصراف» قرمز می‌شود');
+await sendText(ADMIN, '/cancel');
+
+// کیبورد ثابت و تغییرناپذیری دکمه‌های اصلی
+const fixedKb = globalThis.__decorateMarkup({ keyboard: [[{ text: '🛍 خرید اشتراک' }, { text: '📖 راهنما' }]], resize_keyboard: true }, { colors: true, icons: {} });
+assert(fixedKb.changed && fixedKb.markup.keyboard[0][0].style === 'primary' && !fixedKb.markup.keyboard[0][1].style && fixedKb.markup.keyboard[0][0].text === '🛍 خرید اشتراک' && fixedKb.markup.resize_keyboard === true, 'کیبورد ثابت هم رنگ می‌گیرد ولی متن دکمه (که کاربر می‌فرستد) عوض نمی‌شود');
+const srcKb = { inline_keyboard: [[{ text: '🛍 خرید اشتراک', callback_data: 'buy' }]] };
+const decKb = globalThis.__decorateMarkup(srcKb, { colors: true, icons: { buy: '5368324170671202286' } });
+assert(decKb.markup.inline_keyboard[0][0].icon_custom_emoji_id === '5368324170671202286' && decKb.markup.inline_keyboard[0][0].style === 'primary' && !srcKb.inline_keyboard[0][0].style && !srcKb.inline_keyboard[0][0].icon_custom_emoji_id, 'تزئین دکمه‌ها روی نسخهٔ کپی انجام می‌شود و مارک‌آپ اصلی دست‌نخورده می‌ماند');
+assert(globalThis.__btnStyleFor('✅ بله، حذف کن', 'ok') === 'danger', 'تأییدِ کارِ خطرناک (حذف) هم قرمز می‌شود');
+
+// آیکن متحرک از تنظیمات
+await kv.put('ui:btn_icons', JSON.stringify({ buy: '5368324170671202286' }));
+globalThis.__resetBtnUI();
+await sendText(ADMIN, '/start');
+const iconBtn = lookupButtons(lastMsgTo(ADMIN)).find((b) => b.callback_data === 'buy');
+assert(iconBtn && iconBtn.icon_custom_emoji_id === '5368324170671202286', 'آیکن متحرک ذخیره‌شده روی دکمهٔ خرید می‌نشیند');
+assert(iconBtn && iconBtn.text === 'خرید اشتراک', 'وقتی آیکن متحرک ست شده، ایموجی ابتدای متن حذف می‌شود تا دو ایموجی پشت‌هم نیاید');
+await kv.put('ui:btn_icons', JSON.stringify({ buy: 'not-a-number' }));
+globalThis.__resetBtnUI();
+await sendText(ADMIN, '/start');
+const badIconBtn = lookupButtons(lastMsgTo(ADMIN)).find((b) => b.callback_data === 'buy');
+assert(badIconBtn && !badIconBtn.icon_custom_emoji_id, 'شناسهٔ نامعتبر آیکن نادیده گرفته می‌شود و پیام سالم می‌ماند');
+
+// پاک‌کردن
+await kv.put('ui:btn_icons', JSON.stringify({}));
+globalThis.__resetBtnUI();
+
+// پنل ادمین
+await sendText(ADMIN, '/admin');
+await press(ADMIN, 'a_set');
+assert(lookupButtons(lastMsgTo(ADMIN, 'editMessageText') || lastMsgTo(ADMIN)).some((b) => b.callback_data === 's_ui'), 'در «⚙️ تنظیمات» دکمهٔ «🎨 دکمه‌ها و آیکن‌ها» وجود دارد');
+await press(ADMIN, 's_ui');
+const lookPanel = TG.filter((x) => (x.method === 'sendMessage' || x.method === 'editMessageText') && String(x.params.chat_id) === String(ADMIN) && String(x.params.text || '').includes('ظاهر دکمه‌های چت')).slice(-1)[0];
+const lookButtons = lookupButtons(lookPanel);
+assert(lookPanel && lookButtons.some((b) => b.callback_data === 's_ui_colors' && /شیشه‌ای|رنگی/.test(b.text)) && lookButtons.some((b) => b.callback_data === 's_ui_grab') && lookButtons.some((b) => String(b.callback_data).startsWith('s_ui_icon:buy')), 'پنل دکمه‌ها: کلید رنگ‌ها، گرفتن شناسه و انتخاب جایگاه هر دکمه');
+
+// خاموش‌کردن رنگ‌ها
+const colorCallsBefore = TG.filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN)).length;
+await press(ADMIN, 's_ui_colors');
+await sendText(ADMIN, '/start');
+const plainAfterOff = lookupButtons(lastMsgTo(ADMIN));
+assert(plainAfterOff.every((b) => !b.style), 'با خاموش‌کردن رنگ‌ها هیچ دکمه‌ای استایل نمی‌گیرد');
+await press(ADMIN, 's_ui');
+await press(ADMIN, 's_ui_colors');
+await sendText(ADMIN, '/start');
+assert(lookupButtons(lastMsgTo(ADMIN)).some((b) => b.style === 'primary'), 'روشن‌کردن دوبارهٔ رنگ‌ها برمی‌گردد');
+
+// ثبت دستی شناسه
+await press(ADMIN, 's_ui');
+await press(ADMIN, 's_ui_icon:buy');
+await sendText(ADMIN, '12345678901234567');
+const iconsAfterManual = await kvJson('ui:btn_icons');
+assert(iconsAfterManual && iconsAfterManual.buy === '12345678901234567', 'ادمین می‌تواند شناسهٔ آیکن را دستی وارد کند');
+globalThis.__resetBtnUI();
+await sendText(ADMIN, '/start');
+assert(lookupButtons(lastMsgTo(ADMIN)).find((b) => b.callback_data === 'buy').icon_custom_emoji_id === '12345678901234567', 'آیکن ثبت‌شدهٔ دستی روی دکمه ظاهر می‌شود');
+
+// با آیکن ست‌شده، دکمه‌ها هنوز با متن بدون ایموجی کار می‌کنند
+await kv.put('ui:btn_icons', JSON.stringify({ buy: '5368324170671202286' }));
+globalThis.__resetBtnUI();
+await sendText(ADMIN, 'خرید اشتراک');
+const strippedMsg = TG.filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN) && String(x.params.text || '').includes('خوش آمدید')).slice(-1)[0];
+const inlineBuy = strippedMsg ? lookupButtons(strippedMsg).find((b) => b.callback_data === 'buy') : null;
+assert(inlineBuy && inlineBuy.text === 'خرید اشتراک' && inlineBuy.icon_custom_emoji_id === '5368324170671202286' && inlineBuy.style === 'primary', 'با آیکن ست‌شده، متن دکمه بدون ایموجی می‌ماند (آیکن خودش قبل از متن می‌آید) و پیام متنی کاربر باز هم به همان دکمه می‌رسد');
+await kv.put('ui:btn_icons', JSON.stringify({}));
+globalThis.__resetBtnUI();
+
+// گرفتن شناسه از ایموجی فوروارد‌شده
+await press(ADMIN, 's_ui_grab');
+const grabBefore = TG.length;
+await upd({ message: { message_id: ++midSeq, chat: { id: ADMIN, type: 'private' }, from: { id: ADMIN, first_name: 'A' }, text: '🎁', entities: [{ type: 'custom_emoji', offset: 0, length: 2, custom_emoji_id: '5368324170671202286' }] } });
+const grabMsg = TG.slice(grabBefore).filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN)).slice(-1)[0];
+assert(grabMsg && String(grabMsg.params.text || '').includes('5368324170671202286') && lookupButtons(grabMsg).some((b) => String(b.callback_data).startsWith('s_ui_assign:5368324170671202286:')), 'ادمین با فوروارد ایموجی متحرک، شناسه‌اش را می‌گیرد و جایگاه را انتخاب می‌کند');
+await press(ADMIN, 's_ui_grab');
+await upd({ message: { message_id: ++midSeq, chat: { id: ADMIN, type: 'private' }, from: { id: ADMIN, first_name: 'A' }, text: 'سلام' } });
+const noEmojiMsg = TG.filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN) && String(x.params.text || '').includes('ایموجی متحرک پیدا نشد')).slice(-1)[0];
+assert(noEmojiMsg, 'اگر پیام ایموجی متحرک نداشته باشد، راهنما داده می‌شود');
+
+// لغو حالت و پاک‌سازی
+await sendText(ADMIN, '/cancel');
+await kv.put('ui:btn_icons', JSON.stringify({}));
+await kv.put('ui:btn_colors', JSON.stringify('1'));
+globalThis.__resetBtnUI();
+
+// پشتیبان: اگر تلگرام دکمهٔ استایل‌دار را رد کند
+tgRejectDecorated = 1;
+const fbBefore = TG.length;
+await sendText(ADMIN, '/start');
+const fbCalls = TG.slice(fbBefore).filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN));
+const firstDecorated = fbCalls[0] && Array.isArray(fbCalls[0].params.reply_markup?.inline_keyboard) && fbCalls[0].params.reply_markup.inline_keyboard.flat().some((b) => b && b.style);
+const secondPlain = fbCalls[1] && Array.isArray(fbCalls[1].params.reply_markup?.inline_keyboard) && fbCalls[1].params.reply_markup.inline_keyboard.flat().every((b) => b && !b.style && !b.icon_custom_emoji_id);
+assert(firstDecorated && secondPlain, 'اگر تلگرام استایل را رد کند، همان پیام بی‌درنگ بدون استایل دوباره فرستاده می‌شود');
+tgRejectDecorated = 0;
 
 console.log('— تمام —');
 if (process.exitCode) console.error('❌ بعضی تست‌ها شکست خوردند');

@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.19-ubuntu26.21';
+const VERSION = '1.8.20-ubuntu26.22';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -2957,16 +2957,199 @@ function telegramExtra(env, extra, chatId) {
   return safe;
 }
 
+/* ── رنگ و آیکن دکمه‌های چت (Bot API 9.4) ─────────────────────────────── */
+
+// هر «جایگاه» یک آیکن اختصاصی دارد که از پنل ادمین قابل تغییر است.
+const BTN_SLOT_LIST = [
+  ['buy', 'خرید و ورود به اپ'],
+  ['wallet', 'کیف پول و شارژ'],
+  ['subs', 'اشتراک‌های من'],
+  ['free', 'اشتراک رایگان'],
+  ['plan', 'پلن‌ها'],
+  ['order', 'سفارش‌ها'],
+  ['users', 'کاربران و مشتری‌ها'],
+  ['stats', 'آمار'],
+  ['panel', 'پنل و سرور'],
+  ['settings', 'تنظیمات'],
+  ['lock', 'قفل کانال و شماره'],
+  ['app', 'اتصال اپ و شتاب'],
+  ['support', 'پشتیبانی'],
+  ['help', 'راهنما'],
+  ['gift', 'دعوت و هدیه'],
+  ['agent', 'نمایندگی']
+];
+
+// ترتیب مهم است؛ اولین قاعده‌ای که بخورد جایگاه را تعیین می‌کند.
+const BTN_SLOT_RULES = [
+  [/خرید اشتراک|خرید مجدد|ورود به اپ/, 'buy'],
+  [/کیف پول|شارژ/, 'wallet'],
+  [/اشتراک‌های من/, 'subs'],
+  [/اشتراک رایگان/, 'free'],
+  [/پلن/, 'plan'],
+  [/سفارش/, 'order'],
+  [/کاربران|مشتری/, 'users'],
+  [/آمار/, 'stats'],
+  [/لینک دعوت|پورسانت|هدیه|دعوت/, 'gift'],
+  [/نمایندگی/, 'agent'],
+  [/قفل کانال|قفل شماره/, 'lock'],
+  [/اتصال اپ|شتاب|Secret|QR/, 'app'],
+  [/پشتیبانی/, 'support'],
+  [/راهنما/, 'help'],
+  [/اطلاعات حساب/, 'settings'],
+  [/تنظیمات/, 'settings'],
+  [/پنل|سرور/, 'panel']
+];
+
+const BTN_UI_CACHE_KEY = 'ui:btn_icons';
+const BTN_UI_COLORS_KEY = 'ui:btn_colors';
+let BTN_UI_CACHE = { at: 0, colors: true, icons: {} };
+
+function btnSlotFor(text) {
+  const t = String(text == null ? '' : text);
+  const clean = botButtonKey(t);
+  for (const [re, slot] of BTN_SLOT_RULES) if (re.test(clean) || re.test(t)) return slot;
+  return '';
+}
+
+function btnStyleFor(text, slot) {
+  const t = String(text == null ? '' : text).trim();
+  const lead = t ? String.fromCodePoint(t.codePointAt(0)) : '';
+  if (lead && '＋◀'.includes(lead)) return '';
+  if (lead && '❌🗑'.includes(lead)) return 'danger';
+  if (/حذف|مسدود/.test(t)) return 'danger';
+  if (lead && '✅💾'.includes(lead)) return 'success';
+  if (slot === 'buy') return 'primary';
+  return '';
+}
+
+async function btnUI(env) {
+  if (BTN_UI_CACHE.at && Date.now() - BTN_UI_CACHE.at < 30000) return BTN_UI_CACHE;
+  let colors = true;
+  let icons = {};
+  try {
+    const rawColors = await kvGet(env, BTN_UI_COLORS_KEY, null);
+    if (rawColors === '0' || rawColors === 0 || rawColors === false) colors = false;
+    const rawIcons = await kvGet(env, BTN_UI_CACHE_KEY, null);
+    if (rawIcons && typeof rawIcons === 'object' && !Array.isArray(rawIcons)) {
+      for (const [k, v] of Object.entries(rawIcons)) {
+        const id = String(v == null ? '' : v).trim();
+        if (/^\d{6,25}$/.test(id)) icons[k] = id;
+      }
+    }
+  } catch (e) {}
+  BTN_UI_CACHE = { at: Date.now(), colors: colors, icons: icons };
+  return BTN_UI_CACHE;
+}
+
+async function saveBtnIcons(env, icons) {
+  const clean = {};
+  for (const [k, v] of Object.entries(icons || {})) {
+    const id = String(v == null ? '' : v).trim();
+    if (BTN_SLOT_LIST.some((x) => x[0] === k) && /^\d{6,25}$/.test(id)) clean[k] = id;
+  }
+  await kvPut(env, BTN_UI_CACHE_KEY, clean);
+  BTN_UI_CACHE = { at: 0, colors: BTN_UI_CACHE.colors, icons: {} };
+  return clean;
+}
+
+function decorateButton(btn, ui) {
+  if (!btn || typeof btn !== 'object' || typeof btn.text !== 'string') return { btn: btn, changed: false };
+  const out = Object.assign({}, btn);
+  let changed = false;
+  if (ui.colors) {
+    const style = btnStyleFor(btn.text, btnSlotFor(btn.text));
+    if (style) { out.style = style; changed = true; }
+  }
+  const slot = btnSlotFor(btn.text);
+  const iconId = slot ? ui.icons[slot] : '';
+  if (iconId) {
+    out.icon_custom_emoji_id = iconId;
+    // ایموجی متحرک خودش قبل از متن می‌نشیند؛ ایموجی ابتدای متن حذف می‌شود تا دوتایی نشود.
+    const stripped = btn.text.replace(/^\s*[\p{Extended_Pictographic}\u200d\uFE0F\u2190-\u21FF\u2B00-\u2BFF]+\s*/u, '').trim();
+    if (stripped) out.text = stripped;
+    changed = true;
+  }
+  return { btn: changed ? out : btn, changed: changed };
+}
+
+function decorateMarkup(markup, ui) {
+  if (!markup || typeof markup !== 'object') return { markup: markup, changed: false };
+  let changed = false;
+  const out = Object.assign({}, markup);
+  for (const field of ['inline_keyboard', 'keyboard']) {
+    if (!Array.isArray(markup[field])) continue;
+    out[field] = markup[field].map((row) => {
+      if (!Array.isArray(row)) return row;
+      return row.map((btn) => {
+        const r = decorateButton(btn, ui);
+        if (r.changed) changed = true;
+        return r.btn;
+      });
+    });
+  }
+  return { markup: changed ? out : markup, changed: changed };
+}
+
+// پنل ادمین: 🎨 دکمه‌ها و آیکن‌ها
+async function adminButtonLook(env, chatId, messageId) {
+  const ui = await btnUI(env);
+  const setCount = Object.keys(ui.icons || {}).length;
+  const lines = BTN_SLOT_LIST.map(([slot, label], i) =>
+    faNum(i + 1) + '. ' + esc(label) + ' — ' + (ui.icons[slot] ? '<code>' + esc(ui.icons[slot]) + '</code>' : 'آیکن پیش‌فرض'))
+    .join('\n');
+  const text = '🎨 <b>ظاهر دکمه‌های چت</b>\n\n' +
+    '🖌 حالت: ' + (ui.colors ? 'رنگی و معنادار ✅' : 'شیشه‌ای (بی‌رنگ) 🪟') + '\n' +
+    '🖼 آیکن‌های متحرک: ' + (setCount ? faNum(setCount) + ' دکمه' : 'هیچ‌کدام') + '\n\n' +
+    lines + '\n\n' +
+    '<b>رنگی:</b> آبی برای خرید، سبز برای تأیید، قرمز برای انصراف و حذف.\n' +
+    '<b>شیشه‌ای:</b> بدون رنگ؛ دکمه نیمه‌شفاف می‌شود و تصویر پس‌زمینهٔ چت از پشتش دیده می‌شود — تلگرام گرادیان و بلور دلخواه نمی‌پذیرد، پس این نزدیک‌ترین حالت به شیشه است.\n\n' +
+    '<i>آیکن متحرک به «تلگرام پریمیوم» مالک ربات نیاز دارد؛ کلاینت قدیمی دکمه را ساده نشان می‌دهد.</i>';
+  const rows = [[BTN(ui.colors ? '🪟 شیشه‌ای کن (بدون رنگ)' : '🎨 رنگی و معنادار کن', 's_ui_colors')]];
+  rows.push([BTN('📥 گرفتن شناسهٔ ایموجی متحرک', 's_ui_grab')]);
+  for (let i = 0; i < BTN_SLOT_LIST.length; i += 2) {
+    const row = [];
+    for (const [slot, label] of BTN_SLOT_LIST.slice(i, i + 2)) {
+      row.push(BTN((ui.icons[slot] ? '🖼 ' : '＋ ') + label, 's_ui_icon:' + slot));
+    }
+    rows.push(row);
+  }
+  if (setCount) rows.push([BTN('🗑 پاک‌کردن همهٔ آیکن‌ها', 's_ui_clearall')]);
+  rows.push([BTN('◀️ تنظیمات', 'a_set')]);
+  if (messageId) { try { await editMsg(env, chatId, messageId, text, KB(rows)); return; } catch (e) {} }
+  await msg(env, chatId, text, KB(rows));
+}
+
 /* ============================ تلگرام ============================ */
 
 async function tg(env, method, params) {
-  const r = await fetch('https://api.telegram.org/bot' + env.BOT_TOKEN + '/' + method, {
+  const original = params && typeof params === 'object' ? params : {};
+  let payload = original;
+  let decorated = false;
+  if (original.reply_markup) {
+    try {
+      const ui = await btnUI(env);
+      if (ui.colors || Object.keys(ui.icons || {}).length) {
+        const res = decorateMarkup(original.reply_markup, ui);
+        if (res.changed) { payload = Object.assign({}, original, { reply_markup: res.markup }); decorated = true; }
+      }
+    } catch (e) {}
+  }
+  const call = (body) => fetch('https://api.telegram.org/bot' + env.BOT_TOKEN + '/' + method, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params || {})
+    body: JSON.stringify(body || {})
   });
+  let r = await call(payload);
   let j = {};
   try { j = await r.json(); } catch (e) {}
+  // اگر تلگرام استایل/آیکن را نپذیرفت، همان پیام یک‌بار بدون تزئین فرستاده می‌شود.
+  if (!j.ok && decorated && /style|emoji|icon|button/i.test(String(j.description || ''))) {
+    r = await call(original);
+    j = {};
+    try { j = await r.json(); } catch (e) {}
+    // تا نیم‌دقیقه آیکن‌ها را نمی‌فرستیم تا هر پیام دوبار ارسال نشود.
+    if (j.ok) BTN_UI_CACHE = { at: Date.now(), colors: BTN_UI_CACHE.colors, icons: {} };
+  }
   if (!j.ok) throw new Error('TG ' + method + ': ' + (j.description || ('HTTP ' + r.status)));
   return j.result;
 }
@@ -5021,6 +5204,7 @@ async function adminSettings(env, chatId, messageId) {
     [BTN(autoOn ? '⛔ خاموش‌کردن کارت‌به‌کارت خودکار' : '✅ روشن‌کردن کارت‌به‌کارت خودکار', 's_pay_auto')],
     [BTN('📲 اتصال اپ شتاب', 'a_shapp'), BTN('🧪 آزمون پرداخت خودکار', 'a_shtest')],
     [BTN('🔒 قفل کانال و شماره', 's_gate')],
+    [BTN('🎨 دکمه‌ها و آیکن‌ها', 's_ui')],
     [BTN('📜 رویدادهای بانکی', 'a_shlog')],
     [BTN('◀️ پنل مدیریت', 'admin')]
   ];
@@ -5843,6 +6027,67 @@ async function onCallback(env, q, origin) {
   }
   if (data === 'a_set') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminSettings(env, chatId, messageId); return; }
   if (data === 's_gate') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminGateSettings(env, chatId, messageId); return; }
+  if (data === 's_ui') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminButtonLook(env, chatId, messageId); return; }
+  if (data === 's_ui_colors') {
+    if (!await needAdmin()) return;
+    const ui0 = await btnUI(env);
+    await kvPut(env, BTN_UI_COLORS_KEY, ui0.colors ? '0' : '1');
+    BTN_UI_CACHE = { at: 0, colors: true, icons: {} };
+    await ansCb(env, q.id, ui0.colors ? 'حالت شیشه‌ای شد.' : 'حالت رنگی شد.');
+    await adminButtonLook(env, chatId, messageId);
+    return;
+  }
+  if (data === 's_ui_grab') {
+    if (!await needAdmin()) return;
+    await setState(env, u.tg_id, 'ui_grab', {});
+    await ansCb(env, q.id);
+    await msg(env, chatId, '📥 <b>شناسهٔ ایموجی متحرک</b>\n\nیک پیام حاوی <b>ایموجی متحرک</b> (پریمیومی) برای ربات فوروارد کنید یا همین‌جا بفرستید؛ شناسه را نشان می‌دهم تا به دکمه بچسبانیم.', KB([[BTN('❌ انصراف', 's_ui')]]));
+    return;
+  }
+  if (data === 's_ui_clearall') {
+    if (!await needAdmin()) return;
+    await saveBtnIcons(env, {});
+    await ansCb(env, q.id, 'همهٔ آیکن‌ها پاک شد.');
+    await adminButtonLook(env, chatId, messageId);
+    return;
+  }
+  if (data.startsWith('s_ui_clear:')) {
+    if (!await needAdmin()) return;
+    const slot = data.split(':')[1] || '';
+    const icons = Object.assign({}, (await btnUI(env)).icons || {});
+    delete icons[slot];
+    await saveBtnIcons(env, icons);
+    await ansCb(env, q.id, 'آیکن پاک شد.');
+    await adminButtonLook(env, chatId, messageId);
+    return;
+  }
+  if (data.startsWith('s_ui_icon:')) {
+    if (!await needAdmin()) return;
+    const slot = data.split(':')[1] || '';
+    const label = (BTN_SLOT_LIST.find((x) => x[0] === slot) || [slot, slot])[1];
+    const cur = (await btnUI(env)).icons[slot] || '';
+    await setState(env, u.tg_id, 'ui_icon', { slot: slot });
+    await ansCb(env, q.id);
+    await msg(env, chatId, '🖼 <b>آیکن دکمهٔ «' + esc(label) + '»</b>\n\n' +
+      (cur ? 'شناسهٔ فعلی: <code>' + esc(cur) + '</code>\n\n' : '') +
+      'شناسهٔ عددی ایموجی متحرک را بفرستید، یا با دکمهٔ «📥 گرفتن شناسه» آن را از یک ایموجی کپی کنید.\n' +
+      'برای حذف آیکن، فقط <code>-</code> بفرستید.',
+      KB([[BTN('📥 گرفتن شناسه از ایموجی', 's_ui_grab')], [BTN('◀️ بازگشت', 's_ui')]]));
+    return;
+  }
+  if (data.startsWith('s_ui_assign:')) {
+    if (!await needAdmin()) return;
+    const parts = data.split(':');
+    const slot = parts[2] || '';
+    const iconId = parts[1] || '';
+    const icons = Object.assign({}, (await btnUI(env)).icons || {});
+    icons[slot] = iconId;
+    await saveBtnIcons(env, icons);
+    await clearState(env, u.tg_id);
+    await ansCb(env, q.id, 'آیکن ثبت شد.');
+    await adminButtonLook(env, chatId, messageId);
+    return;
+  }
   if (data === 's_gate_toggle') {
     if (!await needAdmin()) return;
     const c0 = await getCfg(env);
@@ -6417,6 +6662,30 @@ async function onStateText(env, u, chatId, text) {
     await msg(env, chatId, '✅ پورسانت ' + faNum(n) + '٪ شد.', KB([[BTN('◀️ تنظیمات', 'a_set')]]));
     return true;
   }
+  if (step === 'ui_icon' && adm) {
+    const slot = String(d.slot || '');
+    if (!BTN_SLOT_LIST.some((x) => x[0] === slot)) {
+      await clearState(env, u.tg_id);
+      await adminButtonLook(env, chatId, null);
+      return true;
+    }
+    const icons = Object.assign({}, (await btnUI(env)).icons || {});
+    const raw = String(text || '').trim();
+    if (raw === '-' || raw === '0') {
+      delete icons[slot];
+    } else {
+      const id = raw.replace(/[^\d]/g, '');
+      if (!/^\d{6,25}$/.test(id)) {
+        await msg(env, chatId, '❌ شناسه باید عددی بین ۶ تا ۲۵ رقم باشد. دوباره بفرستید یا <code>-</code> برای حذف.', KB([[BTN('◀️ بازگشت', 's_ui')]]));
+        return true;
+      }
+      icons[slot] = id;
+    }
+    await saveBtnIcons(env, icons);
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, '✅ ذخیره شد.', KB([[BTN('🎨 دکمه‌ها و آیکن‌ها', 's_ui')]]));
+    return true;
+  }
   if (step === 'gate_ch' && adm) {
     const resolved = await resolveJoinChannel(env, text);
     if (!resolved.ok) {
@@ -6501,6 +6770,29 @@ async function onMessage(env, m, origin) {
   }
 
   const text = (m.text || '').trim();
+
+  // ── ادمین: گرفتن شناسهٔ ایموجی متحرک برای دکمه‌ها ──────────────────────
+  if (isAdminUser) {
+    const uiState = await getState(env, u.tg_id);
+    if (uiState && uiState.step === 'ui_grab') {
+      const ids = [];
+      for (const e of (Array.isArray(m.entities) ? m.entities : [])) {
+        if (e && e.type === 'custom_emoji' && e.custom_emoji_id) ids.push(String(e.custom_emoji_id));
+      }
+      if (!ids.length) {
+        await msg(env, chatId, '⚠️ در این پیام ایموجی متحرک پیدا نشد. یک ایموجی پریمیومی بفرستید یا فوروارد کنید.', KB([[BTN('❌ انصراف', 's_ui')]]));
+        return;
+      }
+      const rows = [];
+      for (let i = 0; i < BTN_SLOT_LIST.length; i += 2) {
+        rows.push(BTN_SLOT_LIST.slice(i, i + 2).map(([slot, label]) => BTN(label, 's_ui_assign:' + ids[0] + ':' + slot)));
+      }
+      rows.push([BTN('❌ انصراف', 's_ui')]);
+      await clearState(env, u.tg_id);
+      await msg(env, chatId, '✅ شناسهٔ ایموجی: <code>' + esc(ids[0]) + '</code>\n\nاین آیکن روی کدام دکمه بنشیند؟', KB(rows));
+      return;
+    }
+  }
 
   // ── قفل کانال و شماره ──────────────────────────────────────────────────
   const gateCfg = await getCfg(env);
