@@ -2806,18 +2806,14 @@
     }
     @media (max-width: 620px) {
       .managed-list, .cv-plans { gap: 6px; }
-      /* سه کارت در یک ردیف می‌مانند؛ دکمه‌ها زیر هم می‌نشینند تا در ۹۰ پیکسل جا شوند. */
-      .managed-item { padding: 8px; gap: 5px; border-radius: 12px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "main" "state" "actions"; }
+      /* سه کارت در یک ردیف افقی می‌مانند؛ محتوای کارت هم افقی می‌ماند
+         (نام و وضعیت در یک خط، دکمه‌ها در یک ردیف) و هرگز زیر هم نمی‌نشیند. */
+      .managed-item { padding: 8px; gap: 5px; border-radius: 12px; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "main state" "actions actions"; }
       .managed-item .managed-main strong { font-size: 11px; }
       .managed-item .managed-meta { font-size: 9px; }
       .managed-item > .status { font-size: 9px; padding: 2px 6px; }
-      .managed-item .managed-actions { flex-direction: column; align-items: stretch; overflow: visible; gap: 4px; }
-      .managed-item .managed-actions > button { width: 100%; font-size: 9.5px; padding: 5px 3px; border-radius: 8px; }
       .cv-plan { padding: 8px; gap: 6px; }
-      .cv-plan-top h3 { font-size: 11px; }
-      .cv-specs { grid-template-columns: minmax(0, 1fr); }
-      .cv-price { font-size: 13px; }
-      .cv-buy { min-height: 34px; padding: 0 9px; font-size: 10px; }
+      .cv-plan-top h3 { font-size: 12px; }
     }
 
     /* ══════════════════════════════════════════════════════════════════════
@@ -3266,6 +3262,163 @@
     @media (prefers-reduced-motion: reduce) {
       .managed-item, .stat-card, .panel, .cv-card, .cv-plan { transition: none !important; }
     }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       ۲۱) اصلاح ۱.۸.۳۱ — «یک ردیف افقی، سربرگ‌های درشت»
+       • قانون سه‌تایی دست‌نخورده: هر سه کارت در یک ردیف افقی، هرگز دو خط.
+       • محتوای داخل کارت‌ها هم افقی چیده می‌شود؛ چیزی عمودی/زیر هم نمی‌رود.
+       • مقیاس تیترها یک پله بزرگ‌تر شد تا در گوشی هم راحت خوانده شود.
+       ══════════════════════════════════════════════════════════════════════ */
+
+    /* ۱) سربرگ‌ها — درشت، محکم، خوانا در هر اندازه */
+    .page-top h1 { font-size: clamp(21px, 1.5vw + 13px, 30px) !important; font-weight: 850 !important; letter-spacing: -.7px !important; }
+    .hero h1, .hero-copy h1 { font-size: clamp(21px, 1.5vw + 13px, 29px) !important; }
+    .panel-head h3 { font-size: clamp(15.5px, .8vw + 12px, 20px) !important; font-weight: 800 !important; letter-spacing: -.3px !important; }
+    .section-title h2 { font-size: clamp(15px, .7vw + 12px, 18px) !important; font-weight: 800 !important; }
+    .cv-sec-title h2 { font-size: clamp(16px, .8vw + 12.5px, 19px) !important; }
+    .cv-card-head h3 { font-size: clamp(14.5px, .6vw + 12.2px, 17px) !important; }
+    .cv-plan-top h3 { font-size: clamp(13px, .45vw + 11.5px, 15.5px) !important; }
+    .modal-head h3, #modalTitle { font-size: clamp(17px, .9vw + 13.5px, 21px) !important; letter-spacing: -.3px !important; }
+    .panel-head p, .section-title p, .cv-sec-title p, .cv-card-head p { font-size: clamp(11px, .25vw + 10.2px, 13px) !important; }
+    .customer-mode .panel-head h3 { font-size: clamp(15.5px, .8vw + 12px, 20px) !important; }
+    .table-wrap table { font-size: clamp(12px, .35vw + 10.8px, 14px) !important; }
+    .table-wrap thead th { font-size: clamp(11px, .25vw + 10px, 12.5px) !important; font-weight: 700 !important; }
+    .nav-btn { font-size: clamp(12.5px, .4vw + 11px, 14px) !important; }
+    .side-caption { font-size: 10.5px !important; }
+    .mini-note { font-size: clamp(11px, .25vw + 10.2px, 12.5px) !important; line-height: 1.85 !important; }
+    .empty-state { font-size: clamp(11.5px, .25vw + 10.7px, 13px) !important; }
+    .status { font-size: clamp(10px, .2vw + 9.5px, 11.5px) !important; padding: 4px 10px !important; }
+    .cv-chip { font-size: clamp(9px, .2vw + 8.6px, 10px) !important; }
+    .cv-spec small { font-size: clamp(9px, .2vw + 8.5px, 10px) !important; }
+    .cv-spec strong { font-size: clamp(11px, .35vw + 10px, 13px) !important; }
+
+    /* ۲) قانون ثابت: سه کارت، یک ردیف افقی — بدون شکست خط و بدون ستون‌شدن */
+    .managed-list, .cv-plans, #managedPlansList, #managedPanelsList, #managedAgentsList, #customerPlansGrid {
+      display: grid !important;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      grid-auto-flow: row !important;
+      align-items: stretch !important;
+      gap: clamp(6px, .9vw, 14px) !important;
+    }
+
+    /* ۳) کارت‌های مدیریتی: نام و وضعیت در یک خط، دکمه‌ها در یک ردیف افقی */
+    .managed-item {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) auto !important;
+      grid-template-areas: "main state" "actions actions" !important;
+      align-items: start !important;
+      align-content: start !important;
+      gap: 8px 8px !important;
+      padding: clamp(9px, .8vw, 15px) !important;
+      border-radius: clamp(13px, 1.2vw, 20px) !important;
+      min-width: 0 !important;
+    }
+    .managed-item .managed-main { grid-area: main !important; display: grid !important; gap: 3px !important; min-width: 0 !important; }
+    .managed-item .managed-main strong { font-size: clamp(12px, .4vw + 10.9px, 14.5px) !important; }
+    .managed-item .managed-meta { font-size: clamp(9.5px, .25vw + 8.9px, 11.5px) !important; }
+    .managed-item > .status { grid-area: state !important; align-self: start !important; white-space: nowrap !important; }
+    .managed-item .managed-actions {
+      grid-area: actions !important;
+      display: flex !important;
+      flex-direction: row !important;
+      flex-wrap: nowrap !important;
+      align-items: center !important;
+      gap: 5px !important;
+      width: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: visible !important;
+    }
+    .managed-item .managed-actions > button {
+      flex: 1 1 0 !important;
+      min-width: 0 !important;
+      width: auto !important;
+      min-height: 33px !important;
+      padding: 0 7px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: clamp(9.5px, .35vw + 8.8px, 11.5px) !important;
+      font-weight: 650 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      border-radius: 999px !important;
+    }
+
+    /* ۴) کارت پلن فروش: عنوان، مشخصات دو‌ستونه، قیمت و خرید — همه افقی */
+    .cv-plan {
+      display: grid !important;
+      align-content: start !important;
+      gap: clamp(6px, .7vw, 10px) !important;
+      padding: clamp(8px, .9vw, 15px) !important;
+      border-radius: clamp(14px, 1.4vw, 22px) !important;
+      min-width: 0 !important;
+    }
+    .cv-plan-top { flex-wrap: nowrap !important; gap: 5px !important; }
+    .cv-plan-top h3 { min-width: 0 !important; }
+    .cv-specs { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 5px !important; }
+    .cv-spec { padding: 5px 6px !important; border-radius: 9px !important; }
+    .cv-plan-foot {
+      display: flex !important;
+      flex-direction: row !important;
+      flex-wrap: nowrap !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 5px !important;
+      padding-top: 7px !important;
+      min-width: 0 !important;
+    }
+    .cv-price { font-size: clamp(12px, .8vw + 9.5px, 17px) !important; }
+    .cv-price small { font-size: clamp(8.5px, .2vw + 8px, 10px) !important; }
+    .cv-buy {
+      min-height: clamp(30px, 3vw, 38px) !important;
+      padding: 0 clamp(8px, .8vw, 14px) !important;
+      font-size: clamp(10px, .35vw + 8.9px, 12px) !important;
+      border-radius: 999px !important;
+    }
+
+    /* ۵) گوشی: کارت‌های باریک با دکمه‌های آیکونی در یک ردیف (متن برای صفحه‌خوان می‌ماند) */
+    @media (max-width: 480px) {
+      .managed-item .managed-actions { gap: 4px !important; }
+      .managed-item .managed-actions > button {
+        min-height: 31px !important; padding: 0 !important;
+        font-size: 0 !important; line-height: 0 !important;
+      }
+      .managed-item .managed-actions > button::after {
+        content: ""; display: block; width: 13px; height: 13px;
+        background-repeat: no-repeat; background-position: center; background-size: 13px 13px;
+      }
+      .managed-item .managed-actions > button[data-plan-edit]::after,
+      .managed-item .managed-actions > button[data-panel-edit]::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d7e4ff' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20h4l9.5-9.5-4-4L4 16v4z'/%3E%3Cpath d='M14.5 5.5l4 4'/%3E%3C/svg%3E"); }
+      .managed-item .managed-actions > button[data-plan-toggle]::after,
+      .managed-item .managed-actions > button[data-panel-toggle]::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d7e4ff' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4v7'/%3E%3Cpath d='M7.4 6.8a7 7 0 1 0 9.2 0'/%3E%3C/svg%3E"); }
+      .managed-item .managed-actions > button[data-plan-archive]::after,
+      .managed-item .managed-actions > button[data-panel-archive]::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d7e4ff' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 4.5h17v3.5h-17z'/%3E%3Cpath d='M5 8v11.5h14V8'/%3E%3Cpath d='M10 12h4'/%3E%3C/svg%3E"); }
+      .managed-item .managed-actions > button[data-agent-open]::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d7e4ff' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='3.4'/%3E%3Cpath d='M5.5 20c1.4-3.4 3.8-5 6.5-5s5.1 1.6 6.5 5'/%3E%3C/svg%3E"); }
+      .managed-item .managed-actions > button[data-copy-text]::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d7e4ff' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='9' width='11' height='11' rx='2.4'/%3E%3Cpath d='M15 5.5H6.5A2 2 0 0 0 4.5 7.5V16'/%3E%3C/svg%3E"); }
+      .managed-item .managed-actions > button[data-agent-invite-revoke]::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d7e4ff' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 6.5l11 11M17.5 6.5l-11 11'/%3E%3C/svg%3E"); }
+      .managed-item .managed-actions > button:only-child {
+        font-size: 10px !important; line-height: 1.2 !important; padding: 0 6px !important;
+      }
+      .managed-item .managed-actions > button:only-child::after { content: none !important; }
+    }
+
+    /* ۶) گوشی: فضای بیشتر برای همان سه کارت افقی */
+    @media (max-width: 760px) {
+      .main { padding: 0 10px calc(104px + var(--safe-bottom)) !important; }
+      .panel { padding: 14px 12px !important; }
+      .cv-shell { gap: 11px !important; }
+      .cv-card { padding: 12px 11px !important; border-radius: 20px !important; }
+      .content-grid, .lower-grid, .stats-grid { gap: 12px !important; }
+      .managed-list, .cv-plans { gap: 6px !important; }
+      .panel-head { gap: 8px !important; }
+    }
+
+    /* ۷) نوار پایین و سربرگ تب‌ها: برچسب‌ها بزرگ‌تر */
+    .mobile-nav button { font-size: 10.5px !important; }
+    .customer-mode .customer-tabs [role="tab"] { font-size: 10.5px !important; }
+    .settings-tab { font-size: 12.5px !important; }
 </style>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
