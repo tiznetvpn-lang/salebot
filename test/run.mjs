@@ -1182,7 +1182,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--brand: #3d74f5') && miniAppSource.includes('--teal: #3d74f5;') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت تک‌رنگ آبی روی جوهر شب در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.30-ubuntu26.32';"), 'شمارهٔ نسخهٔ سرور 1.8.30-ubuntu26.32 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.31-ubuntu26.33';"), 'شمارهٔ نسخهٔ سرور 1.8.31-ubuntu26.33 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ آبی') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(180deg, #5a8dfb, #2a5ce0)'), 'تم زندهٔ تک‌رنگ آبی روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ آبی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #3d74f5;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها آبی تک‌رنگ‌اند');
@@ -1208,6 +1208,22 @@ for (const hex of (miniAppSource.match(/#[0-9a-fA-F]{6}\b/g) || [])) {
   if (!(h >= 200 && h <= 255)) offPalette.push(hex);
 }
 assert(offPalette.length === 0, 'همهٔ رنگ‌های رنگی مینی‌اپ تک‌رنگ آبی‌اند و هیچ ته‌رنگ قرمز/سبز/زرد/بنفش نمانده است' + (offPalette.length ? ' — خارج: ' + [...new Set(offPalette)].slice(0, 6).join(', ') : ''));
+// ---------- خط افقی: سه آیتم در یک ردیف، بدون ستون‌شدن (۱.۸.۳۱) ----------
+const managedActionDirs = [...miniAppSource.matchAll(/\.managed-item \.managed-actions\s*\{([^}]*)\}/g)]
+  .flatMap((m) => [...m[1].matchAll(/flex-direction:\s*([a-z-]+)/g)].map((x) => x[1]));
+assert(managedActionDirs.length > 0 && managedActionDirs.every((v) => v === 'row'),
+  'دکمه‌های کارت‌های مدیریتی همیشه در یک ردیف افقی‌اند و هیچ‌جا زیر هم (ستونی) نمی‌نشینند');
+const specColumns = [...miniAppSource.matchAll(/\.cv-specs\s*\{([^}]*)\}/g)]
+  .flatMap((m) => [...m[1].matchAll(/grid-template-columns:\s*([^;!]+)/g)].map((x) => x[1].replace(/\s+/g, '').trim()));
+assert(specColumns.length > 0 && specColumns.every((v) => v === 'repeat(2,minmax(0,1fr))'),
+  'مشخصات هر پلن (حجم/مدت) همیشه دو ستون افقی است و در گوشی هم تکی نمی‌شود');
+assert(miniAppSource.includes('.managed-list, .cv-plans, #managedPlansList, #managedPanelsList, #managedAgentsList, #customerPlansGrid {') && miniAppSource.includes('grid-auto-flow: row !important;'),
+  'قانون سه‌تایی روی همهٔ فهرست‌ها با display:grid قفل شده است تا هرگز به ستون تبدیل نشود');
+
+// ---------- سربرگ‌های درشت (۱.۸.۳۱) ----------
+assert(miniAppSource.includes('.panel-head h3 { font-size: clamp(15.5px, .8vw + 12px, 20px) !important;') && miniAppSource.includes('.page-top h1 { font-size: clamp(21px, 1.5vw + 13px, 30px) !important;') && miniAppSource.includes('.cv-sec-title h2 { font-size: clamp(16px, .8vw + 12.5px, 19px) !important;'),
+  'تیتر بخش‌ها و صفحات یک پله بزرگ‌تر شده‌اند (حداقل ۱۵٫۵ تا ۲۱ پیکسل در باریک‌ترین صفحه)');
+
 // ---------- سیستم طراحی «مینیمالِ تیز» (بازطراحی ۱.۸.۳۰) ----------
 assert(miniAppSource.includes('بازطراحی مینیمال — «یک رنگ، تنفس زیاد»') && miniAppSource.includes('--radius-pill: 999px;') && miniAppSource.includes("background: linear-gradient(180deg, #5a8dfb 0%, #3d74f5 52%, #2a5ce0 100%) !important;") && miniAppSource.includes('border-radius: var(--radius-pill) !important;'),
   'سیستم طراحی تازه اعمال شده است: کارت‌های نرم، دکمه‌های پیل و گرادیان آبی یکدست روی همهٔ بخش‌ها');
