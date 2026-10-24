@@ -697,6 +697,14 @@ assert(String(eventLogMsg.params.text).includes('رویدادهای اخیر ب�
   && lookupButtons(eventLogMsg).some((b) => b.callback_data === 'a_shtest'),
   'گزارش رویدادهای بانکی مبلغ/نوع آخرین رخدادها را با دسترسی به آزمون پرداخت نشان می‌دهد');
 
+await press(ADMIN, 'a_shapp');
+const appGuide = lastMsgTo(ADMIN, 'editMessageText');
+assert(String(appGuide.params.text).includes('اتصال اپ Shetab Verification')
+  && String(appGuide.params.text).includes('/wp-json/webdide-cv/v1/confirm')
+  && String(appGuide.params.text).includes('SHETAB_API_SECRET')
+  && lookupButtons(appGuide).some((b) => b.callback_data === 'a_shtest'),
+  'صفحهٔ اتصال اپ، آدرس دقیق سرور و دستور خواندن Secret را نشان می‌دهد');
+
 // آزمون پرداخت: در تست آدرس عمومی وجود ندارد، پس مسیر داخلی باید سالم باشد
 const hBeforeSelfTest = hUsers.size;
 const evtIndexBeforeTest = ((await kvJson('shetab_evt_index')) || []).length;
@@ -1048,7 +1056,21 @@ const noKeyboardNoticeStart = TG.length;
 env.MINIAPP_ONLY_MODE = 'true';
 await globalThis.__adminNotifyOrder(env, manualMiniOrder);
 const miniOnlyAdminAlert = TG.slice(noKeyboardNoticeStart).find(x => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN));
-assert(miniOnlyAdminAlert && !miniOnlyAdminAlert.params.reply_markup, 'اعلان سفارش در حالت Mini App-only به مدیران می‌رسد اما دکمهٔ legacy ندارد');
+assert(miniOnlyAdminAlert && !!miniOnlyAdminAlert.params.reply_markup?.inline_keyboard?.length, 'در حالت Mini App-only اعلان سفارش با دکمه‌های ادمین به مدیر می‌رسد تا پنل تلگرام کار کند');
+// در حالت Mini App-only مشتری به اپ هدایت می‌شود، اما ادمین باید کل پنل تلگرام را داشته باشد.
+const cfgBeforeMiniOnlyToggle = (await kvJson('cfg')).card_auto_enabled === true;
+const miniOnlyAnswerStart = TG.length;
+await press(ADMIN, 'a_set');
+const miniOnlySettings = lastMsgTo(ADMIN, 'editMessageText');
+await press(ADMIN, 's_pay_auto');
+const miniOnlyAnswers = TG.slice(miniOnlyAnswerStart).filter(x => x.method === 'answerCallbackQuery').map(x => x.params.text || '').join(' | ');
+const cfgAfterMiniOnlyToggle = (await kvJson('cfg')).card_auto_enabled === true;
+assert(!!miniOnlySettings && miniOnlySettings.params.reply_markup.inline_keyboard.flat().some(b => b.callback_data === 'a_shapp')
+  && cfgAfterMiniOnlyToggle === !cfgBeforeMiniOnlyToggle
+  && miniOnlyAnswers.includes('کارت‌به‌کارت خودکار'),
+  'در حالت Mini App-only ادمین تنظیمات را باز و سوییچ کارت‌به‌کارت خودکار را عوض می‌کند');
+await press(ADMIN, 's_pay_auto');
+assert((await kvJson('cfg')).card_auto_enabled === cfgBeforeMiniOnlyToggle, 'حالت قبلی سوییچ کارت‌به‌کارت خودکار پس از آزمون برگشت داده شد');
 env.MINIAPP_ONLY_MODE = 'false';
 assert(manualMiniCheckout.json.payment && manualMiniCheckout.json.payment.card_number === '6037991122334455' && manualMiniCheckout.json.payment.amount_toman >= manualMiniOrder.amount + 10 && manualMiniCheckout.json.payment.amount_toman <= manualMiniOrder.amount + 999 && manualMiniCheckout.json.payment.amount_rial === manualMiniCheckout.json.payment.amount_toman * 10, 'پرداخت Mini App شماره کارت و مبلغ یکتا با معادل ریالی را روشن برمی‌گرداند');
 const duplicateMiniCheckout = await miniApi('/api/miniapp/checkout', user4Init, {

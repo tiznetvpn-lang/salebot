@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.9-ubuntu26.11';
+const VERSION = '1.8.10-ubuntu26.12';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -2940,9 +2940,13 @@ function miniAppOnlyMode(env) {
   const value = String((env && env.MINIAPP_ONLY_MODE) == null ? 'true' : env.MINIAPP_ONLY_MODE).trim().toLowerCase();
   return !['0', 'false', 'off', 'no', 'disabled'].includes(value);
 }
-function telegramExtra(env, extra) {
+// ادمین‌ها همیشه به پنل تلگرام دسترسی دارند؛ حالت «فقط Mini App» برای مشتری است.
+function isAdminChat(env, chatId) {
+  return chatId != null && isAdmin(env, chatId);
+}
+function telegramExtra(env, extra, chatId) {
   const safe = Object.assign({}, extra || {});
-  if (miniAppOnlyMode(env) && !isAllowedMiniAppOnlyMarkup(safe.reply_markup)) delete safe.reply_markup;
+  if (miniAppOnlyMode(env) && !isAdminChat(env, chatId) && !isAllowedMiniAppOnlyMarkup(safe.reply_markup)) delete safe.reply_markup;
   return safe;
 }
 
@@ -3041,13 +3045,13 @@ function COPYBTN(text, value) { return { text: text, copy_text: { text: String(v
 async function msg(env, chat_id, text, extra) {
   return tg(env, 'sendMessage', Object.assign({
     chat_id: chat_id, text: text, parse_mode: 'HTML', disable_web_page_preview: true
-  }, telegramExtra(env, extra)));
+  }, telegramExtra(env, extra, chat_id)));
 }
 
 async function editMsg(env, chat_id, message_id, text, extra) {
   try {
-    const safeExtra = telegramExtra(env, extra);
-    if (miniAppOnlyMode(env)) safeExtra.reply_markup = { inline_keyboard: [] };
+    const safeExtra = telegramExtra(env, extra, chat_id);
+    if (miniAppOnlyMode(env) && !isAdminChat(env, chat_id)) safeExtra.reply_markup = { inline_keyboard: [] };
     await tg(env, 'editMessageText', Object.assign({
       chat_id: chat_id, message_id: message_id, text: text,
       parse_mode: 'HTML', disable_web_page_preview: true
@@ -3066,8 +3070,8 @@ async function editMsg(env, chat_id, message_id, text, extra) {
 // پیام سفارش دستی ممکن است متن یا عکسِ رسید باشد؛ برای هر دو نوع، وضعیت اصلی را همان‌جا عوض می‌کنیم.
 async function updateAdminOrderMessage(env, source, text, extra) {
   if (!source || !source.chat || !source.message_id) return false;
-  const safeExtra = telegramExtra(env, extra);
-  if (miniAppOnlyMode(env)) safeExtra.reply_markup = { inline_keyboard: [] };
+  const safeExtra = telegramExtra(env, extra, source.chat.id);
+  if (miniAppOnlyMode(env) && !isAdminChat(env, source.chat.id)) safeExtra.reply_markup = { inline_keyboard: [] };
   const params = Object.assign({ chat_id: source.chat.id, message_id: source.message_id, parse_mode: 'HTML' }, safeExtra);
   const isMedia = !!(source.photo || source.document || source.video || source.animation || source.audio || source.voice);
   try {
@@ -3091,7 +3095,7 @@ async function ansCb(env, id, text, alert) {
 async function sendPhoto(env, chat_id, photo, caption, extra) {
   return tg(env, 'sendPhoto', Object.assign({
     chat_id: chat_id, photo: photo, caption: caption || '', parse_mode: 'HTML'
-  }, telegramExtra(env, extra)));
+  }, telegramExtra(env, extra, chat_id)));
 }
 
 // دریافت رسید مستقیم از Mini App و ارسال امن همان فایل به گفت‌وگوی ادمین‌ها؛ فایل در KV نگهداری نمی‌شود.
@@ -3100,7 +3104,7 @@ async function sendPhotoUpload(env, chat_id, photoFile, filename, caption, extra
   form.append('chat_id', String(chat_id));
   form.append('caption', caption || '');
   form.append('parse_mode', 'HTML');
-  const safeExtra = telegramExtra(env, extra);
+  const safeExtra = telegramExtra(env, extra, chat_id);
   if (safeExtra.reply_markup) form.append('reply_markup', JSON.stringify(safeExtra.reply_markup));
   form.append('photo', photoFile, filename || 'receipt.jpg');
   const r = await fetch('https://api.telegram.org/bot' + env.BOT_TOKEN + '/sendPhoto', { method: 'POST', body: form });
@@ -4978,8 +4982,13 @@ async function adminSettings(env, chatId, messageId) {
   const cfg = await getCfg(env);
   const manualOn = cfg.card_manual_enabled !== false;
   const autoOn = cfg.card_auto_enabled === true;
-  const autoReady = !!env.SHETAB_API_SECRET && !!cfg.card_number;
+  const hasSecret = !!env.SHETAB_API_SECRET;
+  const hasCard = !!cfg.card_number;
+  const autoReady = hasSecret && hasCard;
   const autoStatus = autoOn ? (autoReady ? 'روشن ✅' : 'روشن، ولی نیازمند کارت/Secret ⚠️') : 'خاموش ⛔';
+  const autoMissing = [];
+  if (!hasCard) autoMissing.push('شماره کارت (از «💳 کارت»)');
+  if (!hasSecret) autoMissing.push('Secret سرور (با اجرای update.sh ساخته می‌شود)');
   const t = '⚙️ <b>تنظیمات</b>\n\n' +
     '🤖 یوزرنیم ربات: ' + (cfg.bot_username ? '@' + esc(cfg.bot_username) : '—') +
     '\n📞 پشتیبانی: ' + (cfg.support ? '@' + esc(String(cfg.support).replace(/^@/, '')) : '—') +
@@ -4987,13 +4996,15 @@ async function adminSettings(env, chatId, messageId) {
     '\n💸 حداقل برداشت: ' + fmtToman(cfg.min_withdraw) +
     '\n\n💳 کارت‌به‌کارت دستی: ' + (manualOn ? 'روشن ✅' : 'خاموش ⛔') +
     '\n⚡ کارت‌به‌کارت خودکار: ' + autoStatus +
+    (autoMissing.length ? '\n❌ برای فعال‌شدن لازم است: ' + autoMissing.join(' + ') : '') +
     '\n<i>روش خودکار برای خرید و تمدید است؛ روش دستی شامل ارسال رسید و شارژ کیف پول هم می‌شود.</i>';
   const rows = [
     [BTN('🤖 یوزرنیم ربات', 's_bot'), BTN('📞 پشتیبانی', 's_sup')],
     [BTN('🎁 درصد پورسانت', 's_com'), BTN('💸 حداقل برداشت', 's_minwd')],
     [BTN(manualOn ? '⛔ خاموش‌کردن کارت‌به‌کارت دستی' : '✅ روشن‌کردن کارت‌به‌کارت دستی', 's_pay_manual')],
     [BTN(autoOn ? '⛔ خاموش‌کردن کارت‌به‌کارت خودکار' : '✅ روشن‌کردن کارت‌به‌کارت خودکار', 's_pay_auto')],
-    [BTN('🧪 آزمون پرداخت خودکار', 'a_shtest'), BTN('📜 رویدادهای بانکی', 'a_shlog')],
+    [BTN('📲 اتصال اپ شتاب', 'a_shapp'), BTN('🧪 آزمون پرداخت خودکار', 'a_shtest')],
+    [BTN('📜 رویدادهای بانکی', 'a_shlog')],
     [BTN('◀️ پنل مدیریت', 'admin')]
   ];
   if (messageId) await editMsg(env, chatId, messageId, t, KB(rows));
@@ -5017,7 +5028,8 @@ async function onCallback(env, q, origin) {
   }
 
   // دکمه‌های inline قدیمی ممکن است در پیام‌های قبلی هنوز دیده شوند؛ در حالت Mini App فقط پاسخ خنثی می‌دهیم.
-  if (miniAppOnlyMode(env)) {
+  // استثنا: ادمین همیشه باید به پنل تلگرام دسترسی داشته باشد.
+  if (miniAppOnlyMode(env) && !admEarly) {
     await ansCb(env, q.id, 'جهت خرید وارد اپ فروش شوید.');
     if (q.message && q.message.chat && q.message.message_id != null) {
       try { await tg(env, 'editMessageReplyMarkup', { chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: [] } }); } catch (e) {}
@@ -5444,6 +5456,12 @@ async function onCallback(env, q, origin) {
     await adminSettings(env, chatId, messageId);
     return;
   }
+  if (data === 'a_shapp') {
+    if (!await needAdmin()) return;
+    await ansCb(env, q.id);
+    await adminShetabApp(env, chatId, messageId, origin);
+    return;
+  }
   if (data === 'a_shtest') {
     if (!await needAdmin()) return;
     await ansCb(env, q.id, 'در حال اجرای آزمون…');
@@ -5586,13 +5604,13 @@ async function onCallback(env, q, origin) {
     if (!await needAdmin()) return;
     const cfg = await getCfg(env);
     if (cfg.card_auto_enabled !== true && !env.SHETAB_API_SECRET) {
-      await ansCb(env, q.id, 'اول Secret با نام SHETAB_API_SECRET را در Cloudflare تنظیم کنید.', true);
-      await adminSettings(env, chatId, messageId);
+      await ansCb(env, q.id, 'Secret سرور هنوز ساخته نشده است؛ راهنمای اتصال را ببینید.', true);
+      await adminShetabApp(env, chatId, messageId, origin);
       return;
     }
     if (cfg.card_auto_enabled !== true && !cfg.card_number) {
-      await ansCb(env, q.id, 'اول شماره کارت را در بخش کارت ثبت کنید.', true);
-      await adminSettings(env, chatId, messageId);
+      await ansCb(env, q.id, 'اول شماره کارت فروشگاه را ثبت کنید.', true);
+      await adminCards(env, chatId, messageId);
       return;
     }
     cfg.card_auto_enabled = cfg.card_auto_enabled !== true;
@@ -5938,7 +5956,8 @@ async function onMessage(env, m, origin) {
 
   const u = await ensureUser(env, from);
   if (u.referral_join_eligible === true && u.referral_join_rewarded !== true) await ensureReferralJoinAward(env, u);
-  if (isAdmin(env, from.id)) {
+  const isAdminUser = isAdmin(env, from.id);
+  if (isAdminUser) {
     if (u.banned) { u.banned = false; await saveUser(env, u); } // ادمین هیچ‌وقت مسدود نمی‌شود
   } else if (u.banned) {
     await msg(env, chatId, '⛔ شما مسدود هستید.');
@@ -5948,7 +5967,7 @@ async function onMessage(env, m, origin) {
   const text = (m.text || '').trim();
   await ensureMiniAppMenuButton(env, u, chatId, origin);
 
-  if (miniAppOnlyMode(env)) {
+  if (miniAppOnlyMode(env) && !isAdminUser) {
     if (/^\/start(?:@\w+)?(?:\s|$)/.test(text)) {
       const payload = text.split(/\s+/)[1] || '';
       // پیوند نمایندگی یک‌بارمصرف است؛ نقش در KV ثبت می‌شود و Mini App همان‌جا دسترسی می‌دهد.
@@ -6170,6 +6189,49 @@ async function cronShetab(env) {
 }
 
 // ── ابزارهای مدیریتی پرداخت خودکار: آزمون، وصل‌کردن واریز، گزارش ──────────────
+// آدرس عمومی فروشگاه؛ همان چیزی که باید در اپ Shetab وارد شود.
+function shopBaseUrl(env, origin) {
+  const pub = String(env.PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '');
+  if (pub) return pub;
+  const mini = String(env.MINIAPP_URL || '').trim();
+  if (mini) {
+    try { return new URL(mini).origin; } catch (e) {}
+  }
+  return String(origin || '').trim().replace(/\/+$/, '');
+}
+
+function shetabEndpointUrl(env, origin) {
+  const base = shopBaseUrl(env, origin);
+  return base ? base + '/wp-json/webdide-cv/v1/confirm' : '';
+}
+
+// صفحهٔ «اتصال اپ شتاب»: ادمین باید بداند کدام مقدار را کجا وارد کند.
+async function adminShetabApp(env, chatId, messageId, origin) {
+  const cfg = await getCfg(env);
+  const url = shetabEndpointUrl(env, origin);
+  const hasSecret = !!env.SHETAB_API_SECRET;
+  const hasCard = !!cfg.card_number;
+  const t = '📲 <b>اتصال اپ Shetab Verification</b>\n\n' +
+    'این دو مقدار را <b>داخل خودِ اپ روی گوشی</b> وارد می‌کنید (تنظیمات اپ → Server/API):\n\n' +
+    '🌐 <b>Server URL</b>\n<code>' + esc(url || '— آدرس عمومی تنظیم نشده —') + '</code>\n\n' +
+    '🔑 <b>API Secret</b>\n' +
+    (hasSecret
+      ? 'روی سرور ساخته شده است. برای خواندنش در ترمینال سرور:\n<code>sudo grep SHETAB_API_SECRET /etc/tiznetvpn/tiznetvpn.env</code>\n<i>(مقدار بعد از علامت = را کامل کپی کنید؛ این ربات برای امنیت آن را نمایش نمی‌دهد.)</i>'
+      : '❌ <b>هنوز روی سرور ساخته نشده.</b> در ترمینال سرور اجرا کنید:\n<code>sudo bash /opt/tiznetvpn/update.sh --yes</code>\n<i>اسکریپت خودش Secret را می‌سازد و چاپ می‌کند.</i>') +
+    '\n\n━━━━━━━━━━━━━━\n' +
+    '✅ کارت بانکی: ' + (hasCard ? 'ثبت شده' : '❌ ثبت نشده — از «💳 کارت» شماره کارت را وارد کنید') + '\n' +
+    '✅ Secret سرور: ' + (hasSecret ? 'موجود' : '❌ موجود نیست') + '\n\n' +
+    '⚠️ <b>مهم:</b> شمارهٔ کارتی که در ربات ثبت می‌کنید باید <b>همان کارتی</b> باشد که اپ روی گوشی پیامک‌هایش را می‌خواند؛ اپ شمارهٔ کارت مقصد را نمی‌فرستد و فقط مبلغ و کد پیگیری را گزارش می‌کند.\n\n' +
+    'پس از واردکردن URL و Secret در اپ، دکمهٔ «🧪 آزمون پرداخت خودکار» را بزنید. اگر سبز شد، اتصال کامل است.';
+  const rows = [
+    [BTN('🧪 آزمون پرداخت خودکار', 'a_shtest')],
+    [BTN('💳 شماره کارت', 'a_cards'), BTN('📜 رویدادهای بانکی', 'a_shlog')],
+    [BTN('◀️ تنظیمات', 'a_set')]
+  ];
+  if (messageId) await editMsg(env, chatId, messageId, t, KB(rows));
+  else await msg(env, chatId, t, KB(rows));
+}
+
 function fmtDate(ts) {
   const n = Number(ts);
   if (!Number.isFinite(n) || n <= 0) return '—';
@@ -7400,6 +7462,7 @@ function miniAppAdminSettingsView(cfg, env) {
       card_manual_enabled: cfg.card_manual_enabled !== false,
       card_auto_enabled: cfg.card_auto_enabled === true,
       automatic_ready: !!env.SHETAB_API_SECRET && !!cfg.card_number,
+      shetab_endpoint: shetabEndpointUrl(env, ''),
       free_subscription_enabled: cfg.free_subscription_enabled === true,
       free_subscription_gb: Number.isFinite(Number(cfg.free_subscription_gb)) ? Number(cfg.free_subscription_gb) : 1,
       free_subscription_days: Number.isInteger(Number(cfg.free_subscription_days)) ? Number(cfg.free_subscription_days) : 1,
