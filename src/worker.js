@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.18-ubuntu26.20';
+const VERSION = '1.8.19-ubuntu26.21';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -2974,7 +2974,12 @@ async function tg(env, method, params) {
 function KB(rows) { return { reply_markup: { inline_keyboard: rows } }; }
 function BTN(text, cb) { return { text: text, callback_data: cb }; }
 function WEBAPPBTN(text, url) { return { text: text, web_app: { url: url } }; }
-const BOT_CUSTOMER_BUTTONS = ['خرید اشتراک', 'پشتیبانی', 'اشتراک رایگان', 'راهنما', 'اطلاعات حساب', 'دریافت نمایندگی'];
+// هر دکمهٔ ربات ایموجی اختصاصی خودش را دارد؛ تلگرام در دکمه‌ها ایموجی متحرک نشان نمی‌دهد.
+const BOT_CUSTOMER_BUTTONS = ['🛍 خرید اشتراک', '🎧 پشتیبانی', '🎁 اشتراک رایگان', '📘 راهنما', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی'];
+// متن دکمه را به برچسبِ خالص تبدیل می‌کند تا تطبیق پیام با ایموجی هم کار کند.
+function botButtonKey(text) {
+  return String(text == null ? '' : text).replace(/^[^\p{L}\p{N}]+/u, '').trim();
+}
 function isAllowedMiniAppOnlyMarkup(markup) {
   if (!markup || typeof markup !== 'object') return false;
   // دو مارک‌آپ مجاز دیگر: پیام قفل کانال و دکمهٔ درخواست شماره.
@@ -2983,7 +2988,7 @@ function isAllowedMiniAppOnlyMarkup(markup) {
     const rows = markup.inline_keyboard;
     if (rows.length !== 1 || !Array.isArray(rows[0]) || rows[0].length !== 1) return false;
     const button = rows[0][0];
-    if (!button || button.text !== 'ورود به اپ' || !button.web_app || Object.keys(button).some((key) => !['text', 'web_app'].includes(key))) return false;
+    if (!button || button.text !== '🚀 ورود به اپ' || !button.web_app || Object.keys(button).some((key) => !['text', 'web_app'].includes(key))) return false;
     try { return new URL(String(button.web_app.url || '')).protocol === 'https:'; } catch (e) { return false; }
   }
   if (Array.isArray(markup.keyboard)) {
@@ -3775,7 +3780,7 @@ async function showHome(env, chatId, u, messageId, origin, allowWebApp) {
     [BTN('📞 پشتیبانی', 'sup')]
   ];
   const appUrl = allowWebApp === false ? '' : miniAppUrl(env, origin);
-  if (appUrl) rows.unshift([WEBAPPBTN('ورود به اپ', appUrl)]);
+  if (appUrl) rows.unshift([WEBAPPBTN('🚀 ورود به اپ', appUrl)]);
   const kb = KB(rows);
   if (messageId) await editMsg(env, chatId, messageId, text, kb);
   else await msg(env, chatId, text, kb);
@@ -3783,14 +3788,14 @@ async function showHome(env, chatId, u, messageId, origin, allowWebApp) {
 
 async function showMiniAppOnlyStart(env, chatId, origin) {
   const appUrl = miniAppUrl(env, origin);
-  const appButton = appUrl ? KB([[WEBAPPBTN('ورود به اپ', appUrl)]]) : undefined;
+  const appButton = appUrl ? KB([[WEBAPPBTN('🚀 ورود به اپ', appUrl)]]) : undefined;
   await msg(env, chatId, 'جهت خرید وارد اپ فروش شوید.', appButton);
   await msg(env, chatId, 'برای سایر خدمات، یکی از دکمه‌های پایین چت را انتخاب کنید.', mainBotReplyMarkup());
 }
 
 async function sendMiniAppEntry(env, chatId, origin, caption) {
   const appUrl = miniAppUrl(env, origin);
-  const extra = appUrl ? KB([[WEBAPPBTN('ورود به اپ', appUrl)]]) : undefined;
+  const extra = appUrl ? KB([[WEBAPPBTN('🚀 ورود به اپ', appUrl)]]) : undefined;
   await msg(env, chatId, caption || 'برای ادامه وارد اپ فروش تیزنت شوید.', extra);
 }
 
@@ -3815,11 +3820,12 @@ function miniOnlyFreeError(error) {
 
 async function handleMiniAppOnlyButton(env, u, chatId, text, origin) {
   const cfg = await getCfg(env);
-  if (text === 'خرید اشتراک') {
+  const btnKey = botButtonKey(text);
+  if (btnKey === 'خرید اشتراک') {
     await sendMiniAppEntry(env, chatId, origin, 'برای خرید اشتراک وارد اپ فروش تیزنت شوید.');
     return true;
   }
-  if (text === 'پشتیبانی') {
+  if (btnKey === 'پشتیبانی') {
     const support = String(cfg.support || '').trim().replace(/^@/, '');
     const body = support
       ? 'برای پشتیبانی به <a href="https://t.me/' + esc(support) + '">@' + esc(support) + '</a> پیام دهید.'
@@ -3827,7 +3833,7 @@ async function handleMiniAppOnlyButton(env, u, chatId, text, origin) {
     await msg(env, chatId, body, mainBotReplyMarkup());
     return true;
   }
-  if (text === 'اشتراک رایگان') {
+  if (btnKey === 'اشتراک رایگان') {
     const referralState = referralInviteState(await getUser(env, u.tg_id) || u);
     const referralClaim = referralState.available > 0;
     const result = referralClaim
@@ -3845,11 +3851,11 @@ async function handleMiniAppOnlyButton(env, u, chatId, text, origin) {
     await deliverSubscriptionWithQr(env, chatId, caption, result.link, mainBotReplyMarkup());
     return true;
   }
-  if (text === 'راهنما') {
+  if (btnKey === 'راهنما') {
     await msg(env, chatId, '📖 <b>راهنما</b>\n\nبرای خرید، «خرید اشتراک» را بزنید و در اپ تیزنت پلن و روش پرداخت را انتخاب کنید.\nبرای دریافت دسترسی رایگان، «اشتراک رایگان» را انتخاب کنید؛ صدور آن به فعال‌بودن گزینه در تنظیمات مدیریت بستگی دارد.\nبرای مشاهدهٔ وضعیت و سابقهٔ حساب، «اطلاعات حساب» یا اپ تیزنت را باز کنید.', mainBotReplyMarkup());
     return true;
   }
-  if (text === 'اطلاعات حساب') {
+  if (btnKey === 'اطلاعات حساب') {
     const joined = Number(u.joined_at) ? new Date(Number(u.joined_at)).toLocaleDateString('fa-IR', { timeZone: 'Asia/Tehran' }) : '—';
     const message = '👤 <b>اطلاعات حساب</b>\n\n' +
       'نام: <b>' + esc(u.first_name || '—') + '</b>' +
@@ -3863,7 +3869,7 @@ async function handleMiniAppOnlyButton(env, u, chatId, text, origin) {
     await msg(env, chatId, message, mainBotReplyMarkup());
     return true;
   }
-  if (text === 'دریافت نمایندگی') {
+  if (btnKey === 'دریافت نمایندگی') {
     const current = await ensureReferralCode(env, await getUser(env, u.tg_id) || u);
     const botName = await ensureBotUsername(env, cfg);
     const link = botName ? 'https://t.me/' + String(botName).replace(/^@/, '') + '?start=ref_' + current.ref_code : '—';
@@ -5316,7 +5322,7 @@ async function saveSharedPhone(env, user, contact, chatId, origin) {
   await saveUser(env, user);
   await kvDel(env, 'joingate:' + user.tg_id);
   const appUrl = miniAppUrl(env, origin);
-  const extra = appUrl ? KB([[WEBAPPBTN('ورود به اپ', appUrl)]]) : undefined;
+  const extra = appUrl ? KB([[WEBAPPBTN('🚀 ورود به اپ', appUrl)]]) : undefined;
   await msg(env, chatId, '✅ شمارهٔ ' + phonePretty(phone) + ' ثبت شد.', extra);
   return true;
 }
