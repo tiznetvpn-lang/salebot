@@ -1076,8 +1076,9 @@
     }
 
     /* Customer tabs and responsive wrapping hardening */
-    .customer-tabs {
-      display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin:0 0 15px; padding:5px;
+    .customer-tabs { display:none; }
+    .customer-mode .customer-tabs {
+      grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin:0 0 15px; padding:5px;
       border:1px solid rgba(137,190,247,.22); border-radius:15px; background:rgba(4,24,49,.68);
     }
     .customer-tabs [role="tab"] {
@@ -1180,6 +1181,11 @@
     @media(max-width:520px){.agent-stat-grid,.agent-price-grid{grid-template-columns:minmax(0,1fr)}.agent-wallet-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.agent-wallet-controls .admin-field{grid-column:1/-1}.agent-wallet-controls button{width:100%}}
 
     /* ── نمای مشتری: طراحی جدید — آبی عمیق، کارت‌های شیشه‌ای، ناوبری پایین ── */
+    /* .page keeps transform:translateY(0) after fadeIn (animation-fill-mode:both);
+       that would make it the containing block for position:fixed children and push
+       the bottom nav into the middle of the page. Fade opacity only, no transform. */
+    .customer-mode #storePage { animation-name:fadeInNoTransform; }
+    @keyframes fadeInNoTransform { from { opacity:0; } to { opacity:1; } }
     .customer-top { display:none; }
     .customer-mode .customer-top { display:block; }
     .customer-mode[data-customer-tab]:not([data-customer-tab="buy"]) .customer-top { display:none; }
@@ -1193,6 +1199,7 @@
       background-attachment:fixed;
     }
     .customer-mode .main { max-width:1180px; padding-bottom:calc(96px + var(--safe-bottom)) !important; }
+    .customer-mode .mobile-nav { display:none !important; }
     .customer-mode .topbar { min-height:62px; margin-bottom:14px; border-bottom-color:rgba(126,196,255,.16); }
     .customer-mode .customer-notice { border-color:rgba(126,196,255,.22); background:rgba(11,44,88,.42); color:#a8c4e4; }
 
@@ -1689,14 +1696,14 @@
           <div class="referral-share-actions"><button class="btn-primary" id="referralRedeemButton" type="button" disabled>تبدیل امتیاز به کیف پول</button><span class="mini-note" id="referralRedeemStatus" role="status" aria-live="polite">تبدیل فقط با فشردن دکمه انجام می‌شود.</span></div>
         </article>
       </section>
+    </section>
+
       <div class="customer-tabs" role="tablist" aria-label="بخش‌های حساب مشتری">
         <button id="customerTabButtonBuy" type="button" role="tab" aria-selected="true" aria-controls="customerTabBuy" data-customer-tab="buy">خرید</button>
         <button id="customerTabButtonOrders" type="button" role="tab" aria-selected="false" aria-controls="customerTabOrders" data-customer-tab="orders" tabindex="-1">سفارشات</button>
         <button id="customerTabButtonHistory" type="button" role="tab" aria-selected="false" aria-controls="customerTabHistory" data-customer-tab="history" tabindex="-1">تاریخچه</button>
         <button id="customerTabButtonReferrals" type="button" role="tab" aria-selected="false" aria-controls="customerTabReferrals" data-customer-tab="referrals" tabindex="-1">عضوگیری</button>
       </div>
-    </section>
-
     <div class="mobile-nav" id="mobileNav">
       <button class="active" data-page="overview"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="8" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="11" width="7" height="10" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/></svg><span>نمای کلی</span></button>
       <button data-page="orders"><svg viewBox="0 0 24 24"><path d="M7 3.5h8l4 4V20H5V5a1.5 1.5 0 0 1 2-1.5ZM14 4v4h4M8 12h8M8 16h8"/></svg><span>سفارش‌ها</span></button>
