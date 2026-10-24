@@ -2227,6 +2227,25 @@
     .btn-look-row.filled input { border-color: rgba(120, 226, 200, .5); }
     .btn-look-grid .mini-note { grid-column: 1 / -1; }
 
+    /* دکمه‌های کیبورد چت */
+    .chat-btn-list { display: grid; gap: 7px; margin: 12px 0 10px; }
+    .chat-btn-row { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto auto auto; gap: 6px; align-items: center;
+      padding: 7px 8px; border-radius: 12px; border: 1px solid rgba(126, 196, 255, .14); background: rgba(4, 21, 45, .42); }
+    .chat-btn-row.off { opacity: .55; }
+    .chat-btn-row .cbr-icon { font-size: 15px; line-height: 1; }
+    .chat-btn-row input[type="text"] { min-width: 0; min-height: 30px; padding: 0 8px; border-radius: 8px; font: inherit; font-size: var(--fs-3xs);
+      color: #f2faff; border: 1px solid rgba(126, 200, 255, .22); background: rgba(3, 16, 36, .8); }
+    .chat-btn-row .cbr-toggle { display: inline-flex; align-items: center; }
+    .chat-btn-row .cbr-toggle input { width: 16px; height: 16px; accent-color: #3ea8ff; }
+    .chat-btn-row .cbr-btn { width: 26px; height: 26px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;
+      border: 1px solid rgba(126, 200, 255, .2); background: rgba(9, 32, 60, .7); color: #cfe4f7; font-size: 13px; line-height: 1; cursor: pointer; }
+    .chat-btn-row .cbr-btn:active { transform: scale(.94); }
+    .chat-btn-row .cbr-btn.del { color: #ff9aa8; border-color: rgba(255, 154, 168, .3); }
+    .chat-btn-add { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; margin-bottom: 4px; }
+    .chat-btn-add select { min-height: 42px; padding: 0 10px; border-radius: 11px; font: inherit; font-size: var(--fs-2xs);
+      color: #eaf6ff; background: rgba(3, 16, 36, .8); border: 1px solid rgba(126, 200, 255, .22); }
+    .chat-btn-add .btn-secondary { margin: 0; min-height: 42px; }
+
     /* ── ۱۲.۷) «شیشهٔ زنده»: دکمه‌های شیشه‌ای + آیکن‌های متحرک ─────────────── */
     :root {
       --gl-edge: rgba(188, 231, 255, .42);
@@ -2592,7 +2611,7 @@
 
     <section class="page" id="overviewPage">
       <div class="hero">
-        <div class="hero-copy"><div class="eyebrow">داشبورد هوشمند تیزنت</div><h1>سلام، مدیر تیزنت 👋</h1><p>فروش، خرید و تمدید در یک نگاه.</p></div>
+        <div class="hero-copy"><h1>سلام، مدیر تیزنت 👋</h1></div>
         <div class="hero-pill"><svg viewBox="0 0 24 24"><path d="M3 17 9 11l4 4 8-9"/><path d="M15 6h6v6"/></svg><span>گزارش فروش · <b id="periodCaption">۳۰ روز اخیر</b></span></div>
       </div>
 
@@ -2606,13 +2625,13 @@
 
       <div class="content-grid">
         <article class="panel dashboard-drill chart-drill" tabindex="0" role="button" data-dashboard-drill="chart" aria-label="جزئیات سفارش‌های موفق در این بازه">
-          <div class="panel-head"><div><h3>روند فروش و تمدید</h3><p>درآمد و تعداد سفارش‌های تکمیل‌شده</p></div><select class="panel-select" id="chartMetric"><option value="revenue">درآمد (تومان)</option><option value="orders">تعداد سفارش</option></select></div>
+          <div class="panel-head"><div><h3>روند فروش و تمدید</h3></div><select class="panel-select" id="chartMetric"><option value="revenue">درآمد (تومان)</option><option value="orders">تعداد سفارش</option></select></div>
           <div class="chart-legend"><span class="legend-item"><i class="legend-dot"></i> درآمد</span><span class="legend-item"><i class="legend-dot blue"></i> تعداد سفارش</span></div>
           <div class="chart-wrap"><svg viewBox="0 0 720 220" role="img" aria-label="روند فروش ثبت‌شده در دفتر مالی"><defs><linearGradient id="areaGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#58c9f0" stop-opacity=".23"/><stop offset="1" stop-color="#58c9f0" stop-opacity="0"/></linearGradient></defs><line class="gridline" x1="40" y1="25" x2="700" y2="25"/><line class="gridline" x1="40" y1="70" x2="700" y2="70"/><line class="gridline" x1="40" y1="115" x2="700" y2="115"/><line class="gridline" x1="40" y1="160" x2="700" y2="160"/><path id="chartArea" class="chart-area" d="M40 149 L105 131 L170 137 L235 93 L300 108 L365 75 L430 86 L495 55 L560 69 L625 35 L690 47 L690 182 L40 182 Z"/><path id="chartLine" class="chart-line" d="M40 149 L105 131 L170 137 L235 93 L300 108 L365 75 L430 86 L495 55 L560 69 L625 35 L690 47"/><path id="chartLine2" class="chart-line-2" d="M40 157 L105 150 L170 142 L235 138 L300 119 L365 127 L430 105 L495 100 L560 89 L625 77 L690 68"/></svg></div>
           <div class="chart-bottom" id="chartBottom"><span>۱ مهر</span><span>۵ مهر</span><span>۱۰ مهر</span><span>۱۵ مهر</span><span>۲۰ مهر</span><span>۲۵ مهر</span><span>۳۰ مهر</span></div>
         </article>
         <article class="panel">
-          <div class="panel-head"><div><h3>ترکیب روش پرداخت</h3><p>سهم هر روش از فروش موفق</p></div><button class="link-button" data-go="orders">جزئیات</button></div>
+          <div class="panel-head"><div><h3>ترکیب روش پرداخت</h3></div><button class="link-button" data-go="orders">جزئیات</button></div>
           <div class="revenue-summary"><div class="donut" id="paymentDonut"><div class="donut-center"><strong id="paymentTotal">۱۲۴</strong><span>سفارش موفق</span></div></div><div class="revenue-legend" id="paymentLegend"><div class="legend-row"><span class="legend-name"><i></i>کیف پول</span><strong>۵۲٪</strong><small>۶۵ سفارش</small></div><div class="legend-row"><span class="legend-name"><i class="blue"></i>خودکار</span><strong>۲۸٪</strong><small>۳۵ سفارش</small></div><div class="legend-row"><span class="legend-name"><i class="purple"></i>دستی</span><strong>۲۰٪</strong><small>۲۴ سفارش</small></div></div></div>
           <div class="mini-note">پرداخت‌های تأییدشده مبنای گزارش؛ سفارش‌های باز جدا.</div>
         </article>
@@ -2620,25 +2639,26 @@
 
       <div class="lower-grid">
         <article class="panel">
-          <div class="panel-head"><div><h3>پلن‌های پرفروش</h3><p>بر اساس تعداد خرید و تمدید</p></div><button class="link-button" data-go="plans">همهٔ پلن‌ها ←</button></div>
+          <div class="panel-head"><div><h3>پلن‌های پرفروش</h3></div><button class="link-button" data-go="plans">همهٔ پلن‌ها ←</button></div>
           <div class="plan-list" id="topPlansList"><div class="plan-row drill-row" data-drill-label="ویژه · ۳۰ روزه" role="button" tabindex="0" aria-label="جزئیات فروش پلن ویژه · ۳۰ روزه"><span class="plan-name">ویژه · ۳۰ روزه</span><span class="bar-track"><i class="bar-fill" style="width:88%"></i></span><span class="plan-count">۴۵ فروش</span></div><div class="plan-row drill-row" data-drill-label="ویژه · ۳۰ روزه" role="button" tabindex="0" aria-label="جزئیات فروش پلن ویژه · ۳۰ روزه"><span class="plan-name">اقتصادی · ۳۰ روزه</span><span class="bar-track"><i class="bar-fill" style="width:68%;background:linear-gradient(90deg,#566fe7,#879cff)"></i></span><span class="plan-count">۳۵ فروش</span></div><div class="plan-row drill-row" data-drill-label="اقتصادی · ۳۰ روزه" role="button" tabindex="0" aria-label="جزئیات فروش پلن اقتصادی · ۳۰ روزه"><span class="plan-name">حرفه‌ای · ۹۰ روزه</span><span class="bar-track"><i class="bar-fill" style="width:43%;background:linear-gradient(90deg,#8d6de6,#c19aff)"></i></span><span class="plan-count">۲۲ فروش</span></div><div class="plan-row drill-row" data-drill-label="حرفه‌ای · ۹۰ روزه" role="button" tabindex="0" aria-label="جزئیات فروش پلن حرفه‌ای · ۹۰ روزه"><span class="plan-name">نامحدود · ۳۰ روزه</span><span class="bar-track"><i class="bar-fill" style="width:28%;background:linear-gradient(90deg,#c48e3c,#f6ca75)"></i></span><span class="plan-count">۱۴ فروش</span></div></div>
         </article>
         <article class="panel">
-          <div class="panel-head"><div><h3>آخرین سفارش‌ها</h3><p>آخرین فعالیت‌های خرید و تمدید</p></div><div class="table-tools"><input class="search" id="recentSearch" placeholder="جست‌وجو..." aria-label="جست‌وجوی سفارش"><button class="outline-btn" data-go="orders">همهٔ سفارش‌ها</button></div></div>
+          <div class="panel-head"><div><h3>آخرین سفارش‌ها</h3></div><div class="table-tools"><input class="search" id="recentSearch" placeholder="جست‌وجو..." aria-label="جست‌وجوی سفارش"><button class="outline-btn" data-go="orders">همهٔ سفارش‌ها</button></div></div>
           <div class="table-wrap"><table><thead><tr><th>شناسه</th><th>مشتری</th><th>نوع</th><th>مبلغ</th><th>وضعیت</th></tr></thead><tbody id="recentOrdersBody"></tbody></table></div>
         </article>
       </div>
     </section>
 
     <section class="page hidden" id="ordersPage">
-      <div class="page-top"><div><h1>سفارش‌ها</h1><p>خرید جدید، تمدید، شارژ و وضعیت پرداخت</p></div><button class="btn-primary" id="ordersExport"><svg class="bi bi-dl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 19.5h15"/></svg><span>خروجی CSV</span></button></div>
+      <div class="page-top"><button class="btn-primary" id="ordersExport"><svg class="bi bi-dl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 19.5h15"/></svg><span>خروجی CSV</span></button></div>
+
       <div class="stats-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
         <article class="stat-card"><div class="stat-top"><span>رکوردهای نمایش‌داده‌شده</span><span class="stat-icon">▤</span></div><strong class="stat-value" id="ordersTotalKpi">۰</strong><div class="stat-foot"><span>فیلتر فعلی</span><span class="trend">دفتر فروش</span></div></article>
         <article class="stat-card" style="--tone:var(--yellow);--iconbg:rgba(246,200,107,.12)"><div class="stat-top"><span>در انتظار بررسی</span><span class="stat-icon">◷</span></div><strong class="stat-value" id="ordersPendingKpi">۰</strong><div class="stat-foot"><span>سفارش باز</span><span style="color:var(--yellow)">باز</span></div></article>
         <article class="stat-card" style="--tone:var(--green);--iconbg:rgba(86,214,162,.12)"><div class="stat-top"><span>تکمیل‌شده در فهرست</span><span class="stat-icon">✓</span></div><strong class="stat-value" id="ordersPaidKpi">۰</strong><div class="stat-foot"><span>پرداخت موفق</span><span class="trend">دفتر فروش</span></div></article>
       </div>
       <article class="panel" style="margin-top:14px">
-        <div class="panel-head"><div><h3>فهرست سفارش‌ها</h3><p>جست‌وجو و فیلتر رویدادهای ثبت‌شده در Worker</p></div><div class="table-tools"><button class="outline-btn" id="ordersReload">به‌روزرسانی</button></div></div>
+        <div class="panel-head"><div><h3>فهرست سفارش‌ها</h3></div><div class="table-tools"><button class="outline-btn" id="ordersReload">به‌روزرسانی</button></div></div>
         <div class="filters"><input class="filter-control" id="orderSearch" placeholder="شناسه، نام یا Telegram ID"><select class="filter-control" id="orderTypeFilter"><option value="all">همهٔ انواع</option><option value="buy">خرید جدید</option><option value="renew">تمدید</option><option value="charge">شارژ کیف پول</option></select><select class="filter-control" id="orderStatusFilter"><option value="all">همهٔ وضعیت‌ها</option><option value="approved">تکمیل‌شده</option><option value="pending">در انتظار</option><option value="rejected">ردشده</option><option value="cancelled">لغوشده</option></select><select class="filter-control" id="orderMethodFilter"><option value="all">همهٔ روش‌ها</option><option value="wallet">کیف پول</option><option value="auto">پرداخت خودکار</option><option value="manual">پرداخت دستی</option></select><select class="filter-control" id="orderPeriodFilter"><option value="30">۳۰ روز اخیر</option><option value="7">۷ روز اخیر</option><option value="90">۹۰ روز اخیر</option><option value="0">همهٔ زمان‌ها (آخرین رکوردها)</option></select></div>
         <div class="drill-filter hidden" id="dashboardDrillFilter"><span id="dashboardDrillLabel"></span><button type="button" class="link-button" id="clearDashboardDrill">پاک‌کردن فیلتر</button></div>
         <div class="table-wrap"><table><thead><tr><th>شناسه</th><th>مشتری</th><th>نوع</th><th>پلن / سرور</th><th>روش پرداخت</th><th>مبلغ</th><th>ثبت</th><th>وضعیت</th><th>مدیریت</th></tr></thead><tbody id="ordersTableBody"></tbody></table></div>
@@ -2647,39 +2667,41 @@
     </section>
 
     <section class="page hidden" id="customersPage">
-      <div class="page-top"><div><h1>مشتری‌ها</h1><p>کاربران، موجودی کیف پول و سابقهٔ خرید ثبت‌شده</p></div><button class="outline-btn" id="customersExport">خروجی مشتری‌ها</button></div>
+      <div class="page-top"><button class="outline-btn" id="customersExport">خروجی مشتری‌ها</button></div>
+
       <div class="stats-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
         <article class="stat-card"><div class="stat-top"><span>کاربران ثبت‌شده</span><span class="stat-icon">◉</span></div><strong class="stat-value" id="customersTotalKpi">۰</strong><div class="stat-foot"><span>در فروشگاه</span><span class="trend">کل</span></div></article>
         <article class="stat-card" style="--tone:var(--purple);--iconbg:rgba(170,139,255,.12)"><div class="stat-top"><span>کاربر جدید</span><span class="stat-icon">＋</span></div><strong class="stat-value" id="customersNewKpi">۰</strong><div class="stat-foot"><span>در بازهٔ فعلی</span><span class="trend">ثبت‌شده</span></div></article>
         <article class="stat-card" style="--tone:var(--yellow);--iconbg:rgba(246,200,107,.12)"><div class="stat-top"><span>سهم تمدید</span><span class="stat-icon">↻</span></div><strong class="stat-value" id="customersRenewKpi">—</strong><div class="stat-foot"><span>تمدید ÷ کل</span><span class="trend">دوره</span></div></article>
       </div>
       <article class="panel" style="margin-top:14px">
-        <div class="panel-head"><div><h3>فهرست مشتری‌ها</h3><p>موجودی، اشتراک‌های ثبت‌شده و مجموع خرج</p></div><input class="search" id="customerSearch" placeholder="نام، username یا Telegram ID" aria-label="جست‌وجوی مشتری"></div>
+        <div class="panel-head"><div><h3>فهرست مشتری‌ها</h3></div><input class="search" id="customerSearch" placeholder="نام، username یا Telegram ID" aria-label="جست‌وجوی مشتری"></div>
         <div class="table-wrap"><table><thead><tr><th>مشتری</th><th>Telegram ID</th><th>عضویت</th><th>اشتراک</th><th>مجموع خرید</th><th>کیف پول</th><th>دعوت</th><th>آخرین فعالیت</th></tr></thead><tbody id="customerTableBody"></tbody></table></div>
         <div class="mini-note" id="customerDataNote">اطلاعات این صفحه فقط برای ادمین معتبر Telegram ارسال می‌شود.</div>
       </article>
     </section>
 
     <section class="page hidden" id="agentsPage">
-      <div class="page-top"><div><h1>مدیریت نماینده‌ها</h1><p>دعوت یا ارتقای مشتری، تعیین قیمت خرید هر پلن، مدیریت کیف پول و سهمیهٔ کل ساخت</p></div><button class="outline-btn" id="agentsReload" type="button">به‌روزرسانی</button></div>
+      <div class="page-top"><button class="outline-btn" id="agentsReload" type="button">به‌روزرسانی</button></div>
+
       <div class="agent-admin-grid">
         <div class="agent-admin-stack">
           <article class="panel">
-            <div class="panel-head"><div><h3>ارتقای مشتری ثبت‌شده</h3><p>شناسهٔ عددی تلگرام مشتری را وارد کنید؛ ایجاد نمایندگی به حساب مشتری متصل می‌شود.</p></div><span class="stat-icon">♙</span></div>
+            <div class="panel-head"><div><h3>ارتقای مشتری ثبت‌شده</h3></div><span class="stat-icon">♙</span></div>
             <form id="agentPromoteForm" class="admin-form">
               <label>شناسهٔ تلگرام مشتری<input id="agentPromoteTgId" type="text" inputmode="numeric" dir="ltr" pattern="[0-9]{1,20}" maxlength="20" placeholder="مثلاً 123456789" required></label>
               <div class="form-actions"><button class="btn-primary" type="submit">تبدیل به نماینده</button><span class="mini-note" id="agentPromoteMessage" role="status" aria-live="polite"></span></div>
             </form>
           </article>
           <article class="panel">
-            <div class="panel-head"><div><h3>لینک دعوت نماینده</h3><p>لینک یک‌بارمصرف است و پس از ۳۰ روز منقضی می‌شود.</p></div><span class="stat-icon">↗</span></div>
+            <div class="panel-head"><div><h3>لینک دعوت نماینده</h3></div><span class="stat-icon">↗</span></div>
             <div class="referral-share-actions"><button class="btn-primary" id="agentInviteCreate" type="button"><svg class="bi bi-link" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 13.5a4 4 0 0 0 5.7 0l2.6-2.6a4 4 0 0 0-5.7-5.7l-1.4 1.4"/><path d="M13.5 10.5a4 4 0 0 0-5.7 0l-2.6 2.6a4 4 0 0 0 5.7 5.7l1.4-1.4"/></svg><span>ساخت لینک دعوت</span></button><span class="mini-note" id="agentInviteMessage" role="status" aria-live="polite"></span></div>
             <div id="agentInviteResult" class="agent-invite-result hidden"></div>
             <div class="agent-invites-list" id="agentInvitesList"><div class="empty-state">لینک‌های دعوت در این بخش نمایش داده می‌شوند.</div></div>
           </article>
         </div>
         <article class="panel">
-          <div class="panel-head"><div><h3>فهرست نماینده‌ها</h3><p>جست‌وجو با شناسه، نام یا نام کاربری تلگرام</p></div><span class="status paid" id="agentTotalBadge">۰ نماینده</span></div>
+          <div class="panel-head"><div><h3>فهرست نماینده‌ها</h3></div><span class="status paid" id="agentTotalBadge">۰ نماینده</span></div>
           <label class="admin-field" for="agentSearch">جست‌وجو<input id="agentSearch" type="search" maxlength="80" placeholder="شناسه، نام یا @username"></label>
           <div class="managed-list" id="managedAgentsList"><div class="empty-state">در حال آماده‌سازی فهرست نماینده‌ها…</div></div>
           <div class="mini-note" id="agentListNote" role="status" aria-live="polite"></div>
@@ -2689,7 +2711,8 @@
     </section>
 
     <section class="page hidden" id="agentPage">
-      <div class="page-top"><div><h1>پنل نماینده</h1><p id="agentWelcome">موجودی مستقل، سهمیه و اشتراک‌های ساخته‌شده</p></div><button class="outline-btn" id="agentReload" type="button">به‌روزرسانی</button></div>
+      <div class="page-top"><p class="mini-note" id="agentWelcome">موجودی مستقل، سهمیه و اشتراک‌های ساخته‌شده</p><button class="outline-btn" id="agentReload" type="button">به‌روزرسانی</button></div>
+
       <div class="customer-notice hidden" id="agentDisabledNotice" role="status">دسترسی نمایندگی غیرفعال شده است؛ اشتراک‌های قبلی شما برای مشاهده باقی می‌مانند، اما امکان ساخت جدید ندارید. برای فعال‌سازی با مدیر فروشگاه تماس بگیرید.</div>
       <div class="agent-stat-grid">
         <article class="panel referral-stat"><span>کیف پول مستقل نمایندگی</span><strong id="agentBalanceValue">—</strong><small>هزینهٔ خرید داخلی از این موجودی کسر می‌شود.</small></article>
@@ -2697,8 +2720,8 @@
         <article class="panel referral-stat"><span>ساخت‌های موفق تا امروز</span><strong id="agentCreatedValue">—</strong><small>قیمت‌ها، بهای خرید داخلی تعیین‌شده توسط مدیر هستند.</small></article>
       </div>
       <article class="panel agent-create-panel">
-        <div class="panel-head"><div><h3>ساخت اشتراک برای مشتری</h3><p>مشتری نیازی به حساب تلگرام ندارد؛ لینک اشتراک را شما برایش ارسال می‌کنید.</p></div><span class="status paid">پنل فروش مجدد</span></div>
-        <div class="customer-notice">در این صفحه فقط اشتراک پنل ساخته می‌شود؛ مبلغ واردشده از کیف پول مستقل نماینده کم می‌شود و سهمیه فقط پس از ساخت موفق کاهش می‌یابد. قیمت فروش شما به مشتری در این نسخه محاسبه نمی‌شود.</div>
+        <div class="panel-head"><div><h3>ساخت اشتراک برای مشتری</h3></div><span class="status paid">پنل فروش مجدد</span></div>
+        <div class="mini-note">مشتری نیازی به حساب تلگرام ندارد؛ لینک اشتراک را شما برایش ارسال می‌کنید.</div>
         <form id="agentCreateForm" class="admin-form agent-create-form">
           <div class="settings-grid">
             <label>نام یا برچسب مشتری<input id="agentCustomerName" type="text" maxlength="80" autocomplete="off" placeholder="مثلاً مشتری فروشگاه ۱۲" required></label>
@@ -2709,32 +2732,33 @@
         <div id="agentCreatedResult" class="agent-created-result hidden" aria-live="polite"></div>
       </article>
       <article class="panel agent-history-panel">
-        <div class="panel-head"><div><h3>اشتراک‌های ساخته‌شده</h3><p>لینک تحویل و وضعیت اشتراک‌های خودتان</p></div><span class="status paid" id="agentSubCount">۰ اشتراک</span></div>
+        <div class="panel-head"><div><h3>اشتراک‌های ساخته‌شده</h3></div><span class="status paid" id="agentSubCount">۰ اشتراک</span></div>
         <div class="agent-sub-list" id="agentSubscriptionsList"><div class="empty-state">هنوز اشتراکی ساخته نشده است.</div></div>
       </article>
       <article class="panel agent-history-panel">
-        <div class="panel-head"><div><h3>تاریخچهٔ کیف پول و سهمیه</h3><p>شارژ، کسر، ساخت اشتراک و تغییرات دستی مدیر</p></div></div>
+        <div class="panel-head"><div><h3>تاریخچهٔ کیف پول و سهمیه</h3></div></div>
         <div class="agent-transaction-list" id="agentTransactionsList"><div class="empty-state">تراکنشی ثبت نشده است.</div></div>
       </article>
     </section>
 
     <section class="page hidden" id="plansPage">
-      <div class="page-top"><div><h1>عملکرد پلن‌ها</h1><p>خرید و تمدید بر پایهٔ رویدادهای دفتر فروش</p></div><div class="table-tools"><select class="panel-select" id="plansPeriod"><option value="30">۳۰ روز اخیر</option><option value="7">۷ روز اخیر</option><option value="90">۹۰ روز اخیر</option></select><button class="outline-btn" id="plansExport">خروجی CSV</button></div></div>
+      <div class="page-top"><div class="table-tools"><select class="panel-select" id="plansPeriod"><option value="30">۳۰ روز اخیر</option><option value="7">۷ روز اخیر</option><option value="90">۹۰ روز اخیر</option></select><button class="outline-btn" id="plansExport">خروجی CSV</button></div></div>
+
       <article class="panel manage-plans-panel" style="margin-bottom:14px">
-        <div class="panel-head"><div><h3>مدیریت پلن‌های فروش</h3><p>افزودن، ویرایش، فعال‌سازی یا آرشیو پلن‌های قابل‌فروش</p></div><button class="btn-primary" id="planCreate" type="button"><svg class="bi bi-plus" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>پلن جدید</span></button></div>
+        <div class="panel-head"><div><h3>مدیریت پلن‌های فروش</h3></div><button class="btn-primary" id="planCreate" type="button"><svg class="bi bi-plus" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>پلن جدید</span></button></div>
         <div id="managedPlansList" class="managed-list"><div class="empty-state">برای مشاهدهٔ پلن‌ها، این صفحه را در Mini App تلگرام باز کنید.</div></div>
       </article>
       <div class="content-grid">
-        <article class="panel"><div class="panel-head"><div><h3>فروش به تفکیک پلن</h3><p>تعداد خرید/تمدید و درآمد</p></div></div><div class="plan-list" style="margin-top:25px" id="planReportList"></div><div class="mini-note" id="planDataNote">داده‌ها از دفتر فروش ایندکس‌شده خوانده می‌شوند.</div></article>
-        <article class="panel"><div class="panel-head"><div><h3>خرید جدید در برابر تمدید</h3><p>سهم هر نوع تراکنش موفق در بازهٔ انتخابی</p></div></div><div class="revenue-summary"><div class="donut" id="planTypeDonut" style="background:conic-gradient(var(--blue) 0 65%,var(--yellow) 65% 100%)"><div class="donut-center"><strong id="planMixBuyPct">—</strong><span>خرید جدید</span></div></div><div class="revenue-legend"><div class="legend-row"><span class="legend-name"><i class="blue"></i>خرید جدید</span><strong id="planMixBuyCount">—</strong><small id="planMixBuyRevenue">—</small></div><div class="legend-row"><span class="legend-name"><i style="background:var(--yellow)"></i>تمدید</span><strong id="planMixRenewCount">—</strong><small id="planMixRenewRevenue">—</small></div></div></div><div class="mini-note">فقط خرید/تمدید تکمیل‌شده در دفتر مالی محاسبه می‌شود؛ شارژ کیف پول فروش پلن محسوب نمی‌شود.</div></article>
+        <article class="panel"><div class="panel-head"><div><h3>فروش به تفکیک پلن</h3></div></div><div class="plan-list" style="margin-top:25px" id="planReportList"></div><div class="mini-note" id="planDataNote">داده‌ها از دفتر فروش ایندکس‌شده خوانده می‌شوند.</div></article>
+        <article class="panel"><div class="panel-head"><div><h3>خرید جدید در برابر تمدید</h3></div></div><div class="revenue-summary"><div class="donut" id="planTypeDonut" style="background:conic-gradient(var(--blue) 0 65%,var(--yellow) 65% 100%)"><div class="donut-center"><strong id="planMixBuyPct">—</strong><span>خرید جدید</span></div></div><div class="revenue-legend"><div class="legend-row"><span class="legend-name"><i class="blue"></i>خرید جدید</span><strong id="planMixBuyCount">—</strong><small id="planMixBuyRevenue">—</small></div><div class="legend-row"><span class="legend-name"><i style="background:var(--yellow)"></i>تمدید</span><strong id="planMixRenewCount">—</strong><small id="planMixRenewRevenue">—</small></div></div></div><div class="mini-note">فقط خرید/تمدید تکمیل‌شده در دفتر مالی محاسبه می‌شود؛ شارژ کیف پول فروش پلن محسوب نمی‌شود.</div></article>
       </div>
-      <article class="panel" style="margin-top:14px"><div class="panel-head"><div><h3>سرورهای پرفروش</h3><p>بر اساس خرید و تمدید</p></div></div><div class="plan-list" id="topServersList"></div></article>
+      <article class="panel" style="margin-top:14px"><div class="panel-head"><div><h3>سرورهای پرفروش</h3></div></div><div class="plan-list" id="topServersList"></div></article>
     </section>
 
     <section class="page hidden" id="settingsPage">
-      <div class="page-top"><div><h1>تنظیمات تیزنت</h1><p>تنظیمات عملیاتی فروشگاه و پرداخت</p></div></div>
+      
       <article class="panel settings-editor" style="margin-top:14px">
-        <div class="panel-head"><div><h3>تنظیمات قابل‌ویرایش فروشگاه</h3><p>این تغییرات در KV متصل به همین Worker ذخیره می‌شوند.</p></div><span class="status paid" id="settingsConnectionStatus">آماده</span></div>
+        <div class="panel-head"><div><h3>تنظیمات قابل‌ویرایش فروشگاه</h3></div><span class="status paid" id="settingsConnectionStatus">آماده</span></div>
         <div class="customer-notice" id="protectedSettingsNote" style="margin:12px 0">کلیدها و Secretهای امنیتی نمایش داده نمی‌شوند و فقط در تنظیمات Cloudflare باقی می‌مانند.</div>
         <form id="settingsForm">
           <div class="settings-grid">
@@ -2756,7 +2780,7 @@
             </div>
           </div>
           <div class="free-settings-block">
-            <div class="panel-head"><div><h3>اشتراک رایگان</h3><p>مدیر می‌تواند صدور را فعال/غیرفعال و حجم، روز، پنل و سیاست دریافت را تنظیم کند.</p></div></div>
+            <div class="panel-head"><div><h3>اشتراک رایگان</h3></div></div>
             <div class="settings-toggles"><label class="toggle-row"><input id="settingFreeEnabled" type="checkbox"><span class="switch-ui"></span><span><strong>فعال‌بودن دریافت اشتراک رایگان</strong><small>در حالت خاموش، گزینهٔ مشتری در Mini App غیرفعال و درخواست ربات رد می‌شود.</small></span></label></div>
             <div class="settings-grid">
               <label>حجم رایگان (گیگ)<input id="settingFreeGb" type="number" min="0" max="1000000" step="0.1" inputmode="decimal"></label>
@@ -2770,7 +2794,7 @@
         </form>
       </article>
       <article class="panel btn-look-panel" id="btnLookPanel" style="margin-top:14px">
-        <div class="panel-head"><div><h3>ظاهر دکمه‌های چت</h3><p>رنگ و آیکن متحرک دکمه‌های ربات در چت تلگرام</p></div></div>
+        <div class="panel-head"><div><h3>ظاهر دکمه‌های چت</h3></div></div>
         <div class="settings-toggles">
           <label class="toggle-row"><input id="btnLookColors" type="checkbox"><span class="switch-ui"></span><span><strong>رنگ معنادار دکمه‌ها</strong><small>آبی برای خرید، سبز برای تأیید، قرمز برای انصراف و حذف. خاموش = حالت شیشه‌ای (بی‌رنگ و نیمه‌شفاف).</small></span></label>
         </div>
@@ -2778,8 +2802,17 @@
         <div class="btn-look-grid" id="btnLookGrid"></div>
         <div class="form-actions"><button class="btn-primary" id="btnLookSave" type="button"><svg class="bi bi-save" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h11L19.5 8v11.5h-15z"/><path d="M8 4.5v5h7v-5"/><path d="M8 19.5v-6h8v6"/></svg><span>ذخیرهٔ ظاهر دکمه‌ها</span></button><button class="btn-secondary" id="btnLookGrab" type="button"><svg class="bi bi-download" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v10"/><path d="M8 11.5l4 4 4-4"/><path d="M5.5 19.5h13"/></svg><span>گرفتن شناسه در چت ربات</span></button><span id="btnLookMessage" class="form-message" role="status"></span></div>
       </article>
+      <article class="panel" id="chatButtonsPanel" style="margin-top:14px">
+        <div class="panel-head"><div><h3>دکمه‌های چت</h3></div></div>
+        <div class="chat-btn-list" id="chatBtnList"></div>
+        <div class="chat-btn-add">
+          <select id="chatBtnAddSelect" aria-label="افزودن دکمه"></select>
+          <button class="btn-secondary" id="chatBtnAdd" type="button">افزودن</button>
+        </div>
+        <div class="form-actions"><button class="btn-primary" id="chatBtnSave" type="button"><svg class="bi bi-save" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h11L19.5 8v11.5h-15z"/><path d="M8 4.5v5h7v-5"/><path d="M8 19.5v-6h8v6"/></svg><span>ذخیرهٔ دکمه‌ها</span></button><span id="chatBtnMessage" class="form-message" role="status"></span></div>
+      </article>
       <article class="panel kv-backup-panel" id="kvBackupPanel" style="margin-top:14px">
-        <div class="panel-head"><div><h3>بکاپ و ریستور کامل KV</h3><p>دانلود بکاپ دستی یا جایگزینی کامل اطلاعات از فایل پشتیبان.</p></div></div>
+        <div class="panel-head"><div><h3>بکاپ و ریستور کامل KV</h3></div></div>
         <div class="kv-backup-actions">
           <button class="btn-primary" id="kvBackupDownload" type="button"><svg class="bi bi-dl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 19.5h15"/></svg><span>دریافت بکاپ دستی</span></button>
           <label class="outline-btn kv-restore-file-label" for="kvRestoreFile">انتخاب فایل بکاپ</label>
@@ -2798,7 +2831,8 @@
     </section>
 
     <section class="page hidden" id="serversPage">
-      <div class="page-top"><div><h1>سرورها و پنل‌ها</h1><p>اتصال پنل‌ها و وضعیت فروش هر سرور را مدیریت کنید.</p></div><button class="outline-btn" id="panelsReload" type="button">به‌روزرسانی</button></div>
+      <div class="page-top"><button class="outline-btn" id="panelsReload" type="button">به‌روزرسانی</button></div>
+
       <div class="admin-layout-grid">
         <form class="panel admin-form" id="panelForm">
           <div class="panel-head"><div><h3 id="panelFormTitle">افزودن سرور</h3><p>کلید API هرگز از Worker به مرورگر برگردانده نمی‌شود.</p></div><button class="link-button hidden" id="panelClear" type="button">لغو ویرایش</button></div>
@@ -2810,7 +2844,7 @@
           <div class="form-actions"><button class="btn-secondary" id="panelTest" type="button"><svg class="bi bi-signal" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9.5M9.3 20V5.5M14.7 20v-8M20 20V7"/></svg><span>آزمون اتصال</span></button><button class="btn-primary" id="panelSave" type="submit"><svg class="bi bi-save" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h11L19.5 8v11.5h-15z"/><path d="M8 4.5v5h7v-5"/><path d="M8 19.5v-6h8v6"/></svg><span>ذخیرهٔ سرور</span></button></div>
           <div id="panelFormMessage" class="form-message" role="status"></div>
         </form>
-        <article class="panel"><div class="panel-head"><div><h3>سرورهای ثبت‌شده</h3><p>سرور غیرفعال از فروش جدید پنهان می‌شود.</p></div></div><div class="managed-list" id="managedPanelsList"><div class="empty-state">در حال بارگذاری…</div></div></article>
+        <article class="panel"><div class="panel-head"><div><h3>سرورهای ثبت‌شده</h3></div></div><div class="managed-list" id="managedPanelsList"><div class="empty-state">در حال بارگذاری…</div></div></article>
       </div>
     </section>
 
@@ -2902,7 +2936,7 @@
       <section class="customer-tab-panel" id="customerTabOrders" role="tabpanel" aria-labelledby="customerTabButtonOrders" hidden>
         <div class="cv-shell">
           <article class="panel customer-history-panel">
-            <div class="panel-head"><div><h3>سابقه و پیگیری سفارش‌ها</h3><p>خرید و تمدید؛ وضعیت سفارش‌های باز را از همین‌جا ببینید.</p></div><span class="status pending">۵۰ مورد اخیر</span></div>
+            <div class="panel-head"><div><h3>سابقه و پیگیری سفارش‌ها</h3></div><span class="status pending">۵۰ مورد اخیر</span></div>
             <div class="table-wrap customer-history-table"><table><thead><tr><th>شناسه</th><th>نوع</th><th>پلن / سرور</th><th>مبلغ</th><th>روش</th><th>تاریخ</th><th>وضعیت</th><th>پیگیری</th></tr></thead><tbody id="customerOrdersBody"><tr><td colspan="8" style="text-align:center;color:#8798b2;padding:24px">برای نمایش سابقه، مینی‌اپ را از داخل تلگرام باز کنید.</td></tr></tbody></table></div>
             <div class="mini-note" id="customerOrdersNote">وضعیت سفارش‌های در انتظار تأیید در همین صفحه قابل پیگیری است.</div>
           </article>
@@ -2912,7 +2946,7 @@
       <section class="customer-tab-panel" id="customerTabHistory" role="tabpanel" aria-labelledby="customerTabButtonHistory" hidden>
         <div class="cv-shell">
           <article class="panel customer-history-panel">
-            <div class="panel-head"><div><h3>تراکنش‌های کیف پول</h3><p>خرید، تمدید، شارژ، تبدیل امتیاز و اصلاح موجودی؛ همگام با ربات.</p></div><span class="status pending" id="customerTransactionCount">۰ مورد</span></div>
+            <div class="panel-head"><div><h3>تراکنش‌های کیف پول</h3></div><span class="status pending" id="customerTransactionCount">۰ مورد</span></div>
             <div class="cv-tx-list" id="customerTransactionsList"><div class="cv-empty">برای نمایش تراکنش‌ها، Mini App را از داخل تلگرام باز کنید.</div></div>
             <div class="mini-note" id="customerTransactionsNote">مبالغ و وضعیت‌ها از سابقهٔ مشترک Worker خوانده می‌شوند.</div>
           </article>
@@ -2922,7 +2956,7 @@
       <section class="customer-tab-panel" id="customerTabReferrals" role="tabpanel" aria-labelledby="customerTabButtonReferrals" hidden>
         <div class="cv-shell">
           <article class="panel referral-link-card">
-            <div class="panel-head"><div><h3>دعوت دوستان به TiznetVPN</h3><p>برای هر عضو جدید و یکتایی که با لینک شما وارد شود، ۵ امتیاز می‌گیرید.</p></div><span class="status paid" id="referralStatusBadge">عضوگیری</span></div>
+            <div class="panel-head"><div><h3>دعوت دوستان به TiznetVPN</h3></div><span class="status paid" id="referralStatusBadge">عضوگیری</span></div>
             <div class="referral-link-box"><span class="referral-label">لینک اختصاصی دعوت</span><code id="referralInviteLink" dir="ltr">لینک پس از اتصال به تلگرام نمایش داده می‌شود</code><div class="referral-share-actions"><button class="btn-primary" id="referralCopyLink" type="button" disabled>کپی لینک</button><button class="outline-btn" id="referralShareLink" type="button" disabled>اشتراک‌گذاری</button></div></div>
           </article>
           <div class="referral-stats-grid">
@@ -2932,13 +2966,13 @@
             <article class="panel referral-stat"><span>هدیه‌های آماده</span><strong id="referralRewardsAvailable">—</strong><small>هر ۳ عضو جدید: اشتراک ۳ گیگ / ۳ روز</small></article>
           </div>
           <article class="panel referral-progress-card">
-            <div class="panel-head"><div><h3>پیشرفت هدیهٔ تکرارشونده</h3><p>برای هر سه عضو جدید، یک اشتراک ۳ گیگابایت و ۳ روزه صادر می‌شود.</p></div><span class="status pending" id="referralProgressBadge">۰ از ۳</span></div>
+            <div class="panel-head"><div><h3>پیشرفت هدیهٔ تکرارشونده</h3></div><span class="status pending" id="referralProgressBadge">۰ از ۳</span></div>
             <div class="referral-progress-track" aria-hidden="true"><i id="referralProgressFill" style="width:0%"></i></div>
             <p class="referral-progress-copy" id="referralProgressText" aria-live="polite">پس از سه عضو جدید، هدیهٔ شما به‌صورت خودکار صادر می‌شود.</p>
             <div class="referral-share-actions"><button class="btn-primary" id="referralClaimReward" type="button" disabled>دریافت هدیهٔ دعوت</button><span class="mini-note" id="referralRewardStatus" role="status" aria-live="polite">هدیه در صورت آماده‌شدن، خودکار صادر می‌شود.</span></div>
           </article>
           <article class="panel referral-points-card">
-            <div class="panel-head"><div><h3>تبدیل دستی امتیاز به کیف پول</h3><p>۵ امتیاز برای عضو جدید و ۱۰ امتیاز برای خرید موفق زیرمجموعه.</p></div><span class="stat-icon">⭐</span></div>
+            <div class="panel-head"><div><h3>تبدیل دستی امتیاز به کیف پول</h3></div><span class="stat-icon">⭐</span></div>
             <div class="referral-conversion-box"><div><span>مبلغ قابل‌تبدیل با امتیاز فعلی</span><strong id="referralRedeemableAmount">۰ تومان</strong></div><div><span>امتیاز مصرف‌شده در تبدیل بعدی</span><strong id="referralRedeemablePoints">۰ امتیاز</strong></div></div>
             <p class="mini-note" id="referralRedeemHint">هر ۱۰۰ امتیاز به ۲۰۰٬۰۰۰ تومان تبدیل می‌شود؛ امتیاز کمتر از ۱۰۰ برای تبدیل بعدی حفظ می‌شود.</p>
             <div class="referral-share-actions"><button class="btn-primary" id="referralRedeemButton" type="button" disabled>تبدیل امتیاز به کیف پول</button><span class="mini-note" id="referralRedeemStatus" role="status" aria-live="polite">تبدیل فقط با فشردن دکمه انجام می‌شود.</span></div>
@@ -3392,6 +3426,86 @@
         if(button)button.disabled=false;
       }
     }
+    const CHAT_BTNS_FALLBACK=[
+      {id:'buy',icon:'🛍',label:'خرید اشتراک'},{id:'support',icon:'🎧',label:'پشتیبانی'},{id:'free',icon:'🎁',label:'اشتراک رایگان'},
+      {id:'help',icon:'📘',label:'راهنما'},{id:'account',icon:'🪪',label:'اطلاعات حساب'},{id:'agent',icon:'🤝',label:'دریافت نمایندگی'}
+    ];
+    let chatBtnModel=null;
+    function renderChatButtons(chat){
+      const list=document.getElementById('chatBtnList');
+      if(!list)return;
+      if(chat)chatBtnModel=chat;
+      if(!chatBtnModel){
+        chatBtnModel={limit:10,catalog:CHAT_BTNS_FALLBACK.map(x=>({id:x.id,icon:x.icon,label:x.label})),
+          items:CHAT_BTNS_FALLBACK.map(x=>({id:x.id,icon:x.icon,label:x.label,custom:'',on:true}))};
+      }
+      const catalog=chatBtnModel.catalog||[];
+      const items=chatBtnModel.items||[];
+      const model={};
+      items.forEach(it=>{model[it.id]=it;});
+      list.innerHTML=items.map(it=>{
+        const icon=(model[it.id]||{}).icon||'•';
+        return '<div class="chat-btn-row'+(it.on?'':' off')+'" data-id="'+esc(it.id)+'">'
+          +'<label class="cbr-toggle"><input type="checkbox" class="cbr-on"'+(it.on?' checked':'')+' aria-label="فعال بودن دکمهٔ '+esc(it.label)+'"></label>'
+          +'<span class="cbr-icon" aria-hidden="true">'+esc(icon)+'</span>'
+          +'<input type="text" class="cbr-label" maxlength="40" value="'+esc(it.custom||it.label)+'" placeholder="'+esc(it.label)+'" aria-label="نام دکمه">'
+          +'<button class="cbr-btn" type="button" data-move="-1" aria-label="بالا">↑</button>'
+          +'<button class="cbr-btn" type="button" data-move="1" aria-label="پایین">↓</button>'
+          +'<button class="cbr-btn del" type="button" data-del="1" aria-label="حذف">✕</button>'
+          +'</div>';
+      }).join('');
+      list.querySelectorAll('.cbr-on').forEach(cb=>cb.addEventListener('change',()=>{
+        const row=cb.closest('.chat-btn-row'); if(row)row.classList.toggle('off',!cb.checked);
+      }));
+      list.querySelectorAll('[data-move]').forEach(btn=>btn.addEventListener('click',()=>{
+        const row=btn.closest('.chat-btn-row'); if(!row)return;
+        const dir=Number(btn.getAttribute('data-move'));
+        if(dir<0&&row.previousElementSibling)list.insertBefore(row,row.previousElementSibling);
+        if(dir>0&&row.nextElementSibling)list.insertBefore(row.nextElementSibling,row);
+      }));
+      list.querySelectorAll('[data-del]').forEach(btn=>btn.addEventListener('click',()=>{
+        const row=btn.closest('.chat-btn-row'); if(row)row.remove();
+      }));
+      const sel=document.getElementById('chatBtnAddSelect');
+      if(sel){
+        const used=new Set(items.map(i=>i.id));
+        const free=catalog.filter(c=>!used.has(c.id));
+        sel.innerHTML=free.length?free.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.icon+' '+c.label)+'</option>').join(''):'<option value="">همهٔ دکمه‌ها اضافه شده‌اند</option>';
+        sel.disabled=!free.length;
+      }
+    }
+    function collectChatButtons(){
+      const rows=[...document.querySelectorAll('#chatBtnList .chat-btn-row')];
+      const order=rows.map(r=>r.getAttribute('data-id')).filter(Boolean);
+      const off=rows.filter(r=>{const cb=r.querySelector('.cbr-on');return cb&&!cb.checked;}).map(r=>r.getAttribute('data-id'));
+      const labels={};
+      rows.forEach(r=>{const id=r.getAttribute('data-id');const inp=r.querySelector('.cbr-label');if(id&&inp&&inp.value.trim())labels[id]=inp.value.trim();});
+      return {order,off,labels};
+    }
+    async function saveChatButtonsPanel(){
+      const message=document.getElementById('chatBtnMessage');
+      const button=document.getElementById('chatBtnSave');
+      const body=collectChatButtons();
+      if(!body.order.length){if(message)message.textContent='حداقل یک دکمه لازم است.';return false;}
+      if(body.off.length>=body.order.length){if(message)message.textContent='حداقل یک دکمه باید روشن بماند.';return false;}
+      if(message)message.textContent='';
+      if(button)button.disabled=true;
+      try{
+        const data=await api('/api/miniapp/admin/buttons',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat:body})});
+        renderChatButtons(data.chat||null);
+        if(message)message.textContent='✅ ذخیره شد؛ کیبورد کاربران به‌روز شد.';
+        toast('دکمه‌های چت ذخیره شد.');
+        return true;
+      }catch(e){
+        const map={all_buttons_off:'حداقل یک دکمه باید روشن بماند.',too_many_buttons:'تعداد دکمه‌ها زیاد است.',invalid_button:'دکمهٔ ناشناخته در فهرست است.',invalid_labels:'نام دکمه نامعتبر است.',invalid_chat:'دادهٔ دکمه‌ها نامعتبر است.'};
+        const text=map[e&&e.message]||'ذخیرهٔ دکمه‌های چت ناموفق بود.';
+        if(message)message.textContent=text;
+        toast(text);
+        return false;
+      }finally{
+        if(button)button.disabled=false;
+      }
+    }
     function renderSettingsView(settings,panels) {
       const set=(id,value)=>{const el=document.getElementById(id);if(el)el.value=value==null?'':String(value);};
       set('settingBotUsername',settings.bot_username||'');set('settingSupport',settings.support||'');
@@ -3422,6 +3536,7 @@
       if(!liveMode||!adminRole)return;
       const data=await api('/api/miniapp/admin/settings');renderSettingsView(data.settings||{},data.panels||[],data.buttons||null);
       renderButtonLook(data.buttons||null);
+      renderChatButtons((data.buttons&&data.buttons.chat)||null);
       return data;
     }
     async function saveSettingsForm(form) {
@@ -3629,7 +3744,7 @@
       panel.innerHTML=`<div class="panel-head"><div><h3>پروندهٔ نماینده: ${esc(a.first_name||'نماینده')}</h3><p dir="ltr">Telegram ID: ${esc(a.tg_id)}${a.username?' · @'+esc(a.username):''}</p></div><span class="status ${a.enabled?'paid':'pending'}">${a.enabled?'فعال':'غیرفعال'}</span></div>
         <div class="agent-stat-grid"><article class="panel referral-stat"><span>کیف پول مستقل</span><strong>${money(a.balance)}</strong></article><article class="panel referral-stat"><span>سهمیهٔ باقی‌مانده</span><strong>${fmt(a.quota_remaining)}</strong></article><article class="panel referral-stat"><span>ساخت موفق</span><strong>${fmt(a.total_created)}</strong></article></div>
         <div class="agent-admin-actions"><button class="table-action ${a.enabled?'danger':''}" type="button" data-agent-toggle="${esc(a.tg_id)}">${a.enabled?'غیرفعال‌کردن نماینده':'فعال‌کردن نماینده'}</button></div>
-        <form id="agentPricingForm" class="admin-form"><input type="hidden" id="agentPricingTgId" value="${esc(a.tg_id)}"><div class="panel-head"><div><h3>قیمت خرید نماینده برای هر پلن</h3><p>قیمت مستقل به تومان؛ در ساخت اشتراک از کیف پول نماینده کسر می‌شود.</p></div></div><div class="agent-price-grid">${priceFields}</div><div class="form-actions"><button class="btn-primary" type="submit">ذخیرهٔ قیمت‌ها</button><span class="mini-note" id="agentPriceMessage" role="status" aria-live="polite"></span></div></form>
+        <form id="agentPricingForm" class="admin-form"><input type="hidden" id="agentPricingTgId" value="${esc(a.tg_id)}"><div class="panel-head"><div><h3>قیمت خرید نماینده برای هر پلن</h3></div></div><div class="agent-price-grid">${priceFields}</div><div class="form-actions"><button class="btn-primary" type="submit">ذخیرهٔ قیمت‌ها</button><span class="mini-note" id="agentPriceMessage" role="status" aria-live="polite"></span></div></form>
         <div class="panel-head" style="margin-top:18px"><div><h3>شارژ یا کسر از کیف پول</h3><p>تراکنش مدیریتی در تاریخچهٔ مستقل نماینده ثبت می‌شود.</p></div></div><div class="agent-wallet-controls"><label class="admin-field">مبلغ (تومان)<input id="agentAdminWalletAmount" type="text" inputmode="numeric" placeholder="مبلغ"></label><button class="btn-primary" type="button" data-agent-wallet="credit" data-agent-id="${esc(a.tg_id)}">شارژ</button><button class="table-action danger" type="button" data-agent-wallet="debit" data-agent-id="${esc(a.tg_id)}">کسر</button></div>
         <div class="panel-head" style="margin-top:18px"><div><h3>تنظیم سهمیهٔ کل ساخت</h3><p>عدد واردشده، سهمیهٔ باقی‌ماندهٔ جدید است؛ نه افزایش نسبی.</p></div></div><div class="agent-wallet-controls"><label class="admin-field">سهمیهٔ باقی‌مانده<input id="agentAdminQuotaAmount" type="number" min="0" max="1000000" step="1" value="${esc(a.quota_remaining)}"></label><button class="btn-primary" type="button" data-agent-quota="set" data-agent-id="${esc(a.tg_id)}">ذخیرهٔ سهمیه</button></div>
         <div class="panel-head" style="margin-top:18px"><div><h3>اشتراک‌های ساخته‌شده</h3></div></div><div class="agent-sub-list">${subRows}</div><div class="panel-head" style="margin-top:18px"><div><h3>تاریخچهٔ مالی و سهمیه</h3></div></div><div class="agent-transaction-list">${txRows}</div>`;
@@ -3726,7 +3841,7 @@
         const subscription=result.subscription;
         if(agentPortalData&&subscription){const rows=Array.isArray(agentPortalData.subscriptions)?agentPortalData.subscriptions:[];agentPortalData.subscriptions=[subscription,...rows.filter(x=>String(x.sid)!==String(subscription.sid))].slice(0,40);}
         renderAgentPortal(agentPortalData||result);
-        const output=document.getElementById('agentCreatedResult');if(output&&subscription){output.classList.remove('hidden');const link=subscription.link&&/^https:\/\//.test(subscription.link)?`<div class="agent-link-box"><strong>لینک را به مشتری تحویل دهید</strong><code>${esc(subscription.link)}</code><div class="referral-share-actions"><button class="btn-primary" type="button" data-copy-text="${esc(subscription.link)}">کپی لینک اشتراک</button><a class="table-action" href="${esc(subscription.link)}" target="_blank" rel="noopener noreferrer">بازکردن</a></div></div>`:'<div class="mini-note">اشتراک ساخته شد، اما لینک از پنل دریافت نشد؛ با مدیر تماس بگیرید.</div>';output.innerHTML=`<div class="panel-head"><div><h3>اشتراک با موفقیت ساخته شد</h3><p>مشتری: ${esc(subscription.customer_name)} · ${esc(subscription.plan_name)} · ${esc(subscription.panel_name)}</p></div><span class="status paid">تحویل آماده</span></div>${link}`;output.scrollIntoView({behavior:'smooth',block:'center'});}
+        const output=document.getElementById('agentCreatedResult');if(output&&subscription){output.classList.remove('hidden');const link=subscription.link&&/^https:\/\//.test(subscription.link)?`<div class="agent-link-box"><strong>لینک را به مشتری تحویل دهید</strong><code>${esc(subscription.link)}</code><div class="referral-share-actions"><button class="btn-primary" type="button" data-copy-text="${esc(subscription.link)}">کپی لینک اشتراک</button><a class="table-action" href="${esc(subscription.link)}" target="_blank" rel="noopener noreferrer">بازکردن</a></div></div>`:'<div class="mini-note">اشتراک ساخته شد، اما لینک از پنل دریافت نشد؛ با مدیر تماس بگیرید.</div>';output.innerHTML=`<div class="panel-head"><div><h3>اشتراک با موفقیت ساخته شد</h3></div><span class="status paid">تحویل آماده</span></div>${link}`;output.scrollIntoView({behavior:'smooth',block:'center'});}
         if(message)message.textContent='ساخت موفق بود؛ هزینه از کیف پول و یک واحد از سهمیه کسر شد.';
         document.getElementById('agentCustomerName').value='';toast('اشتراک با موفقیت ساخته شد.');
       }catch(e){
@@ -4950,6 +5065,20 @@
     const btnLookSaveEl=document.getElementById('btnLookSave');
     if(btnLookSaveEl)btnLookSaveEl.addEventListener('click',()=>saveButtonLook());
     // مینی‌اپ نمی‌تواند شناسهٔ ایموجی پریمیومی را بخواند؛ با یک لمس ادمین به حالت گرفتن در چت می‌رود.
+    renderChatButtons(null);
+    const chatBtnSaveEl=document.getElementById('chatBtnSave');
+    if(chatBtnSaveEl)chatBtnSaveEl.addEventListener('click',()=>saveChatButtonsPanel());
+    const chatBtnAddEl=document.getElementById('chatBtnAdd');
+    if(chatBtnAddEl)chatBtnAddEl.addEventListener('click',()=>{
+      const sel=document.getElementById('chatBtnAddSelect');
+      const id=sel&&sel.value;
+      if(!id)return;
+      const catalog=(chatBtnModel&&chatBtnModel.catalog)||[];
+      const def=catalog.find(c=>c.id===id);
+      if(!def)return;
+      chatBtnModel=Object.assign({},chatBtnModel,{items:(chatBtnModel.items||[]).concat([{id:def.id,icon:def.icon,label:def.label,custom:'',on:true}])});
+      renderChatButtons(chatBtnModel);
+    });
     const btnLookGrabEl=document.getElementById('btnLookGrab');
     if(btnLookGrabEl)btnLookGrabEl.addEventListener('click',()=>{
       const username=String(botUsername||'').replace(/^@/,'').trim();

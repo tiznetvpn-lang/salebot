@@ -25,7 +25,7 @@ if (!backupCronMatch || backupCronMatch[1] !== '0 */3 * * *') throw new Error('K
 if (!cronScriptSource.includes("'0 */3 * * *'")) throw new Error('زمان‌بندی scripts/run-cron.mjs با KV_BACKUP_CRON یکی نیست');
 if (!backupTimerUnit.includes('OnCalendar=*-*-* 00/3:00:00 UTC')) throw new Error('systemd timer بکاپ باید هر ۳ ساعت اجرا شود');
 if (!workerSource.includes('KV_BACKUP_MIN_INTERVAL_MS') || workerSource.includes('11 * 60 * 60 * 1000')) throw new Error('فاصلهٔ ایمنی بکاپ با بازهٔ ۳ ساعته هماهنگ نیست');
-src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser; globalThis.__normalizePhone = normalizePhone; globalThis.__isJoinGateMarkup = isJoinGateMarkup; globalThis.__isPhoneRequestMarkup = isPhoneRequestMarkup; globalThis.__accessGate = accessGate; globalThis.__DEFAULT_SETTINGS = DEFAULT_SETTINGS; globalThis.__btnSlotFor = btnSlotFor; globalThis.__decorateMarkup = decorateMarkup; globalThis.__btnStyleFor = btnStyleFor; globalThis.__resetBtnUI = () => { BTN_UI_CACHE = { at: 0, colors: true, icons: {} }; };');
+src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser; globalThis.__normalizePhone = normalizePhone; globalThis.__isJoinGateMarkup = isJoinGateMarkup; globalThis.__isPhoneRequestMarkup = isPhoneRequestMarkup; globalThis.__accessGate = accessGate; globalThis.__DEFAULT_SETTINGS = DEFAULT_SETTINGS; globalThis.__btnSlotFor = btnSlotFor; globalThis.__decorateMarkup = decorateMarkup; globalThis.__btnStyleFor = btnStyleFor; globalThis.__resetBtnUI = () => { BTN_UI_CACHE = { at: 0, colors: true, icons: {} }; }; globalThis.__resetChatButtons = () => { resetChatButtonCache(); }; globalThis.__chatButtons = chatButtons;');
 // eslint-disable-next-line no-eval
 eval(src);
 const APP = globalThis.APP;
@@ -1181,7 +1181,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg:#04152e') && miniAppSource.includes('--brand-blue:#00409a') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت آبی تیزنت (زمینهٔ تیرهٔ آبی) در بازطراحی نمای مشتری حفظ شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.21-ubuntu26.23';"), 'شمارهٔ نسخهٔ سرور 1.8.21-ubuntu26.23 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.22-ubuntu26.24';"), 'شمارهٔ نسخهٔ سرور 1.8.22-ubuntu26.24 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم «آبی زنده»') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #6ee0ff, #2f86e8 52%, #1a58b4)'), 'تم زندهٔ آبی روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ آبی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #7ad9ff;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها آبی/فیروزه‌ای‌اند');
@@ -1884,6 +1884,133 @@ await sendText(ADMIN, '/cancel');
 await kv.put('ui:btn_icons', JSON.stringify({}));
 await kv.put('ui:btn_colors', JSON.stringify('1'));
 globalThis.__resetBtnUI();
+
+
+// ================= مدیریت دکمه‌های کیبورد چت =================
+console.log('\n— مدیریت دکمه‌های کیبورد چت —');
+const prevMode = env.MINIAPP_ONLY_MODE;
+env.MINIAPP_ONLY_MODE = 'true';
+await kv.delete('ui:chat_buttons');
+globalThis.__resetChatButtons();
+function panelMsg(tgid) {
+  const f = TG.filter(x => String(x.params.chat_id) === String(tgid) && (x.method === 'sendMessage' || x.method === 'editMessageText'));
+  return f[f.length - 1];
+}
+function kbTexts(msg) {
+  const kb = msg && msg.params && msg.params.reply_markup && msg.params.reply_markup.keyboard;
+  return Array.isArray(kb) ? kb.flat().map(x => x.text) : [];
+}
+const DEFAULT_KB = ['🛍 خرید اشتراک', '🎧 پشتیبانی', '🎁 اشتراک رایگان', '📘 راهنما', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی'];
+
+await press(ADMIN, 's_kb');
+assert(panelMsg(ADMIN).params.text.includes('دکمه‌های چت') && lookupButtons(panelMsg(ADMIN)).filter(b => String(b.callback_data).startsWith('s_kb_it:')).length === 6, 'پنل «دکمه‌های چت» در تنظیمات ادمین باز می‌شود و شش دکمهٔ فعلی را نشان می‌دهد');
+await press(ADMIN, 's_kb_it:buy');
+assert(panelMsg(ADMIN).params.text.includes('خرید اشتراک') && lookupButtons(panelMsg(ADMIN)).some(b => b.callback_data === 's_kb_tog:buy') && lookupButtons(panelMsg(ADMIN)).some(b => b.callback_data === 's_kb_ren:buy'), 'هر دکمه صفحهٔ اختصاصی با روشن/خاموش و تغییر نام دارد');
+
+await press(ADMIN, 's_kb_ren:buy');
+await sendText(ADMIN, 'اشتراک بخرم');
+const renamedCfg = await kvJson('ui:chat_buttons');
+assert(renamedCfg && renamedCfg.labels && renamedCfg.labels.buy === 'اشتراک بخرم', 'تغییر نام دکمه در KV ذخیره می‌شود');
+await sendText(U12, '/start');
+assert(JSON.stringify(kbTexts(lastMsgTo(U12))) === JSON.stringify(['🛍 اشتراک بخرم', '🎧 پشتیبانی', '🎁 اشتراک رایگان', '📘 راهنما', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی']), 'نام تازه همان لحظه روی کیبورد مشتری می‌آید');
+await sendText(U12, 'خرید اشتراک');
+assert(lastMsgTo(U12).params.text === 'برای خرید اشتراک وارد اپ فروش تیزنت شوید.', 'نام پیش‌فرض قبلی هم بعد از تغییر نام هنوز مسیر درست را اجرا می‌کند');
+await sendText(U12, 'اشتراک بخرم');
+assert(lastMsgTo(U12).params.text === 'برای خرید اشتراک وارد اپ فروش تیزنت شوید.', 'نام سفارشی هم همان دکمه را اجرا می‌کند');
+
+await press(ADMIN, 's_kb_tog:support');
+await sendText(U12, '/start');
+assert(kbTexts(lastMsgTo(U12)).length === 5 && !kbTexts(lastMsgTo(U12)).includes('🎧 پشتیبانی'), 'خاموش‌کردن دکمه آن را از کیبورد برمی‌دارد');
+await sendText(U12, 'پشتیبانی');
+assert(lastMsgTo(U12).params.text.includes('یکی از دکمه‌های پایین'), 'دکمهٔ خاموش دیگر مسیری را اجرا نمی‌کند');
+
+await press(ADMIN, 's_kb_up:help');
+await sendText(U12, '/start');
+assert(JSON.stringify(kbTexts(lastMsgTo(U12))) === JSON.stringify(['🛍 اشتراک بخرم', '📘 راهنما', '🎁 اشتراک رایگان', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی']), 'جابه‌جایی دکمه ترتیب کیبورد را عوض می‌کند');
+
+await press(ADMIN, 's_kb_del:apps');
+await press(ADMIN, 's_kb_put:apps');
+const afterAdd = await kvJson('ui:chat_buttons');
+assert(afterAdd.order[afterAdd.order.length - 1] === 'apps', 'دکمهٔ حذف‌شده با «افزودن دکمه» به انتهای فهرست برمی‌گردد');
+
+await press(ADMIN, 's_kb_reset');
+const resetCfg = await kvJson('ui:chat_buttons');
+await sendText(U12, '/start');
+assert(JSON.stringify(kbTexts(lastMsgTo(U12))) === JSON.stringify(DEFAULT_KB) && resetCfg.order.length === 6 && !Object.keys(resetCfg.labels || {}).length, 'بازگردانی پیش‌فرض، نام و ترتیب و وضعیت شش دکمهٔ اصلی را برمی‌گرداند');
+
+// همان تنظیمات از مینی‌اپ
+const chatAdmin = await signedInitData(ADMIN);
+const lookWithChat = await miniApi('/api/miniapp/admin/settings', chatAdmin);
+assert(lookWithChat.json.buttons && lookWithChat.json.buttons.chat && lookWithChat.json.buttons.chat.items.length === 6 && lookWithChat.json.buttons.chat.catalog.length >= 6, 'تنظیمات مینی‌اپ فهرست دکمه‌های چت و کاتالوگ کامل را برمی‌گرداند');
+const appChatSave = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['buy', 'subs', 'wallet'], off: ['wallet'], labels: { subs: 'بسته‌های من' } } }) });
+assert(appChatSave.status === 200 && appChatSave.json.chat.items.length === 3 && appChatSave.json.chat.items.find(i => i.id === 'subs').custom === 'بسته‌های من', 'مدیر از مینی‌اپ ترتیب، نام و خاموش‌بودن دکمه‌ها را ذخیره می‌کند');
+await sendText(U12, '/start');
+assert(JSON.stringify(kbTexts(lastMsgTo(U12))) === JSON.stringify(['🛍 خرید اشتراک', '📦 بسته‌های من']), 'تغییر مینی‌اپ همان لحظه روی کیبورد چت اعمال می‌شود');
+const allOff = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['buy'], off: ['buy'] } }) });
+assert(allOff.status === 400 && allOff.json.error === 'all_buttons_off', 'خاموش‌کردن همهٔ دکمه‌ها از مینی‌اپ رد می‌شود');
+const tooMany = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['buy','support','free','help','account','agent','subs','wallet','orders','apps','ref'] } }) });
+assert(tooMany.status === 400 && tooMany.json.error === 'too_many_buttons', 'بیش از سقف دکمه پذیرفته نمی‌شود');
+const badBtn = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['nope'] } }) });
+assert(badBtn.status === 400 && badBtn.json.error === 'invalid_button', 'شناسهٔ ناشناختهٔ دکمه رد می‌شود');
+
+// همگام‌سازی قابلیت‌ها: هر دکمهٔ مینی‌اپ در چت هم همان داده را می‌دهد
+const fullOrder = ['subs', 'wallet', 'orders', 'apps', 'ref', 'account', 'buy', 'support', 'free', 'help'];
+const fullSave = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: fullOrder, off: [], labels: {} } }) });
+assert(fullSave.status === 200, 'ده دکمهٔ همگام‌شده در یک کیبورد جای می‌گیرند');
+await sendText(U12, 'اشتراک‌های من');
+assert(lastMsgTo(U12).params.text.includes('اشتراک‌های من'), 'دکمهٔ «اشتراک‌های من» در چت پاسخ می‌دهد');
+await sendText(U12, 'کیف پول و شارژ');
+const walletChat = lastMsgTo(U12).params.text;
+const u12 = await kvJson('u:' + U12);
+assert(walletChat.includes('کیف پول') && walletChat.includes(fmtTomanForTest(u12.balance || 0)), 'موجودی کیف پول در چت با همان عدد ذخیره‌شده یکی است');
+await sendText(U12, 'سفارش‌های من');
+assert(lastMsgTo(U12).params.text.includes('سفارش‌های من'), 'دکمهٔ «سفارش‌های من» در چت پاسخ می‌دهد');
+await sendText(U12, 'دانلود اپ‌ها');
+assert(lastMsgTo(U12).params.text.includes('hiddify'), 'دکمهٔ «دانلود اپ‌ها» همان فهرست اپ‌ها را می‌دهد');
+await sendText(U12, 'دعوت دوستان');
+assert(lastMsgTo(U12).params.text.includes('دعوت دوستان') && lastMsgTo(U12).params.text.includes('start=ref_'), 'دکمهٔ «دعوت دوستان» لینک اختصاصی را می‌دهد');
+await sendText(U12, 'اطلاعات حساب');
+assert(lastMsgTo(U12).params.text.includes('شناسهٔ تلگرام') && lastMsgTo(U12).params.text.includes(String(U12)), '«اطلاعات حساب» همان شناسهٔ کاربر را نشان می‌دهد');
+
+// مشتری عادی به تنظیمات دکمه‌ها دسترسی ندارد
+const plainChatSave = await miniApi('/api/miniapp/admin/buttons', await signedInitData(U12), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['buy'] } }) });
+assert([401, 403].includes(plainChatSave.status), 'کاربر عادی نمی‌تواند دکمه‌های چت را تغییر دهد');
+
+await kv.delete('ui:chat_buttons');
+globalThis.__resetChatButtons();
+env.MINIAPP_ONLY_MODE = prevMode;
+
+
+// ================= همگام‌سازی چت و مینی‌اپ (ادمین) =================
+console.log('\n— همگام‌سازی چت و مینی‌اپ —');
+const syncAdminInit = await signedInitData(ADMIN);
+const faDigits = (n) => String(n).replace(/[0-9]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
+const summarySync = await miniApi('/api/miniapp/admin/summary?days=30', syncAdminInit);
+const panelsSync = await miniApi('/api/miniapp/admin/panels', syncAdminInit);
+const plansSync = await miniApi('/api/miniapp/admin/plans', syncAdminInit);
+await press(ADMIN, 'a_stats');
+const statsText = String(panelMsg(ADMIN).params.text || '');
+const revenueSync = summarySync.json && summarySync.json.totals ? Number(summarySync.json.totals.revenue || 0) : -1;
+assert(summarySync.status === 200 && summarySync.json.ok && statsText.includes('کاربران') && revenueSync >= 0 && statsText.includes(fmtTomanForTest(revenueSync)), 'آمار چت و مینی‌اپ از یک منبع می‌خوانند و درآمد یکی است');
+const plansCount = Array.isArray(plansSync.json && plansSync.json.items) ? plansSync.json.items.length : 0;
+const panelsCount = Array.isArray(panelsSync.json && panelsSync.json.items) ? panelsSync.json.items.length : 0;
+assert(statsText.includes(faDigits(plansCount)) && statsText.includes(faDigits(panelsCount)), 'تعداد پلن و سرور در گزارش چت با مینی‌اپ یکی است');
+
+await kv.put('system:kv_backup_last_at', 0);
+await press(ADMIN, 'a_kvb');
+const backupMsg = String(panelMsg(ADMIN).params.text || '');
+assert(backupMsg.includes('بکاپ KV') && (backupMsg.includes('ارسال شد') || backupMsg.includes('در حال') || backupMsg.includes('تازه') || backupMsg.includes('انجام نشد')), 'بکاپ KV از داخل چت اجرا می‌شود و نتیجه را می‌گوید');
+
+const agentsApiSync = await miniApi('/api/miniapp/admin/agents', syncAdminInit);
+await press(ADMIN, 'a_agents');
+const agentsText = String(panelMsg(ADMIN).params.text || '');
+const agentsFirst = agentsApiSync.json && agentsApiSync.json.items && agentsApiSync.json.items[0];
+const agentsName = agentsFirst ? String(agentsFirst.first_name || agentsFirst.username || agentsFirst.tg_id) : '';
+assert(agentsApiSync.status === 200 && agentsApiSync.json.ok && agentsText.includes('نماینده‌ها') && (agentsFirst ? agentsText.includes(agentsName) : agentsText.includes('هنوز نماینده‌ای ثبت نشده')), 'فهرست نماینده‌ها در چت از همان دادهٔ مینی‌اپ ساخته می‌شود');
+
+await press(ADMIN, 'a_store');
+const storeBtns = lookupButtons(panelMsg(ADMIN));
+assert(storeBtns.some(b => b.web_app && String(b.web_app.url).includes('/miniapp')), 'پیش‌نمایش فروشگاه از چت، همان مینی‌اپ را باز می‌کند');
 
 console.log('— تمام —');
 if (process.exitCode) console.error('❌ بعضی تست‌ها شکست خوردند');

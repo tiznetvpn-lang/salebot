@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.21-ubuntu26.23';
+const VERSION = '1.8.22-ubuntu26.24';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -3052,14 +3052,35 @@ async function saveBtnIcons(env, icons) {
   return clean;
 }
 
-// نمای وضعیت برای پنل اپ: حالت رنگ + شناسهٔ هر جایگاه
+// فهرست دکمه‌های کیبورد چت برای پنل اپ (همان منبع KV که چت می‌خواند).
+async function chatButtonsView(env) {
+  const cache = await chatButtons(env, true);
+  return {
+    limit: CHAT_BTN_LIMIT,
+    order: cache.cfg.order.slice(),
+    off: cache.cfg.off.slice(),
+    labels: Object.assign({}, cache.cfg.labels),
+    catalog: CHAT_BTN_CATALOG.map((a) => ({ id: a.id, icon: a.icon, label: a.label })),
+    items: cache.cfg.order.map((id) => {
+      const defn = chatBtnDef(id);
+      return {
+        id: id, icon: defn.icon, label: defn.label,
+        custom: cache.cfg.labels[id] || '', text: chatBtnText(defn, cache.cfg),
+        on: !cache.cfg.off.includes(id)
+      };
+    })
+  };
+}
+
+// نمای وضعیت برای پنل اپ: حالت رنگ + شناسهٔ هر جایگاه + دکمه‌های چت
 async function btnLookView(env) {
   const ui = await btnUI(env);
   const icons = Object.assign({}, ui.icons || {});
   return {
     colors: ui.colors !== false,
     icons: icons,
-    slots: BTN_SLOT_LIST.map(([slot, label]) => ({ slot: slot, label: label, icon: icons[slot] || '' }))
+    slots: BTN_SLOT_LIST.map(([slot, label]) => ({ slot: slot, label: label, icon: icons[slot] || '' })),
+    chat: await chatButtonsView(env)
   };
 }
 
@@ -3130,6 +3151,82 @@ async function adminButtonLook(env, chatId, messageId) {
   await msg(env, chatId, text, KB(rows));
 }
 
+// پنل ادمین: 🎛 مدیریت دکمه‌های کیبورد چت (حذف / ویرایش نام / فعال‌وغیرفعال)
+function chatBtnStateText(cache) {
+  const enabled = new Set(cache.enabled.map((b) => b.id));
+  const lines = cache.cfg.order.map((id, i) => {
+    const defn = chatBtnDef(id);
+    const on = enabled.has(id);
+    const text = chatBtnText(defn, cache.cfg);
+    return faNum(i + 1) + '. ' + esc(text) + ' — ' + (on ? 'روشن ✅' : 'خاموش ⛔');
+  });
+  return '🎛 <b>دکمه‌های چت</b>\n\n' +
+    'روشن: <b>' + faNum(cache.enabled.length) + '</b> از <b>' + faNum(cache.cfg.order.length) + '</b>' +
+    '\n\n' + (lines.join('\n') || 'هیچ دکمه‌ای نیست.') +
+    '\n\n<i>روی هر دکمه بزنید تا روشن/خاموش شود، نامش عوض شود، جابه‌جا شود یا حذف گردد. تغییر همان لحظه روی کیبورد کاربران اعمال می‌شود.</i>';
+}
+
+async function adminChatButtons(env, chatId, messageId) {
+  const cache = await chatButtons(env, true);
+  const rows = [];
+  for (const id of cache.cfg.order) {
+    const defn = chatBtnDef(id);
+    const on = !cache.cfg.off.includes(id);
+    rows.push([BTN((on ? '✅ ' : '⛔ ') + chatBtnText(defn, cache.cfg), 's_kb_it:' + id)]);
+  }
+  const missing = CHAT_BTN_CATALOG.filter((a) => !cache.cfg.order.includes(a.id)).length;
+  if (missing) rows.push([BTN('➕ افزودن دکمه (' + faNum(missing) + ')', 's_kb_add')]);
+  rows.push([BTN('♻️ بازگردانی پیش‌فرض', 's_kb_reset')]);
+  rows.push([BTN('◀️ تنظیمات', 'a_set')]);
+  const text = chatBtnStateText(cache);
+  if (messageId) { try { await editMsg(env, chatId, messageId, text, KB(rows)); return; } catch (e) {} }
+  await msg(env, chatId, text, KB(rows));
+}
+
+async function adminChatButtonItem(env, chatId, messageId, id) {
+  const cache = await chatButtons(env, true);
+  const defn = chatBtnDef(id);
+  if (!defn || !cache.cfg.order.includes(id)) {
+    await msg(env, chatId, '❌ این دکمه در فهرست نیست.', KB([[BTN('◀️ دکمه‌ها', 's_kb')]]));
+    return;
+  }
+  const on = !cache.cfg.off.includes(id);
+  const pos = cache.cfg.order.indexOf(id) + 1;
+  const text = '🧩 <b>' + esc(chatBtnText(defn, cache.cfg)) + '</b>\n\n' +
+    'وضعیت: <b>' + (on ? 'روشن ✅' : 'خاموش ⛔') + '</b>' +
+    '\nجایگاه: <b>' + faNum(pos) + '</b> از <b>' + faNum(cache.cfg.order.length) + '</b>' +
+    '\nنام پیش‌فرض: <b>' + esc(defn.label) + '</b>' +
+    (cache.cfg.labels[id] ? '\nنام سفارشی: <b>' + esc(cache.cfg.labels[id]) + '</b>' : '') +
+    '\n\n<i>خاموش‌کردن دکمه را از کیبورد برمی‌دارد ولی تنظیماتش می‌ماند؛ حذف، آن را از فهرست بیرون می‌برد و با «افزودن دکمه» برمی‌گردد.</i>';
+  const rows = [
+    [BTN(on ? '⛔ خاموش‌کردن' : '✅ روشن‌کردن', 's_kb_tog:' + id)],
+    [BTN('✏️ تغییر نام', 's_kb_ren:' + id)]
+  ];
+  const nav = [];
+  if (pos > 1) nav.push(BTN('⬆️ بالاتر', 's_kb_up:' + id));
+  if (pos < cache.cfg.order.length) nav.push(BTN('⬇️ پایین‌تر', 's_kb_dn:' + id));
+  if (nav.length) rows.push(nav);
+  if (cache.cfg.labels[id]) rows.push([BTN('↩️ نام پیش‌فرض', 's_kb_lblreset:' + id)]);
+  rows.push([BTN('🗑 حذف از کیبورد', 's_kb_del:' + id)]);
+  rows.push([BTN('◀️ دکمه‌ها', 's_kb')]);
+  if (messageId) { try { await editMsg(env, chatId, messageId, text, KB(rows)); return; } catch (e) {} }
+  await msg(env, chatId, text, KB(rows));
+}
+
+async function adminChatButtonAdd(env, chatId, messageId) {
+  const cache = await chatButtons(env, true);
+  const free = CHAT_BTN_CATALOG.filter((a) => !cache.cfg.order.includes(a.id));
+  if (!free.length) {
+    await msg(env, chatId, 'همهٔ دکمه‌های موجود در کیبورد هستند.', KB([[BTN('◀️ دکمه‌ها', 's_kb')]]));
+    return;
+  }
+  const rows = free.map((a) => [BTN('➕ ' + a.icon + ' ' + a.label, 's_kb_put:' + a.id)]);
+  rows.push([BTN('◀️ دکمه‌ها', 's_kb')]);
+  const text = '➕ <b>افزودن دکمه</b>\n\nدکمه‌های آماده‌ای که الان در کیبورد نیستند:\n<i>حداکثر ' + faNum(CHAT_BTN_LIMIT) + ' دکمه در کیبورد جا می‌شود.</i>';
+  if (messageId) { try { await editMsg(env, chatId, messageId, text, KB(rows)); return; } catch (e) {} }
+  await msg(env, chatId, text, KB(rows));
+}
+
 /* ============================ تلگرام ============================ */
 
 async function tg(env, method, params) {
@@ -3168,12 +3265,115 @@ async function tg(env, method, params) {
 function KB(rows) { return { reply_markup: { inline_keyboard: rows } }; }
 function BTN(text, cb) { return { text: text, callback_data: cb }; }
 function WEBAPPBTN(text, url) { return { text: text, web_app: { url: url } }; }
-// هر دکمهٔ ربات ایموجی اختصاصی خودش را دارد؛ تلگرام در دکمه‌ها ایموجی متحرک نشان نمی‌دهد.
-const BOT_CUSTOMER_BUTTONS = ['🛍 خرید اشتراک', '🎧 پشتیبانی', '🎁 اشتراک رایگان', '📘 راهنما', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی'];
+// دکمه‌های کیبورد چت: هر آیتم یک قابلیت واقعی است و ادمین می‌تواند حذف/ویرایش/فعال‌سازی کند.
+// منبع واحد: همین فهرست؛ چت و مینی‌اپ هر دو از روی KV «ui:chat_buttons» می‌خوانند.
+const CHAT_BTN_CATALOG = [
+  { id: 'buy',     icon: '🛍', label: 'خرید اشتراک',    fallback: true },
+  { id: 'support', icon: '🎧', label: 'پشتیبانی',        fallback: true },
+  { id: 'free',    icon: '🎁', label: 'اشتراک رایگان',   fallback: true },
+  { id: 'help',    icon: '📘', label: 'راهنما',          fallback: true },
+  { id: 'account', icon: '🪪', label: 'اطلاعات حساب',    fallback: true },
+  { id: 'agent',   icon: '🤝', label: 'دریافت نمایندگی', fallback: true },
+  { id: 'subs',    icon: '📦', label: 'اشتراک‌های من',   fallback: false },
+  { id: 'wallet',  icon: '💰', label: 'کیف پول و شارژ',  fallback: false },
+  { id: 'orders',  icon: '🧾', label: 'سفارش‌های من',    fallback: false },
+  { id: 'apps',    icon: '📥', label: 'دانلود اپ‌ها',    fallback: false },
+  { id: 'ref',     icon: '🎉', label: 'دعوت دوستان',     fallback: false }
+];
+const CHAT_BTN_KV = 'ui:chat_buttons';
+const CHAT_BTN_LIMIT = 10;   // بیش از این، کیبورد روی موبایل شلوغ می‌شود
+const CHAT_BTN_TTL = 20000;  // کش کوتاه تا تغییر ادمین سریع دیده شود
+let CHAT_BTN_CACHE = { at: 0, cfg: null, enabled: [], rows: [], texts: new Set() };
+
+function chatBtnDef(id) { return CHAT_BTN_CATALOG.find((a) => a.id === id) || null; }
+function chatBtnCatalog() { return CHAT_BTN_CATALOG; }
+function defaultChatBtnOrder() { return CHAT_BTN_CATALOG.filter((a) => a.fallback).map((a) => a.id); }
+
 // متن دکمه را به برچسبِ خالص تبدیل می‌کند تا تطبیق پیام با ایموجی هم کار کند.
 function botButtonKey(text) {
   return String(text == null ? '' : text).replace(/^[^\p{L}\p{N}]+/u, '').trim();
 }
+
+function cleanChatBtnLabel(value) {
+  const t = String(value == null ? '' : value).replace(/[\r\n\t]+/g, ' ').replace(/[<>]/g, '').replace(/\s{2,}/g, ' ').trim();
+  return t.slice(0, 40);
+}
+
+function normalizeChatBtnCfg(raw) {
+  const known = new Set(CHAT_BTN_CATALOG.map((a) => a.id));
+  const stored = raw && typeof raw === 'object' && !Array.isArray(raw) && Number(raw.v) === 1;
+  let order = [];
+  if (stored && Array.isArray(raw.order)) {
+    for (const id of raw.order) if (known.has(String(id)) && !order.includes(String(id))) order.push(String(id));
+  } else {
+    order = defaultChatBtnOrder();
+  }
+  if (!order.length) order = defaultChatBtnOrder();
+  const off = [];
+  if (stored && Array.isArray(raw.off)) {
+    for (const id of raw.off) if (order.includes(String(id)) && !off.includes(String(id))) off.push(String(id));
+  }
+  const labels = {};
+  if (stored && raw.labels && typeof raw.labels === 'object' && !Array.isArray(raw.labels)) {
+    for (const [id, value] of Object.entries(raw.labels)) {
+      const clean = cleanChatBtnLabel(value);
+      if (known.has(id) && clean) labels[id] = clean;
+    }
+  }
+  return { v: 1, order: order.slice(0, CHAT_BTN_LIMIT), off: off.filter((id) => order.includes(id)), labels: labels };
+}
+
+function chatBtnText(defn, cfg) {
+  const custom = cfg && cfg.labels ? cfg.labels[defn.id] : '';
+  if (!custom) return defn.icon + ' ' + defn.label;
+  // اگر ادمین برچسب را خودش با ایموجی شروع کرده، همان بماند؛ وگرنه آیکن پیش‌فرض اضافه می‌شود.
+  return /^[^\p{L}\p{N}]/u.test(custom) ? custom : defn.icon + ' ' + custom;
+}
+
+function chatBtnKeyboardRows(list) {
+  const rows = [];
+  const items = list && list.length ? list : defaultChatBtnOrder().map((id) => { const d = chatBtnDef(id); return { text: d.icon + ' ' + d.label }; });
+  for (let i = 0; i < items.length; i += 2) rows.push(items.slice(i, i + 2).map((b) => ({ text: b.text })));
+  return rows;
+}
+
+async function chatButtons(env, force) {
+  if (!force && CHAT_BTN_CACHE.at && Date.now() - CHAT_BTN_CACHE.at < CHAT_BTN_TTL) return CHAT_BTN_CACHE;
+  let raw = null;
+  try { raw = await kvGet(env, CHAT_BTN_KV, null); } catch (e) {}
+  const cfg = normalizeChatBtnCfg(raw);
+  const enabled = cfg.order.filter((id) => !cfg.off.includes(id)).map((id) => {
+    const defn = chatBtnDef(id);
+    return { id: id, icon: defn.icon, label: defn.label, text: chatBtnText(defn, cfg) };
+  });
+  const rows = chatBtnKeyboardRows(enabled);
+  CHAT_BTN_CACHE = { at: Date.now(), cfg: cfg, enabled: enabled, rows: rows, texts: new Set(enabled.map((b) => b.text)) };
+  return CHAT_BTN_CACHE;
+}
+
+function resetChatButtonCache() { CHAT_BTN_CACHE = { at: 0, cfg: null, enabled: [], rows: [], texts: new Set() }; }
+
+async function saveChatButtons(env, patch) {
+  const current = normalizeChatBtnCfg(await kvGet(env, CHAT_BTN_KV, null));
+  const next = normalizeChatBtnCfg(Object.assign({ v: 1 }, current, patch || {}));
+  await kvPut(env, CHAT_BTN_KV, next);
+  resetChatButtonCache();
+  return chatButtons(env, true);
+}
+
+// پیام متنی کاربر → شناسهٔ دکمه؛ هم برچسب فعلی و هم برچسب پیش‌فرض قبول می‌شود.
+async function resolveChatButton(env, text) {
+  const key = botButtonKey(text);
+  if (!key) return '';
+  const cache = await chatButtons(env);
+  for (const btn of cache.enabled) if (botButtonKey(btn.text) === key) return btn.id;
+  for (const btn of cache.enabled) {
+    const defn = chatBtnDef(btn.id);
+    if (defn && botButtonKey(defn.label) === key) return btn.id;
+  }
+  return '';
+}
+
 function isAllowedMiniAppOnlyMarkup(markup) {
   if (!markup || typeof markup !== 'object') return false;
   // دو مارک‌آپ مجاز دیگر: پیام قفل کانال و دکمهٔ درخواست شماره.
@@ -3187,22 +3387,24 @@ function isAllowedMiniAppOnlyMarkup(markup) {
   }
   if (Array.isArray(markup.keyboard)) {
     const buttons = markup.keyboard.flat();
-    if (buttons.length !== BOT_CUSTOMER_BUTTONS.length) return false;
-    const texts = buttons.map((button) => {
-      if (!button || typeof button !== 'object' || Object.keys(button).some((key) => key !== 'text')) return '';
-      return String(button.text || '');
-    });
-    return BOT_CUSTOMER_BUTTONS.every((label) => texts.filter((text) => text === label).length === 1);
+    const allowed = CHAT_BTN_CACHE.texts && CHAT_BTN_CACHE.texts.size
+      ? CHAT_BTN_CACHE.texts
+      : new Set(defaultChatBtnOrder().map((id) => { const d = chatBtnDef(id); return d.icon + ' ' + d.label; }));
+    if (!buttons.length || buttons.length > allowed.size) return false;
+    const seen = new Set();
+    for (const button of buttons) {
+      if (!button || typeof button !== 'object' || Object.keys(button).some((key) => key !== 'text')) return false;
+      const text = String(button.text || '');
+      if (!allowed.has(text) || seen.has(text)) return false;
+      seen.add(text);
+    }
+    return true;
   }
   return false;
 }
 function mainBotReplyMarkup() {
   return { reply_markup: {
-    keyboard: [
-      [{ text: BOT_CUSTOMER_BUTTONS[0] }, { text: BOT_CUSTOMER_BUTTONS[1] }],
-      [{ text: BOT_CUSTOMER_BUTTONS[2] }, { text: BOT_CUSTOMER_BUTTONS[3] }],
-      [{ text: BOT_CUSTOMER_BUTTONS[4] }, { text: BOT_CUSTOMER_BUTTONS[5] }]
-    ],
+    keyboard: chatBtnKeyboardRows(CHAT_BTN_CACHE.enabled && CHAT_BTN_CACHE.enabled.length ? CHAT_BTN_CACHE.enabled : []),
     resize_keyboard: true,
     is_persistent: true,
     input_field_placeholder: 'یک گزینه را انتخاب کنید'
@@ -4012,29 +4214,150 @@ function miniOnlyFreeError(error) {
   return messages[String(error || '')] || 'درخواست کامل نشد؛ لطفاً با پشتیبانی تماس بگیرید.';
 }
 
-async function handleMiniAppOnlyButton(env, u, chatId, text, origin) {
-  const cfg = await getCfg(env);
-  const btnKey = botButtonKey(text);
-  if (btnKey === 'خرید اشتراک') {
+function faDate(ts) {
+  const n = Number(ts || 0);
+  if (!n) return '—';
+  try { return new Date(n).toLocaleDateString('fa-IR', { timeZone: 'Asia/Tehran' }); } catch (e) { return '—'; }
+}
+
+async function chatUserSubs(env, u) {
+  const list = [];
+  for (const sid of (u.subs || [])) {
+    const sub = await getSub(env, sid);
+    if (sub) list.push(sub);
+  }
+  return list;
+}
+
+// همان داده‌ای که مینی‌اپ نشان می‌دهد، به‌صورت متن در چت؛ منبع هر دو یکی است.
+async function chatSubsText(env, u) {
+  const subs = await chatUserSubs(env, u);
+  if (!subs.length) return '📦 <b>اشتراک‌های من</b>\n\nهنوز اشتراکی ندارید. از دکمهٔ «🛍 خرید اشتراک» شروع کنید.';
+  const panels = await getPanels(env);
+  const plans = await getPlans(env);
+  const lines = ['📦 <b>اشتراک‌های من</b>', ''];
+  for (const sub of subs.slice(0, 8)) {
+    const panel = panels[sub.panel_id] || {};
+    const plan = plans[sub.plan_id] || {};
+    let live = null;
+    try {
+      if (panel.api_url) live = await Promise.race([hGetLive(panel, sub.uuid), new Promise((r) => setTimeout(() => r(null), 2500))]);
+    } catch (e) { live = null; }
+    const gbLimit = live && live.usage_limit_GB != null ? Number(live.usage_limit_GB) : Number(plan.gb || 0);
+    const gbUsed = live && live.current_usage_GB != null ? Number(live.current_usage_GB) : null;
+    const gbText = gbLimit === 0 ? 'نامحدود' : (gbUsed == null ? fmtGB(gbLimit) : fmtGB(Math.max(0, gbLimit - gbUsed)) + ' باقی‌مانده از ' + fmtGB(gbLimit));
+    const expire = live && live.expiry_time ? faDate(Date.parse(live.expiry_time) || 0) : '—';
+    lines.push('🖥 <b>' + esc(panel.name || '—') + '</b>' + (plan.title ? ' · ' + esc(plan.title) : ''));
+    lines.push('📊 ' + gbText + ' · ⏳ تا ' + expire);
+    const link = panel.api_url ? userLink(panel, sub.uuid) : '';
+    if (link) lines.push('🔗 <code>' + esc(link) + '</code>');
+    lines.push('──────────────');
+  }
+  return lines.join('\n').replace(/\n──────────────$/, '');
+}
+
+async function chatRecentOrders(env, u, limit) {
+  const max = Math.max(1, Math.min(20, Number(limit) || 5));
+  const idx = await listIndexedValues(env, 'user_order_idx:' + String(u.tg_id) + ':', max * 2);
+  const rows = [];
+  for (const item of idx.items) {
+    const id = String(item && item.id || '');
+    if (!id) continue;
+    // خریدهای کیف‌پولی در ایندکس با source=ledger ذخیره می‌شوند و رکورد سفارش ندارند.
+    const order = item.source === 'ledger'
+      ? await kvGet(env, 'ledger:sale:' + id, null)
+      : await getOrder(env, id);
+    if (!order || String(order.tg_id) !== String(u.tg_id)) continue;
+    rows.push({
+      id: String(order.order_id || order.id || id), type: String(order.type || 'buy'), amount: Number(order.amount || 0),
+      status: String(item.source === 'ledger' ? 'approved' : (order.status || 'pending')),
+      at: Number(order.occurred_at || order.created_at || item.created_at || 0)
+    });
+  }
+  rows.sort((a, b) => b.at - a.at);
+  return rows.slice(0, max);
+}
+
+async function chatOrdersText(env, u) {
+  const rows = await chatRecentOrders(env, u, 8);
+  if (!rows.length) return '🧾 <b>سفارش‌های من</b>\n\nهنوز سفارشی ثبت نکرده‌اید.';
+  const lines = ['🧾 <b>سفارش‌های من</b>', ''];
+  for (const row of rows) {
+    lines.push('#' + esc(row.id) + ' · ' + orderTypeFa(row.type) + ' · ' + fmtToman(row.amount));
+    lines.push('   ' + miniAppStatusLabel(row.status) + ' · ' + faDate(row.at));
+  }
+  return lines.join('\n');
+}
+
+async function chatWalletText(env, u) {
+  const rows = await chatRecentOrders(env, u, 3);
+  const lines = [
+    '💰 <b>کیف پول</b>',
+    '',
+    'موجودی: <b>' + fmtToman(u.balance) + '</b>',
+    'مجموع خرید: <b>' + fmtToman(u.total_spent || 0) + '</b>'
+  ];
+  if (rows.length) {
+    lines.push('', '<b>آخرین تراکنش‌ها</b>');
+    for (const row of rows) lines.push('• ' + orderTypeFa(row.type) + ' · ' + fmtToman(row.amount) + ' · ' + miniAppStatusLabel(row.status));
+  }
+  lines.push('', 'شارژ و خرید از اپ انجام می‌شود: کیف پول ← «شارژ کیف پول».');
+  return lines.join('\n');
+}
+
+async function chatRefText(env, u, cfg) {
+  const current = await ensureReferralCode(env, u);
+  const bun = await ensureBotUsername(env, cfg);
+  const link = bun && current.ref_code ? 'https://t.me/' + String(bun).replace(/^@/, '') + '?start=ref_' + current.ref_code : '—';
+  const state = referralInviteState(current);
+  return '🎉 <b>دعوت دوستان</b>' + '\n\n' +
+    '🔗 لینک اختصاصی شما:\n<code>' + esc(link) + '</code>' + '\n\n' +
+    '👥 اعضای جذب‌شده: <b>' + faNum(state.joined) + '</b>' +
+    '\n⭐ امتیاز فعلی: <b>' + faNum(current.referral_points_balance || 0) + '</b>' +
+    '\n💰 پورسانت خرید زیرمجموعه‌ها: <b>' + faNum(cfg.commission) + '٪</b>' +
+    '\n💵 مجموع درآمد: <b>' + fmtToman(u.earned || 0) + '</b>' +
+    '\n\n🎁 هر ۳ عضو جدید = یک اشتراک ۳ گیگ / ۳ روز؛ دریافت از اپ.';
+}
+
+async function chatAgentText(env, u, cfg) {
+  const current = await ensureReferralCode(env, u);
+  const bun = await ensureBotUsername(env, cfg);
+  const link = bun && current.ref_code ? 'https://t.me/' + String(bun).replace(/^@/, '') + '?start=ref_' + current.ref_code : '—';
+  const state = referralInviteState(current);
+  return '🤝 <b>دریافت نمایندگی</b>' + '\n\n' +
+    'لینک اختصاصی شما:\n<code>' + esc(link) + '</code>' + '\n\n' +
+    '👥 اعضای جذب‌شده: <b>' + faNum(state.joined) + '</b>' +
+    '\n⭐ امتیاز فعلی: <b>' + faNum(current.referral_points_balance || 0) + '</b>' +
+    '\n⭐ هر عضو جدید: <b>۵ امتیاز</b> · خرید موفق زیرمجموعه: <b>۱۰ امتیاز</b>' +
+    '\n🎁 پاداش تکرارشونده: هر ۳ عضو جدید، یک اشتراک ۳ گیگ / ۳ روز' +
+    '\n💳 تبدیل دستی در اپ: هر ۱۰۰ امتیاز = ۲۰۰٬۰۰۰ تومان؛ امتیاز باقی‌مانده حفظ می‌شود.' +
+    '\n💰 پورسانت خریدهای واجد شرایط: <b>' + faNum(cfg.commission) + '٪</b>';
+}
+
+// اجرای یک دکمهٔ کیبورد چت بر اساس شناسه؛ همهٔ مسیرها یک منبع داده دارند.
+async function runChatButton(env, u, chatId, id, origin, cfgIn) {
+  const cfg = cfgIn || await getCfg(env);
+  const reply = mainBotReplyMarkup();
+  if (id === 'buy') {
     await sendMiniAppEntry(env, chatId, origin, 'برای خرید اشتراک وارد اپ فروش تیزنت شوید.');
     return true;
   }
-  if (btnKey === 'پشتیبانی') {
+  if (id === 'support') {
     const support = String(cfg.support || '').trim().replace(/^@/, '');
     const body = support
       ? 'برای پشتیبانی به <a href="https://t.me/' + esc(support) + '">@' + esc(support) + '</a> پیام دهید.'
       : 'شناسهٔ پشتیبانی هنوز در تنظیمات فروشگاه ثبت نشده است.';
-    await msg(env, chatId, body, mainBotReplyMarkup());
+    await msg(env, chatId, body, reply);
     return true;
   }
-  if (btnKey === 'اشتراک رایگان') {
+  if (id === 'free') {
     const referralState = referralInviteState(await getUser(env, u.tg_id) || u);
     const referralClaim = referralState.available > 0;
     const result = referralClaim
       ? await issueReferralFreeSubscription(env, u, 'bot')
       : await issueFreeSubscription(env, u, 'bot');
     if (!result.ok) {
-      await msg(env, chatId, miniOnlyFreeError(result.error), mainBotReplyMarkup());
+      await msg(env, chatId, miniOnlyFreeError(result.error), reply);
       return true;
     }
     const title = referralClaim ? '🎁 <b>هدیهٔ دعوت شما فعال شد.</b>' : '🎁 <b>اشتراک رایگان شما فعال شد.</b>';
@@ -4042,14 +4365,18 @@ async function handleMiniAppOnlyButton(env, u, chatId, text, origin) {
       '\n📊 حجم: <b>' + (Number(result.gb) === 0 ? 'نامحدود' : fmtGB(result.gb)) + '</b>' +
       '\n⏳ مدت: <b>' + faNum(result.days) + ' روز</b>' +
       '\n\n🔗 لینک اشتراک:\n<code>' + esc(result.link) + '</code>';
-    await deliverSubscriptionWithQr(env, chatId, caption, result.link, mainBotReplyMarkup());
+    await deliverSubscriptionWithQr(env, chatId, caption, result.link, reply);
     return true;
   }
-  if (btnKey === 'راهنما') {
-    await msg(env, chatId, '📖 <b>راهنما</b>\n\nبرای خرید، «خرید اشتراک» را بزنید و در اپ تیزنت پلن و روش پرداخت را انتخاب کنید.\nبرای دریافت دسترسی رایگان، «اشتراک رایگان» را انتخاب کنید؛ صدور آن به فعال‌بودن گزینه در تنظیمات مدیریت بستگی دارد.\nبرای مشاهدهٔ وضعیت و سابقهٔ حساب، «اطلاعات حساب» یا اپ تیزنت را باز کنید.', mainBotReplyMarkup());
+  if (id === 'help') {
+    await msg(env, chatId, helpText(), reply);
     return true;
   }
-  if (btnKey === 'اطلاعات حساب') {
+  if (id === 'apps') {
+    await msg(env, chatId, appsText(), reply);
+    return true;
+  }
+  if (id === 'account') {
     const joined = Number(u.joined_at) ? new Date(Number(u.joined_at)).toLocaleDateString('fa-IR', { timeZone: 'Asia/Tehran' }) : '—';
     const message = '👤 <b>اطلاعات حساب</b>\n\n' +
       'نام: <b>' + esc(u.first_name || '—') + '</b>' +
@@ -4060,26 +4387,21 @@ async function handleMiniAppOnlyButton(env, u, chatId, text, origin) {
       '\nمجموع خرید ثبت‌شده: <b>' + fmtToman(u.total_spent || 0) + '</b>' +
       '\nاشتراک‌های ثبت‌شده: <b>' + faNum(Array.isArray(u.subs) ? u.subs.length : 0) + '</b>' +
       '\nدعوت‌ها: <b>' + faNum(u.invited || 0) + '</b>';
-    await msg(env, chatId, message, mainBotReplyMarkup());
+    await msg(env, chatId, message, reply);
     return true;
   }
-  if (btnKey === 'دریافت نمایندگی') {
-    const current = await ensureReferralCode(env, await getUser(env, u.tg_id) || u);
-    const botName = await ensureBotUsername(env, cfg);
-    const link = botName ? 'https://t.me/' + String(botName).replace(/^@/, '') + '?start=ref_' + current.ref_code : '—';
-    const inviteState = referralInviteState(current);
-    const message = '🤝 <b>اطلاعات دعوت دوستان</b>\n\n' +
-      'لینک اختصاصی شما:\n<code>' + esc(link) + '</code>' +
-      '\n\n👥 اعضای جذب‌شده: <b>' + faNum(inviteState.joined) + '</b>' +
-      '\n⭐ امتیاز فعلی: <b>' + faNum(current.referral_points_balance || 0) + '</b>' +
-      '\n⭐ هر عضو جدید: <b>۵ امتیاز</b> · خرید موفق زیرمجموعه: <b>۱۰ امتیاز</b>' +
-      '\n🎁 پاداش تکرارشونده: هر ۳ عضو جدید، یک اشتراک ۳ گیگ / ۳ روز' +
-      '\n💳 تبدیل دستی در اپ: هر ۱۰۰ امتیاز = ۲۰۰٬۰۰۰ تومان؛ امتیاز باقی‌مانده حفظ می‌شود.' +
-      '\n💰 پورسانت خریدهای واجد شرایط: <b>' + faNum(cfg.commission) + '٪</b>';
-    await msg(env, chatId, message, mainBotReplyMarkup());
-    return true;
-  }
+  if (id === 'subs') { await msg(env, chatId, await chatSubsText(env, u), reply); return true; }
+  if (id === 'wallet') { await msg(env, chatId, await chatWalletText(env, u), reply); return true; }
+  if (id === 'orders') { await msg(env, chatId, await chatOrdersText(env, u), reply); return true; }
+  if (id === 'ref') { await msg(env, chatId, await chatRefText(env, u, cfg), reply); return true; }
+  if (id === 'agent') { await msg(env, chatId, await chatAgentText(env, u, cfg), reply); return true; }
   return false;
+}
+
+async function handleMiniAppOnlyButton(env, u, chatId, text, origin) {
+  const id = await resolveChatButton(env, text);
+  if (!id) return false;
+  return runChatButton(env, u, chatId, id, origin);
 }
 
 /* ============================ خرید ============================ */
@@ -4894,6 +5216,7 @@ async function adminHome(env, chatId, messageId) {
     [BTN('📊 آمار', 'a_stats'), BTN('🧾 سفارش‌ها (' + pend.length + ')', 'a_orders')],
     [BTN('🖥 پنل‌ها', 'a_panels'), BTN('📦 پلن‌ها', 'a_plans')],
     [BTN('💳 کارت', 'a_cards'), BTN('👥 کاربران', 'a_users')],
+    [BTN('🤝 نماینده‌ها', 'a_agents'), BTN('🛍 پیش‌نمایش فروشگاه', 'a_store')],
     [BTN('💸 برداشت‌ها (' + wpend.length + ')', 'a_wd'), BTN('📢 پیام همگانی', 'a_bc')],
     [BTN('⚙️ تنظیمات', 'a_set')]
   ];
@@ -4920,6 +5243,42 @@ async function adminStats(env, chatId, messageId) {
   const kb = KB([[BTN('◀️ پنل مدیریت', 'admin')]]);
   if (messageId) await editMsg(env, chatId, messageId, t, kb);
   else await msg(env, chatId, t, kb);
+}
+
+async function adminAgentsView(env, chatId, messageId) {
+  const list = await miniAppAdminAgents(env, '');
+  const items = (list.items || []).slice(0, 20);
+  const lines = items.length
+    ? items.map((a, i) => faNum(i + 1) + '. ' + esc(a.first_name || a.username || a.tg_id) + ' — 💰 ' + fmtToman(a.balance) + ' · 🧩 ' + faNum(a.quota_remaining) + ' سهمیه · ✅ ' + faNum(a.total_created) + ' ساخته')
+    : ['هنوز نماینده‌ای ثبت نشده است.'];
+  const text = '🤝 <b>نماینده‌ها</b>\n\n' +
+    'تعداد: <b>' + faNum(list.total || 0) + '</b>' + (list.partial ? ' (فهرست ناقص)' : '') + '\n\n' + lines.join('\n') +
+    '\n\n<i>ساخت و ویرایش نماینده، قیمت هر پلن و کیف پول نماینده در مینی‌اپ → «نماینده‌ها» انجام می‌شود؛ همین داده‌ها اینجاست.</i>';
+  const rows = [[BTN('◀️ پنل مدیریت', 'admin')]];
+  if (messageId) { try { await editMsg(env, chatId, messageId, text, KB(rows)); return; } catch (e) {} }
+  await msg(env, chatId, text, KB(rows));
+}
+
+async function adminBackupNow(env, chatId, messageId) {
+  let result = null;
+  let error = '';
+  try { result = await sendKvBackup(env, Date.now()); }
+  catch (e) { error = String(e.message || e); }
+  let text;
+  if (error) text = '❌ بکاپ انجام نشد: <code>' + esc(error) + '</code>';
+  else if (result && result.skipped === 'already_sent') text = '⏳ بکاپ تازه ارسال شده است؛ برای جلوگیری از ارسال تکراری کمی بعد دوباره تلاش کنید.';
+  else if (result && result.skipped) text = '⏳ بکاپ در حال اجراست؛ چند لحظه بعد دوباره تلاش کنید.';
+  else if (result) text = '✅ بکاپ KV ساخته و برای ادمین (<b>' + faNum(result.delivered) + '</b> نفر) ارسال شد.\n📦 ' + faNum(result.entries) + ' رکورد · <code>' + esc(result.filename) + '</code>';
+  else text = '❌ بکاپ انجام نشد.';
+  const rows = [[BTN('◀️ تنظیمات', 'a_set')]];
+  if (messageId) { try { await editMsg(env, chatId, messageId, text, KB(rows)); return; } catch (e) {} }
+  await msg(env, chatId, text, KB(rows));
+}
+
+async function adminStorePreview(env, chatId, origin) {
+  const url = miniAppUrl(env, origin);
+  if (!url) { await msg(env, chatId, '❌ آدرس مینی‌اپ تنظیم نشده است.', KB([[BTN('◀️ پنل مدیریت', 'admin')]])); return; }
+  await msg(env, chatId, '🛍 <b>پیش‌نمایش فروشگاه</b>\n\nبا دکمهٔ زیر همان مینی‌اپی را که مشتری می‌بیند باز کنید.', KB([[WEBAPPBTN('🛍 بازکردن فروشگاه', url)], [BTN('◀️ پنل مدیریت', 'admin')]]));
 }
 
 async function adminOrders(env, chatId, messageId) {
@@ -5216,7 +5575,8 @@ async function adminSettings(env, chatId, messageId) {
     [BTN('📲 اتصال اپ شتاب', 'a_shapp'), BTN('🧪 آزمون پرداخت خودکار', 'a_shtest')],
     [BTN('🔒 قفل کانال و شماره', 's_gate')],
     [BTN('🎨 دکمه‌ها و آیکن‌ها', 's_ui')],
-    [BTN('📜 رویدادهای بانکی', 'a_shlog')],
+    [BTN('🎛 دکمه‌های کیبورد چت', 's_kb')],
+    [BTN('💾 بکاپ KV همین حالا', 'a_kvb'), BTN('📜 رویدادهای بانکی', 'a_shlog')],
     [BTN('◀️ پنل مدیریت', 'admin')]
   ];
   if (messageId) await editMsg(env, chatId, messageId, t, KB(rows));
@@ -5816,6 +6176,9 @@ async function onCallback(env, q, origin) {
     }
     return;
   }
+  if (data === 'a_agents') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminAgentsView(env, chatId, messageId); return; }
+  if (data === 'a_kvb') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminBackupNow(env, chatId, messageId); return; }
+  if (data === 'a_store') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminStorePreview(env, chatId, origin); return; }
   if (data === 'a_panels') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminPanels(env, chatId, messageId); return; }
   if (data.startsWith('a_p:')) { if (!await needAdmin()) return; await ansCb(env, q.id); await adminPanelDetail(env, chatId, messageId, data.slice(4)); return; }
   if (data === 'a_pa_add') {
@@ -6037,6 +6400,91 @@ async function onCallback(env, q, origin) {
     return;
   }
   if (data === 'a_set') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminSettings(env, chatId, messageId); return; }
+  if (data === 's_kb') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminChatButtons(env, chatId, messageId); return; }
+  if (data.startsWith('s_kb_it:')) { if (!await needAdmin()) return; await ansCb(env, q.id); await adminChatButtonItem(env, chatId, messageId, data.split(':')[1] || ''); return; }
+  if (data === 's_kb_add') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminChatButtonAdd(env, chatId, messageId); return; }
+  if (data.startsWith('s_kb_tog:')) {
+    if (!await needAdmin()) return;
+    const id = data.split(':')[1] || '';
+    const cache = await chatButtons(env, true);
+    if (!cache.cfg.order.includes(id)) { await ansCb(env, q.id, 'دکمه پیدا نشد.'); return; }
+    const off = cache.cfg.off.includes(id) ? cache.cfg.off.filter((x) => x !== id) : cache.cfg.off.concat([id]);
+    if (!off.length && cache.cfg.order.length === off.length) { await ansCb(env, q.id, 'حداقل یک دکمه باید روشن بماند.'); return; }
+    await saveChatButtons(env, { off: off });
+    await ansCb(env, q.id, cache.cfg.off.includes(id) ? 'روشن شد.' : 'خاموش شد.');
+    await adminChatButtonItem(env, chatId, messageId, id);
+    return;
+  }
+  if (data.startsWith('s_kb_ren:')) {
+    if (!await needAdmin()) return;
+    const id = data.split(':')[1] || '';
+    if (!chatBtnDef(id)) { await ansCb(env, q.id); return; }
+    await setState(env, from.id, 'chat_btn_label', { id: id });
+    await ansCb(env, q.id);
+    await msg(env, chatId, '✏️ <b>نام تازهٔ دکمه</b>\n\nمتن دلخواه را بفرستید (۲ تا ۴۰ نویسه).\nاگر با ایموجی شروع کنید، همان ایموجی می‌ماند؛ وگرنه ایموجی پیش‌فرض اضافه می‌شود.', KB([[BTN('❌ انصراف', 's_kb_it:' + id)]]));
+    return;
+  }
+  if (data.startsWith('s_kb_lblreset:')) {
+    if (!await needAdmin()) return;
+    const id = data.split(':')[1] || '';
+    const cache = await chatButtons(env, true);
+    const labels = Object.assign({}, cache.cfg.labels);
+    delete labels[id];
+    await saveChatButtons(env, { labels: labels });
+    await ansCb(env, q.id, 'نام پیش‌فرض برگشت.');
+    await adminChatButtonItem(env, chatId, messageId, id);
+    return;
+  }
+  if (data.startsWith('s_kb_del:')) {
+    if (!await needAdmin()) return;
+    const id = data.split(':')[1] || '';
+    const cache = await chatButtons(env, true);
+    const order = cache.cfg.order.filter((x) => x !== id);
+    if (!order.length) { await ansCb(env, q.id, 'آخرین دکمه را نمی‌شود حذف کرد.'); return; }
+    const labels = Object.assign({}, cache.cfg.labels);
+    delete labels[id];
+    await saveChatButtons(env, { order: order, off: cache.cfg.off.filter((x) => x !== id), labels: labels });
+    await ansCb(env, q.id, 'حذف شد.');
+    await adminChatButtons(env, chatId, messageId);
+    return;
+  }
+  if (data.startsWith('s_kb_up:') || data.startsWith('s_kb_dn:')) {
+    if (!await needAdmin()) return;
+    const dir = data.startsWith('s_kb_up:') ? -1 : 1;
+    const id = data.split(':')[1] || '';
+    const cache = await chatButtons(env, true);
+    const order = cache.cfg.order.slice();
+    const at = order.indexOf(id);
+    const to = at + dir;
+    if (at < 0 || to < 0 || to >= order.length) { await ansCb(env, q.id); return; }
+    order[at] = order[to];
+    order[to] = id;
+    await saveChatButtons(env, { order: order });
+    await ansCb(env, q.id, dir < 0 ? 'بالاتر رفت.' : 'پایین‌تر رفت.');
+    await adminChatButtonItem(env, chatId, messageId, id);
+    return;
+  }
+  if (data.startsWith('s_kb_put:')) {
+    if (!await needAdmin()) return;
+    const id = data.split(':')[1] || '';
+    if (!chatBtnDef(id)) { await ansCb(env, q.id); return; }
+    const cache = await chatButtons(env, true);
+    if (cache.cfg.order.includes(id)) { await ansCb(env, q.id, 'از قبل هست.'); return; }
+    if (cache.cfg.order.length >= CHAT_BTN_LIMIT) { await ansCb(env, q.id, 'کیبورد پر است.'); return; }
+    await saveChatButtons(env, { order: cache.cfg.order.concat([id]), off: cache.cfg.off.filter((x) => x !== id) });
+    await ansCb(env, q.id, 'اضافه شد.');
+    await adminChatButtons(env, chatId, messageId);
+    return;
+  }
+  if (data === 's_kb_reset') {
+    if (!await needAdmin()) return;
+    await kvPut(env, CHAT_BTN_KV, { v: 1, order: defaultChatBtnOrder(), off: [], labels: {} });
+    resetChatButtonCache();
+    await chatButtons(env, true);
+    await ansCb(env, q.id, 'پیش‌فرض برگشت.');
+    await adminChatButtons(env, chatId, messageId);
+    return;
+  }
   if (data === 's_gate') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminGateSettings(env, chatId, messageId); return; }
   if (data === 's_ui') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminButtonLook(env, chatId, messageId); return; }
   if (data === 's_ui_colors') {
@@ -6673,6 +7121,18 @@ async function onStateText(env, u, chatId, text) {
     await msg(env, chatId, '✅ پورسانت ' + faNum(n) + '٪ شد.', KB([[BTN('◀️ تنظیمات', 'a_set')]]));
     return true;
   }
+  if (step === 'chat_btn_label' && adm) {
+    const id = String(d.id || '');
+    const label = cleanChatBtnLabel(text);
+    if (!chatBtnDef(id)) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ دکمه پیدا نشد.', mainBotReplyMarkup()); return true; }
+    if (label.length < 2) { await msg(env, chatId, '❌ نام باید حداقل ۲ نویسه باشد. دوباره بفرستید:'); return true; }
+    const cache = await chatButtons(env, true);
+    const labels = Object.assign({}, cache.cfg.labels, { [id]: label });
+    await saveChatButtons(env, { labels: labels });
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, '✅ نام دکمه به «' + esc(chatBtnText(chatBtnDef(id), { labels: labels })) + '» تغییر کرد.', KB([[BTN('◀️ دکمه', 's_kb_it:' + id)]]));
+    return true;
+  }
   if (step === 'ui_icon' && adm) {
     const slot = String(d.slot || '');
     if (!BTN_SLOT_LIST.some((x) => x[0] === slot)) {
@@ -6820,6 +7280,8 @@ async function onMessage(env, m, origin) {
   }
 
   await ensureMiniAppMenuButton(env, u, chatId, origin);
+  // کیبورد دکمه‌ها یک‌بار در هر پیام تازه می‌شود تا تغییر ادمین فوری دیده شود.
+  await chatButtons(env);
 
   if (miniAppOnlyMode(env) && !isAdminUser) {
     if (/^\/start(?:@\w+)?(?:\s|$)/.test(text)) {
@@ -9886,8 +10348,46 @@ async function miniAppApi(request, env, url) {
             icons[slot] = id;
           }
         }
+        let chatPatch = null;
+        if (body.chat !== undefined) {
+          const chat = body.chat;
+          if (!chat || typeof chat !== 'object' || Array.isArray(chat)) return miniAppJson({ ok: false, error: 'invalid_chat' }, 400);
+          const order = chat.order;
+          if (!Array.isArray(order)) return miniAppJson({ ok: false, error: 'invalid_order' }, 400);
+          if (order.length > CHAT_BTN_LIMIT) return miniAppJson({ ok: false, error: 'too_many_buttons' }, 400);
+          const cleanOrder = [];
+          for (const rawId of order) {
+            const id = String(rawId == null ? '' : rawId);
+            if (!chatBtnDef(id) || cleanOrder.includes(id)) return miniAppJson({ ok: false, error: 'invalid_button' }, 400);
+            cleanOrder.push(id);
+          }
+          const off = [];
+          if (chat.off !== undefined) {
+            if (!Array.isArray(chat.off)) return miniAppJson({ ok: false, error: 'invalid_off' }, 400);
+            for (const rawId of chat.off) {
+              const id = String(rawId == null ? '' : rawId);
+              if (!cleanOrder.includes(id)) return miniAppJson({ ok: false, error: 'invalid_off' }, 400);
+              if (!off.includes(id)) off.push(id);
+            }
+          }
+          if (!cleanOrder.length || off.length >= cleanOrder.length) return miniAppJson({ ok: false, error: 'all_buttons_off' }, 400);
+          const labels = {};
+          if (chat.labels !== undefined) {
+            if (!chat.labels || typeof chat.labels !== 'object' || Array.isArray(chat.labels)) return miniAppJson({ ok: false, error: 'invalid_labels' }, 400);
+            for (const [rawId, value] of Object.entries(chat.labels)) {
+              const id = String(rawId);
+              if (!cleanOrder.includes(id)) return miniAppJson({ ok: false, error: 'invalid_button' }, 400);
+              if (typeof value !== 'string') return miniAppJson({ ok: false, error: 'invalid_labels' }, 400);
+              const clean = cleanChatBtnLabel(value);
+              if (String(value).trim() && !clean) return miniAppJson({ ok: false, error: 'invalid_labels' }, 400);
+              if (clean && clean !== chatBtnDef(id).label) labels[id] = clean;
+            }
+          }
+          chatPatch = { order: cleanOrder, off: off, labels: labels };
+        }
         if (body.colors !== undefined) await kvPut(env, BTN_UI_COLORS_KEY, body.colors ? '1' : '0');
         if (icons) await saveBtnIcons(env, icons);
+        if (chatPatch) await saveChatButtons(env, chatPatch);
         BTN_UI_CACHE = { at: 0, colors: true, icons: {} };
         return miniAppJson(Object.assign({ ok: true }, await btnLookView(env)), 200);
       }
@@ -10417,7 +10917,8 @@ async function handleRequest(request, env) {
   if (request.method === 'POST' && url.pathname === '/webhook') {
     if (env.WEBHOOK_SECRET) {
       const got = request.headers.get('x-telegram-bot-api-secret-token') || '';
-      if (got !== env.WEBHOOK_SECRET) return new Response('Forbidden', { status: 403 });
+      // مقایسهٔ زمان‌ثابت تا طول/محتوای Secret از روی زمان پاسخ لو نرود.
+      if (!constantTimeEqual(got, env.WEBHOOK_SECRET)) return new Response('Forbidden', { status: 403 });
     }
     let upd = null;
     try { upd = await request.json(); } catch (e) { return new Response('bad request', { status: 400 }); }
