@@ -1181,7 +1181,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg:#04152e') && miniAppSource.includes('--brand-blue:#00409a') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت آبی تیزنت (زمینهٔ تیرهٔ آبی) در بازطراحی نمای مشتری حفظ شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.20-ubuntu26.22';"), 'شمارهٔ نسخهٔ سرور 1.8.20-ubuntu26.22 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.21-ubuntu26.23';"), 'شمارهٔ نسخهٔ سرور 1.8.21-ubuntu26.23 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم «آبی زنده»') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #6ee0ff, #2f86e8 52%, #1a58b4)'), 'تم زندهٔ آبی روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ آبی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #7ad9ff;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها آبی/فیروزه‌ای‌اند');
@@ -1804,6 +1804,12 @@ await upd({ message: { message_id: ++midSeq, chat: { id: ADMIN, type: 'private' 
 const noEmojiMsg = TG.filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN) && String(x.params.text || '').includes('ایموجی متحرک پیدا نشد')).slice(-1)[0];
 assert(noEmojiMsg, 'اگر پیام ایموجی متحرک نداشته باشد، راهنما داده می‌شود');
 
+// فرمان /start در میانهٔ حالتِ گرفتن ایموجی هم کار می‌کند (قفل نمی‌شود)
+await press(ADMIN, 's_ui_grab');
+await sendText(ADMIN, '/start');
+const escapedGrab = lastMsgTo(ADMIN);
+assert(escapedGrab && String(escapedGrab.params.text || '').includes('خوش آمدید'), '/start در حالت گرفتن شناسهٔ ایموجی هم اجرا می‌شود و ادمین در حالت قفل نمی‌ماند');
+
 // لغو حالت و پاک‌سازی
 await sendText(ADMIN, '/cancel');
 await kv.put('ui:btn_icons', JSON.stringify({}));
@@ -1819,6 +1825,65 @@ const firstDecorated = fbCalls[0] && Array.isArray(fbCalls[0].params.reply_marku
 const secondPlain = fbCalls[1] && Array.isArray(fbCalls[1].params.reply_markup?.inline_keyboard) && fbCalls[1].params.reply_markup.inline_keyboard.flat().every((b) => b && !b.style && !b.icon_custom_emoji_id);
 assert(firstDecorated && secondPlain, 'اگر تلگرام استایل را رد کند، همان پیام بی‌درنگ بدون استایل دوباره فرستاده می‌شود');
 tgRejectDecorated = 0;
+
+
+// ================= ظاهر دکمه‌ها در تنظیمات مینی‌اپ =================
+console.log('\n— ظاهر دکمه‌ها در تنظیمات مینی‌اپ —');
+const lookAdmin = await signedInitData(ADMIN);
+await kv.put('ui:btn_colors', JSON.stringify('1'));
+await kv.put('ui:btn_icons', JSON.stringify({}));
+globalThis.__resetBtnUI();
+const settingsWithButtons = await miniApi('/api/miniapp/admin/settings', lookAdmin);
+assert(settingsWithButtons.status === 200 && settingsWithButtons.json.buttons && settingsWithButtons.json.buttons.colors === true && Array.isArray(settingsWithButtons.json.buttons.slots) && settingsWithButtons.json.buttons.slots.length === 16, 'تنظیمات مینی‌اپ وضعیت ظاهر دکمه‌ها و ۱۶ جایگاه را برمی‌گرداند');
+
+const savedLook = await miniApi('/api/miniapp/admin/buttons', lookAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ colors: false, icons: { buy: '5368324170671202286' } }) });
+assert(savedLook.status === 200 && savedLook.json.ok && savedLook.json.colors === false && savedLook.json.icons.buy === '5368324170671202286', 'مدیر می‌تواند از اپ حالت شیشه‌ای و آیکن یک دکمه را ذخیره کند');
+const storedColors = await kvJson('ui:btn_colors');
+assert(String(storedColors) === '0' || storedColors === 0, 'حالت شیشه‌ای در KV ذخیره می‌شود');
+assert((await kvJson('ui:btn_icons')).buy === '5368324170671202286', 'شناسهٔ آیکن از اپ در KV ذخیره می‌شود');
+
+globalThis.__resetBtnUI();
+await sendText(ADMIN, '/start');
+const afterAppSave = lookupButtons(lastMsgTo(ADMIN)).find((b) => b.callback_data === 'buy');
+assert(afterAppSave && !afterAppSave.style && afterAppSave.icon_custom_emoji_id === '5368324170671202286', 'تغییری که از مینی‌اپ ذخیره شد، همان لحظه روی دکمه‌های چت اعمال می‌شود');
+
+const badEmoji = await miniApi('/api/miniapp/admin/buttons', lookAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ icons: { buy: 'abc' } }) });
+assert(badEmoji.status === 400 && badEmoji.json.error === 'invalid_emoji_id', 'شناسهٔ غیرعددی از اپ رد می‌شود');
+const badSlot = await miniApi('/api/miniapp/admin/buttons', lookAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ icons: { unknown_slot: '123456789' } }) });
+assert(badSlot.status === 400 && badSlot.json.error === 'invalid_slot', 'جایگاه ناشناخته از اپ رد می‌شود');
+const badColors = await miniApi('/api/miniapp/admin/buttons', lookAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ colors: 'yes' }) });
+assert(badColors.status === 400 && badColors.json.error === 'invalid_colors', 'مقدار نامعتبر حالت رنگ رد می‌شود');
+const cleared = await miniApi('/api/miniapp/admin/buttons', lookAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ colors: true, icons: { buy: '' } }) });
+assert(cleared.status === 200 && cleared.json.colors === true && !cleared.json.icons.buy, 'خالی‌کردن شناسه، آیکن را حذف می‌کند');
+
+const normalUserLook = await miniApi('/api/miniapp/admin/buttons', await signedInitData(U8), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ colors: false }) });
+assert([401, 403].includes(normalUserLook.status), 'کاربر عادی به تنظیمات ظاهر دکمه‌ها دسترسی ندارد');
+await kv.put('ui:btn_icons', JSON.stringify({}));
+globalThis.__resetBtnUI();
+
+// پنل واقعی در HTML تنظیمات مینی‌اپ وجود دارد (نه فقط API)
+const miniHtmlLook = fs.readFileSync(path.join(here, '..', 'public', 'miniapp.html'), 'utf8');
+assert(miniHtmlLook.includes('id="btnLookPanel"') && miniHtmlLook.includes('id="btnLookGrid"') && miniHtmlLook.includes('id="btnLookSave"') && miniHtmlLook.includes('id="btnLookColors"'),
+  'پنل «ظاهر دکمه‌های چت» با کلید رنگ، فهرست جایگاه‌ها و دکمهٔ ذخیره در صفحهٔ تنظیمات مینی‌اپ هست');
+assert(miniHtmlLook.includes("id=\"btnLookGrab\"") && miniHtmlLook.includes('?start=ui_grab'),
+  'از داخل مینی‌اپ یک دکمه ادمین را برای گرفتن شناسهٔ ایموجی به چت ربات می‌برد');
+const lookGet = await miniApi('/api/miniapp/admin/buttons', lookAdmin);
+assert(lookGet.status === 200 && Array.isArray(lookGet.json.slots) && lookGet.json.slots.length === 16 && typeof lookGet.json.colors === 'boolean',
+  'مسیر اختصاصی ظاهر دکمه‌ها هم وضعیت و ۱۶ جایگاه را برمی‌گرداند');
+
+// پل مینی‌اپ → چت: /start ui_grab ادمین را در حالت گرفتن شناسه می‌گذارد
+await sendText(ADMIN, '/start ui_grab');
+const deepGrab = lastMsgTo(ADMIN);
+assert(deepGrab && String(deepGrab.params.text || '').includes('شناسهٔ ایموجی متحرک'), 'لینک «گرفتن شناسه» از مینی‌اپ، چت را در حالت گرفتن شناسه می‌گذارد');
+const deepBefore = TG.length;
+await upd({ message: { message_id: ++midSeq, chat: { id: ADMIN, type: 'private' }, from: { id: ADMIN, first_name: 'A' }, text: '🎁', entities: [{ type: 'custom_emoji', offset: 0, length: 2, custom_emoji_id: '5368324170671202286' }] } });
+const deepGrabMsg = TG.slice(deepBefore).filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN)).slice(-1)[0];
+assert(deepGrabMsg && String(deepGrabMsg.params.text || '').includes('5368324170671202286') && lookupButtons(deepGrabMsg).some((b) => String(b.callback_data).startsWith('s_ui_assign:5368324170671202286:')),
+  'بعد از ورود از لینک مینی‌اپ، فوروارد ایموجی متحرک همان‌جا شناسه را می‌دهد');
+await sendText(ADMIN, '/cancel');
+await kv.put('ui:btn_icons', JSON.stringify({}));
+await kv.put('ui:btn_colors', JSON.stringify('1'));
+globalThis.__resetBtnUI();
 
 console.log('— تمام —');
 if (process.exitCode) console.error('❌ بعضی تست‌ها شکست خوردند');

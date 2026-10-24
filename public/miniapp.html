@@ -2216,6 +2216,17 @@
     .ag-row .ag-secondary { min-height: 46px; margin-top: 0; }
     .ag-row .ag-input { min-height: 46px; }
 
+    /* ظاهر دکمه‌های چت در تنظیمات */
+    .btn-look-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 8px; margin: 12px 0 4px; }
+    .btn-look-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; align-items: center;
+      padding: 8px 9px; border-radius: 12px; border: 1px solid rgba(126, 196, 255, .14); background: rgba(4, 21, 45, .42); }
+    .btn-look-row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-2xs); color: #cfe4f7; }
+    .btn-look-row input { min-width: 0; min-height: 32px; padding: 0 9px; border-radius: 9px; direction: ltr; text-align: center;
+      font: inherit; font-size: var(--fs-3xs); color: #f2faff; border: 1px solid rgba(126, 200, 255, .24); background: rgba(3, 16, 36, .8); }
+    .btn-look-row input::placeholder { color: #7e9dbd; }
+    .btn-look-row.filled input { border-color: rgba(120, 226, 200, .5); }
+    .btn-look-grid .mini-note { grid-column: 1 / -1; }
+
     /* ── ۱۲.۷) «شیشهٔ زنده»: دکمه‌های شیشه‌ای + آیکن‌های متحرک ─────────────── */
     :root {
       --gl-edge: rgba(188, 231, 255, .42);
@@ -2757,6 +2768,15 @@
           </div>
           <div class="form-actions"><button class="btn-primary" id="settingsSave" type="submit"><svg class="bi bi-save" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h11L19.5 8v11.5h-15z"/><path d="M8 4.5v5h7v-5"/><path d="M8 19.5v-6h8v6"/></svg><span>ذخیرهٔ تنظیمات</span></button><span id="settingsMessage" class="form-message" role="status"></span></div>
         </form>
+      </article>
+      <article class="panel btn-look-panel" id="btnLookPanel" style="margin-top:14px">
+        <div class="panel-head"><div><h3>ظاهر دکمه‌های چت</h3><p>رنگ و آیکن متحرک دکمه‌های ربات در چت تلگرام</p></div></div>
+        <div class="settings-toggles">
+          <label class="toggle-row"><input id="btnLookColors" type="checkbox"><span class="switch-ui"></span><span><strong>رنگ معنادار دکمه‌ها</strong><small>آبی برای خرید، سبز برای تأیید، قرمز برای انصراف و حذف. خاموش = حالت شیشه‌ای (بی‌رنگ و نیمه‌شفاف).</small></span></label>
+        </div>
+        <div class="mini-note" id="btnLookHint">برای ایموجی متحرک، شناسهٔ عددی لازم است. در چت ربات: ⚙️ تنظیمات → 🎨 دکمه‌ها و آیکن‌ها → «📥 گرفتن شناسهٔ ایموجی متحرک».</div>
+        <div class="btn-look-grid" id="btnLookGrid"></div>
+        <div class="form-actions"><button class="btn-primary" id="btnLookSave" type="button"><svg class="bi bi-save" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h11L19.5 8v11.5h-15z"/><path d="M8 4.5v5h7v-5"/><path d="M8 19.5v-6h8v6"/></svg><span>ذخیرهٔ ظاهر دکمه‌ها</span></button><button class="btn-secondary" id="btnLookGrab" type="button"><svg class="bi bi-download" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v10"/><path d="M8 11.5l4 4 4-4"/><path d="M5.5 19.5h13"/></svg><span>گرفتن شناسه در چت ربات</span></button><span id="btnLookMessage" class="form-message" role="status"></span></div>
       </article>
       <article class="panel kv-backup-panel" id="kvBackupPanel" style="margin-top:14px">
         <div class="panel-head"><div><h3>بکاپ و ریستور کامل KV</h3><p>دانلود بکاپ دستی یا جایگزینی کامل اطلاعات از فایل پشتیبان.</p></div></div>
@@ -3313,6 +3333,65 @@
       return text;
     }
 
+    const BTN_LOOK_SLOTS=[['buy','خرید و ورود به اپ'],['wallet','کیف پول و شارژ'],['subs','اشتراک‌های من'],['free','اشتراک رایگان'],
+      ['plan','پلن‌ها'],['order','سفارش‌ها'],['users','کاربران و مشتری‌ها'],['stats','آمار'],['panel','پنل و سرور'],['settings','تنظیمات'],
+      ['lock','قفل کانال و شماره'],['app','اتصال اپ و شتاب'],['support','پشتیبانی'],['help','راهنما'],['gift','دعوت و هدیه'],['agent','نمایندگی']];
+    function renderButtonLook(buttons) {
+      const grid=document.getElementById('btnLookGrid');
+      const colors=document.getElementById('btnLookColors');
+      if(!grid)return;
+      // اگر داده نرسیده باشد، فهرست پیش‌فرض نمایش داده می‌شود تا بخش هیچ‌وقت خالی نماند.
+      if(!buttons&&grid.querySelector('.btn-look-row'))return;
+      if(colors&&buttons)colors.checked=buttons.colors!==false;
+      const slots=buttons&&Array.isArray(buttons.slots)&&buttons.slots.length
+        ?buttons.slots
+        :BTN_LOOK_SLOTS.map(([slot,label])=>({slot,label,icon:''}));
+      grid.innerHTML=slots.map((item)=>{
+        const icon=String(item.icon||'');
+        return '<label class="btn-look-row'+(icon?' filled':'')+'" data-slot="'+esc(item.slot)+'">'
+          +'<span>'+esc(item.label||item.slot)+'</span>'
+          +'<input type="text" inputmode="numeric" dir="ltr" maxlength="25" autocomplete="off" spellcheck="false" '
+          +'placeholder="شناسهٔ آیکن" aria-label="شناسهٔ آیکن دکمهٔ '+esc(item.label||item.slot)+'" value="'+esc(icon)+'"></label>';
+      }).join('');
+      grid.querySelectorAll('input').forEach((input)=>{
+        input.addEventListener('input',()=>{
+          const row=input.closest('.btn-look-row');
+          if(row)row.classList.toggle('filled',!!input.value.trim());
+        });
+      });
+    }
+    function collectButtonIcons() {
+      const icons={};
+      document.querySelectorAll('#btnLookGrid .btn-look-row').forEach((row)=>{
+        const slot=row.getAttribute('data-slot');
+        const input=row.querySelector('input');
+        if(slot)icons[slot]=input?String(input.value||'').trim():'';
+      });
+      return icons;
+    }
+    async function saveButtonLook() {
+      const message=document.getElementById('btnLookMessage');
+      const button=document.getElementById('btnLookSave');
+      const colors=document.getElementById('btnLookColors');
+      if(message)message.textContent='';
+      if(button)button.disabled=true;
+      try{
+        const data=await api('/api/miniapp/admin/buttons',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({colors:colors?!!colors.checked:true,icons:collectButtonIcons()})});
+        renderButtonLook(data);
+        if(message)message.textContent='✅ ذخیره شد؛ دکمه‌های چت با ظاهر تازه فرستاده می‌شوند.';
+        toast('ظاهر دکمه‌ها ذخیره شد.');
+        return true;
+      }catch(e){
+        const map={invalid_emoji_id:'شناسهٔ آیکن باید فقط عدد و بین ۶ تا ۲۵ رقم باشد.',invalid_slot:'جایگاه دکمه ناشناخته است.',invalid_icons:'دادهٔ آیکن‌ها نامعتبر است.',invalid_colors:'مقدار حالت رنگ نامعتبر است.'};
+        const text=map[e&&e.message]||'ذخیرهٔ ظاهر دکمه‌ها ناموفق بود؛ دوباره تلاش کنید.';
+        if(message)message.textContent=text;
+        toast(text);
+        return false;
+      }finally{
+        if(button)button.disabled=false;
+      }
+    }
     function renderSettingsView(settings,panels) {
       const set=(id,value)=>{const el=document.getElementById(id);if(el)el.value=value==null?'':String(value);};
       set('settingBotUsername',settings.bot_username||'');set('settingSupport',settings.support||'');
@@ -3341,7 +3420,9 @@
     }
     async function loadSettings() {
       if(!liveMode||!adminRole)return;
-      const data=await api('/api/miniapp/admin/settings');renderSettingsView(data.settings||{},data.panels||[]);
+      const data=await api('/api/miniapp/admin/settings');renderSettingsView(data.settings||{},data.panels||[],data.buttons||null);
+      renderButtonLook(data.buttons||null);
+      return data;
     }
     async function saveSettingsForm(form) {
       const message=document.getElementById('settingsMessage'),button=document.getElementById('settingsSave');
@@ -4865,6 +4946,16 @@
     if(phoneSaveBtn)phoneSaveBtn.addEventListener('click',()=>savePhoneFromCard());
     const phoneInputEl=document.getElementById('customerPhoneInput');
     if(phoneInputEl)phoneInputEl.addEventListener('keydown',(ev)=>{if(ev.key==='Enter'){ev.preventDefault();savePhoneFromCard();}});
+    renderButtonLook(null);
+    const btnLookSaveEl=document.getElementById('btnLookSave');
+    if(btnLookSaveEl)btnLookSaveEl.addEventListener('click',()=>saveButtonLook());
+    // مینی‌اپ نمی‌تواند شناسهٔ ایموجی پریمیومی را بخواند؛ با یک لمس ادمین به حالت گرفتن در چت می‌رود.
+    const btnLookGrabEl=document.getElementById('btnLookGrab');
+    if(btnLookGrabEl)btnLookGrabEl.addEventListener('click',()=>{
+      const username=String(botUsername||'').replace(/^@/,'').trim();
+      if(!username){toast('نام کاربری ربات تنظیم نشده است.');return;}
+      openTelegramChannel('https://t.me/'+username+'?start=ui_grab');
+    });
     document.getElementById('modalClose').addEventListener('click',closeModal);
     document.getElementById('modalCloseTop').addEventListener('click',closeModal);
     document.getElementById('modalConfirm').addEventListener('click',()=>{
