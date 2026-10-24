@@ -261,7 +261,7 @@ console.log('— TiznetVPN Shop Bot integration test —');
 const miniAppSource = fs.readFileSync(path.join(here, '..', 'public', 'miniapp.html'), 'utf8');
 assert(miniAppSource.includes('const remain=s.days_remaining') && miniAppSource.includes('${esc(remain)}') && !miniAppSource.includes('${esc(rem)}'), 'قالب اشتراک مشتری متغیر روزهای باقی‌مانده را بدون ReferenceError نشان می‌دهد');
 const yekanLicense = fs.readFileSync(path.join(here, '..', 'public', 'assets', 'Yekan-OFL.txt'), 'utf8');
-assert(miniAppSource.includes('--bg: #070a12') && miniAppSource.includes('--brand: #3d74f5') && miniAppSource.includes("font-family:'Yekan',Vazirmatn") && miniAppSource.includes('/assets/Yekan.woff2') && fs.statSync(path.join(here, '..', 'public', 'assets', 'Yekan.woff2')).size > 10000 && yekanLicense.includes('SIL Open Font License, Version 1.1') && miniAppSource.includes('/assets/Vazirmatn-Arabic.woff2') && miniAppSource.includes('/assets/Vazirmatn-Latin.woff2'), 'فونت جایگزین Yekan با فایل و مجوز OFL 1.1 محلی جاسازی شده و Vazirmatn fallback آن است');
+assert(miniAppSource.includes('--bg: #08080a') && miniAppSource.includes('--brand-blue:#8f2234') && miniAppSource.includes("font-family:'Yekan',Vazirmatn") && miniAppSource.includes('/assets/Yekan.woff2') && fs.statSync(path.join(here, '..', 'public', 'assets', 'Yekan.woff2')).size > 10000 && yekanLicense.includes('SIL Open Font License, Version 1.1') && miniAppSource.includes('/assets/Vazirmatn-Arabic.woff2') && miniAppSource.includes('/assets/Vazirmatn-Latin.woff2'), 'فونت جایگزین Yekan با فایل و مجوز OFL 1.1 محلی جاسازی شده و Vazirmatn fallback آن است');
 assert(!miniAppSource.includes('#87182f') && !miniAppSource.includes('#ff343d') && !miniAppSource.includes('--ruby-') && miniAppSource.includes('subscription-delivery-card') && miniAppSource.includes('cv-plan-foot'), 'رنگ‌های برند قدیمی از Mini App پاک شده‌اند؛ پالت آبی و کارت فروش جدید حفظ شده است');
 assert(!miniAppSource.includes('id="menuToggle"') && !miniAppSource.includes('id="notifyBtn"') && miniAppSource.includes('id="mobileNav"') && miniAppSource.includes('id="accountTrigger"'), 'دکمهٔ همبرگری و زنگ حذف شده‌اند؛ ناوبری پایین و جزئیات حساب حفظ شده‌اند');
 assert(miniAppSource.includes('data-dashboard-drill="revenue"') && miniAppSource.includes('data-drill-method') && miniAppSource.includes('data-drill-plan') && miniAppSource.includes('clearDashboardDrill'), 'مدیر می‌تواند از KPIها، روش پرداخت و پلن‌ها به فهرست جزئیات drill-down کند');
@@ -1174,72 +1174,20 @@ assert(miniAppSource.indexOf('id="customerTabBuy"') < miniAppSource.indexOf('cla
 assert(/\.customer-mode #storePage \{[^}]*animation-name:fadeInNoTransform/.test(miniAppSource) && miniAppSource.includes('@keyframes fadeInNoTransform { from { opacity:0; } to { opacity:1; } }') && !/\.customer-mode #storePage \{[^}]*transform/.test(miniAppSource), 'صفحهٔ فروشگاه در نمای مشتری فقط opacity را انیمیت می‌کند؛ ترنسفورم ماندگار fadeIn نوار پایین را از حالت fixed خارج نمی‌کند');
 assert(miniAppSource.indexOf('class="customer-tabs"') > miniAppSource.indexOf('id="mobileNav"') - 4000 && !/class="page[^"]*"[^]*?class="customer-tabs"/.test(miniAppSource.slice(miniAppSource.indexOf('id="storePage"'))), 'نوار ناوبری مشتری بیرون از المان‌های .page قرار دارد تا ترنسفورم انیمیشن آن را از حالت ثابت خارج نکند');
 assert(miniAppSource.includes('.customer-tabs { display:none; }') && miniAppSource.includes('.customer-mode .mobile-nav { display:none !important; }'), 'نوار ناوبری مشتری فقط در نمای مشتری دیده می‌شود و نوار موبایل قدیمی در این حالت غیرفعال است');
-assert(miniAppSource.includes('body.customer-mode {') && miniAppSource.includes('#0a0f1b') && miniAppSource.includes('background-attachment:fixed') && miniAppSource.includes('backdrop-filter:blur(18px)') && miniAppSource.includes('.customer-mode .customer-tabs [role="tab"][aria-selected="true"]::after'), 'طرح جدید مشتری از پس‌زمینهٔ آبی عمیق، کارت‌های شیشه‌ای و نشانگر تب فعال استفاده می‌کند');
+assert(miniAppSource.includes('body.customer-mode {') && miniAppSource.includes('#101013') && miniAppSource.includes('background-attachment:fixed') && miniAppSource.includes('backdrop-filter:blur(18px)') && miniAppSource.includes('.customer-mode .customer-tabs [role="tab"][aria-selected="true"]::after'), 'طرح جدید مشتری از پس‌زمینهٔ آبی عمیق، کارت‌های شیشه‌ای و نشانگر تب فعال استفاده می‌کند');
 assert((miniAppSource.match(/class="cv-stat"/g)||[]).length === 4 && miniAppSource.includes("`<div class=\"cv-stat\"><small>") && miniAppSource.includes('.cv-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr))') && !miniAppSource.includes('kpiIcons'), 'نوار آمار مشتری سه شاخص فشرده را در یک ردیف نشان می‌دهد (بدون تکرار موجودی کیف پول)');
 assert(!miniAppSource.includes('.customer-mode .main { max-width:600px') && !miniAppSource.includes('.customer-mode .plans-grid { grid-template-columns:minmax(0,1fr) !important') && !miniAppSource.includes('.customer-mode .store-plan { min-height:0; padding:16px') && !miniAppSource.includes('padding-bottom:calc(122px + var(--safe-bottom)) !important'), 'نمای مشتری چیدمان ریسپانسیو پایه (عرض، گرید پلن‌ها، کارت‌ها و حاشیهٔ پایین) را بازنویسی نمی‌کند');
 assert(miniAppSource.includes('function subscriptionQrMarkup') && miniAppSource.includes('function loadSubscriptionQrInto') && miniAppSource.includes('subscriptionQrSlot') && miniAppSource.includes('function showFreeSubscriptionDelivery') && miniAppSource.includes('data-subscription-qr="${esc(s.sid)}"') && miniAppSource.includes('qr_data_url:sub.qr_data_url'), 'صفحهٔ اطلاعات اشتراک و تحویل اشتراک رایگان/هدیه، QR و لینک قابل کپی را نشان می‌دهند');
 assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('function hiddifyDownloadsMarkup') && ['android','ios','windows','github'].every(k => miniAppSource.includes('HIDDIFY_DOWNLOADS.'+k)) && miniAppSource.includes('play.google.com/store/apps/details?id=app.hiddify.com') && miniAppSource.includes('apps.apple.com/us/app/hiddify-proxy-vpn/id6596777532') && miniAppSource.includes('apps.microsoft.com/detail/9pdfnl3qv2s5') && miniAppSource.includes('github.com/hiddify/hiddify-app/releases') && miniAppSource.includes('همهٔ سیستم‌عامل‌ها') && miniAppSource.includes('data-open-url'), 'دکمه‌های دانلود هیدیفای برای اندروید، آیفون، ویندوز و صفحهٔ گیت‌هاب در کارت اشتراک وجود دارد');
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
-assert(miniAppSource.includes('--brand: #3d74f5') && miniAppSource.includes('--teal: #3d74f5;') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت تک‌رنگ آبی روی جوهر شب در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.31-ubuntu26.33';"), 'شمارهٔ نسخهٔ سرور 1.8.31-ubuntu26.33 است و در «بررسی اتصال» همین دیده می‌شود');
-assert(miniAppSource.includes('تم زندهٔ آبی') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(180deg, #5a8dfb, #2a5ce0)'), 'تم زندهٔ تک‌رنگ آبی روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
+assert(miniAppSource.includes('--bg: #08080a') && miniAppSource.includes('--brand-blue:#8f2234') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت یاقوتی روی مشکی متالیک در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
+assert(workerSource.includes("const VERSION = '1.8.28-ubuntu26.30';"), 'شمارهٔ نسخهٔ سرور 1.8.28-ubuntu26.30 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(miniAppSource.includes('تم «آبی زنده»') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #cc5c6b, #c62840 52%, #8c0b28)'), 'تم زندهٔ یاقوتی روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ آبی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
-assert(miniAppSource.includes('--purple: #3d74f5;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها آبی تک‌رنگ‌اند');
+assert(miniAppSource.includes('--purple: #9b3049;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها یاقوتی و متالیک‌اند');
 assert(miniAppSource.includes('id="settingsEditorPanel"') && miniAppSource.includes('data-stab="look"') && miniAppSource.includes('function showSettingsGroup') && !miniAppSource.includes('settingCommission') && !miniAppSource.includes('settingMinWithdraw'), 'تنظیمات مینی‌اپ در پنج سربرگ (فروشگاه، پرداخت، اشتراک رایگان، دکمه‌ها، پشتیبان) گروه‌بندی شده و کارت‌های «درصد کمیسیون» و «حداقل برداشت» حذف شده‌اند');
-assert(miniAppSource.includes('پالت واحد «آبی تک‌رنگ»') && !miniAppSource.includes('#6ee0ff') && !miniAppSource.includes('#04152e') && miniAppSource.includes('linear-gradient(180deg, #5a8dfb 0%, #3d74f5 52%, #2a5ce0 100%)') && miniAppSource.includes('.status.paid, .status.good, .order-state.good {'), 'پالت مینی‌اپ یک آبی تک‌رنگ روی جوهر شب است، دکمهٔ اصلی گرد و سه‌لایه است و وضعیت‌ها با روشنایی همان رنگ تفکیک می‌شوند');
-// ---------- پالت تک‌رنگ آبی ----------
-// هر رنگ «رنگی» مینی‌اپ باید در خانوادهٔ آبی (۲۱۰° تا ۲۵۰°) باشد؛ سفید/خاکستری/مشکی آزادند.
-const hueOfRgb = (r, g, b) => {
-  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
-  if (!d) return 0;
-  let h;
-  if (max === r) h = ((g - b) / d) % 6;
-  else if (max === g) h = (b - r) / d + 2;
-  else h = (r - g) / d + 4;
-  h *= 60;
-  return h < 0 ? h + 360 : h;
-};
-const offPalette = [];
-for (const hex of (miniAppSource.match(/#[0-9a-fA-F]{6}\b/g) || [])) {
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-  if (Math.max(r, g, b) - Math.min(r, g, b) < 14) continue;
-  const h = hueOfRgb(r, g, b);
-  if (!(h >= 200 && h <= 255)) offPalette.push(hex);
-}
-assert(offPalette.length === 0, 'همهٔ رنگ‌های رنگی مینی‌اپ تک‌رنگ آبی‌اند و هیچ ته‌رنگ قرمز/سبز/زرد/بنفش نمانده است' + (offPalette.length ? ' — خارج: ' + [...new Set(offPalette)].slice(0, 6).join(', ') : ''));
-// ---------- خط افقی: سه آیتم در یک ردیف، بدون ستون‌شدن (۱.۸.۳۱) ----------
-const managedActionDirs = [...miniAppSource.matchAll(/\.managed-item \.managed-actions\s*\{([^}]*)\}/g)]
-  .flatMap((m) => [...m[1].matchAll(/flex-direction:\s*([a-z-]+)/g)].map((x) => x[1]));
-assert(managedActionDirs.length > 0 && managedActionDirs.every((v) => v === 'row'),
-  'دکمه‌های کارت‌های مدیریتی همیشه در یک ردیف افقی‌اند و هیچ‌جا زیر هم (ستونی) نمی‌نشینند');
-const specColumns = [...miniAppSource.matchAll(/\.cv-specs\s*\{([^}]*)\}/g)]
-  .flatMap((m) => [...m[1].matchAll(/grid-template-columns:\s*([^;!]+)/g)].map((x) => x[1].replace(/\s+/g, '').trim()));
-assert(specColumns.length > 0 && specColumns.every((v) => v === 'repeat(2,minmax(0,1fr))'),
-  'مشخصات هر پلن (حجم/مدت) همیشه دو ستون افقی است و در گوشی هم تکی نمی‌شود');
-assert(miniAppSource.includes('.managed-list, .cv-plans, #managedPlansList, #managedPanelsList, #managedAgentsList, #customerPlansGrid {') && miniAppSource.includes('grid-auto-flow: row !important;'),
-  'قانون سه‌تایی روی همهٔ فهرست‌ها با display:grid قفل شده است تا هرگز به ستون تبدیل نشود');
-
-// ---------- سربرگ‌های درشت (۱.۸.۳۱) ----------
-assert(miniAppSource.includes('.panel-head h3 { font-size: clamp(15.5px, .8vw + 12px, 20px) !important;') && miniAppSource.includes('.page-top h1 { font-size: clamp(21px, 1.5vw + 13px, 30px) !important;') && miniAppSource.includes('.cv-sec-title h2 { font-size: clamp(16px, .8vw + 12.5px, 19px) !important;'),
-  'تیتر بخش‌ها و صفحات یک پله بزرگ‌تر شده‌اند (حداقل ۱۵٫۵ تا ۲۱ پیکسل در باریک‌ترین صفحه)');
-
-// ---------- سیستم طراحی «مینیمالِ تیز» (بازطراحی ۱.۸.۳۰) ----------
-assert(miniAppSource.includes('بازطراحی مینیمال — «یک رنگ، تنفس زیاد»') && miniAppSource.includes('--radius-pill: 999px;') && miniAppSource.includes("background: linear-gradient(180deg, #5a8dfb 0%, #3d74f5 52%, #2a5ce0 100%) !important;") && miniAppSource.includes('border-radius: var(--radius-pill) !important;'),
-  'سیستم طراحی تازه اعمال شده است: کارت‌های نرم، دکمه‌های پیل و گرادیان آبی یکدست روی همهٔ بخش‌ها');
-assert(miniAppSource.includes('bottom: calc(10px + var(--safe-bottom)) !important;') && miniAppSource.includes('border-radius: 22px !important;') && miniAppSource.includes('.mobile-nav button.active::before { content: none !important; }') && miniAppSource.includes('.customer-mode .customer-tabs [role="tab"][aria-selected="true"]::after { content: none !important; }'),
-  'نوار پایین در پنل مدیر و نمای مشتری شناور، گرد و شیشه‌ای است و لایهٔ قدیمی نشانگر غیرفعال شده است');
-assert(miniAppSource.includes('font-variant-numeric: tabular-nums;') && miniAppSource.includes('font-size: clamp(22px, 6.4vw, 28px) !important;') && miniAppSource.includes('.cv-bar { height: 8px !important;') && miniAppSource.includes('outline: 2px solid var(--brand-hi) !important;'),
-  'عددها درشت و جدولی، سنجهٔ مصرف ضخیم و حلقهٔ فوکوس برای دسترسی‌پذیری اضافه شده است');
-assert(miniAppSource.includes('--brand: #3d74f5;') && miniAppSource.includes('--teal: #3d74f5;') && miniAppSource.includes('--purple: #3d74f5;') && miniAppSource.includes('--blue: #5a8dfb;'), 'تن اصلی مینی‌اپ #3d74f5 است و همهٔ متغیرهای پالت روی همان آبی تنظیم شده‌اند');
-
-// ---------- قانون چیدمان: سه آیتم در یک ردیف ----------
-const cardListColumns = [...miniAppSource.matchAll(/\.(?:managed-list|cv-plans)[^{]*\{[^}]*grid-template-columns:\s*([^;!]+)/g)].map((m) => m[1].trim());
-assert(cardListColumns.length >= 2 && cardListColumns.every((v) => v === 'repeat(3, minmax(0, 1fr))'),
-  'قانون چیدمان: هر فهرست کارتی (پلن‌ها، سرورها، نماینده‌ها و پلن‌های فروش) سه‌تایی در یک ردیف می‌نشیند — ۳ آیتم یک خط، نه دو خط');
-assert(miniAppSource.includes('grid-template-areas: "main state" "actions actions";') && miniAppSource.includes('.managed-item .managed-main strong {') && miniAppSource.includes('text-overflow: ellipsis; white-space: nowrap;'),
-  'هر کارت پلن در یک ردیف سه‌ستونه جا می‌شود: عنوان و وضعیت در یک خط و دکمه‌ها در یک ردیف افقی بدون شکستن');
-
+assert(miniAppSource.includes('تم «یاقوتی براق + مشکی متالیک»') && !miniAppSource.includes('#3497ff') && !miniAppSource.includes('#6ee0ff') && !miniAppSource.includes('#04152e') && miniAppSource.includes('linear-gradient(180deg, #d92a3f 0%, #c1122f 30%, #97102a 70%, #6d0b1f 100%)') && miniAppSource.includes('.status.paid, .status.good, .order-state.good {'), 'پالت مینی‌اپ روی چیدمان نسخهٔ A یاقوتی براق و مشکی متالیک شده، هیچ آبی از پالت قدیم نمانده و رنگ سبز «پرداخت‌شده» حفظ شده است');
 assert(src.includes('play.google.com/store/apps/details?id=app.hiddify.com') && src.includes('apps.apple.com/us/app/hiddify-proxy-vpn/id6596777532') && src.includes('apps.microsoft.com/detail/9pdfnl3qv2s5') && src.includes('github.com/hiddify/hiddify-app/releases'), 'فهرست دانلود اپ‌ها در چت و مینی‌اپ به‌صورت یکسان به پلی‌استور، اپ‌استور، مایکروسافت‌استور و گیت‌هاب اشاره می‌کند');
 assert(miniAppSource.includes('@media (prefers-reduced-motion: reduce)') && miniAppSource.includes('@keyframes riseIn') && miniAppSource.includes('.stat-card:hover, .stat-card:focus-visible {'), 'حرکت‌ها افزوده شده‌اند و با تنظیم «کاهش حرکت» سیستم خاموش می‌شوند');
 assert(miniAppSource.includes('@media (max-width: 900px) and (min-width: 421px) {\n      .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }'), 'کارت‌های KPI در تبلت و گوشی دو‌به‌دو می‌نشینند تا شلوغ نشوند');
