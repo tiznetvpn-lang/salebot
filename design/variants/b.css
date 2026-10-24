@@ -1,0 +1,127 @@
+/* ══════════════════════════════════════════════════════════════════════
+   نمونهٔ B — «مینیمال آرام»
+   فلسفه: هیچ درخشش، هیچ گرادیانی، هیچ سایه‌ای. فقط فاصله، خط نازک و یک رنگ آبی.
+   کم‌شلوغ‌ترین گزینه؛ مناسب کسی که می‌خواهد چشمش خسته نشود.
+   ══════════════════════════════════════════════════════════════════════ */
+body { background: #040c18 !important; }
+body::before { display: none !important; }
+.shell { position: static !important; }
+
+/* ── نوار کنار ─────────────────────────────────────────────────────── */
+.sidebar { background: #050f1d !important; border-left-color: rgba(126, 170, 220, .10) !important; box-shadow: none !important; backdrop-filter: none !important; }
+.brand-mark { background: #0a1727 !important; border-color: rgba(126, 170, 220, .14) !important; box-shadow: none !important; border-radius: 12px; }
+.brand-en, .side-caption, .sidebar-footer { color: #5f7794 !important; }
+.sidebar-footer { border-top-color: rgba(126, 170, 220, .08) !important; }
+.nav-btn { border-radius: 10px; color: #8ba3bf; font-weight: 600; }
+.nav-btn:hover { background: rgba(110, 170, 240, .06) !important; color: #dbe9f8 !important; transform: none !important; }
+.nav-btn.active { background: rgba(90, 169, 255, .10) !important; box-shadow: inset -2px 0 #5aa9ff !important; color: #eaf4ff !important; }
+.nav-count { background: rgba(90, 169, 255, .12) !important; color: #a9cdf5 !important; }
+.health-card { background: transparent !important; border-color: rgba(126, 170, 220, .12) !important; border-radius: 12px; box-shadow: none !important; }
+.pulse { animation: none !important; box-shadow: none !important; width: 7px; height: 7px; background: #63d6a4 !important; }
+
+/* ── نوار بالا ──────────────────────────────────────────────────────── */
+.topbar { border-bottom-color: rgba(126, 170, 220, .10) !important; min-height: 72px; }
+.crumb { color: #7f97b4 !important; }
+.period-switch { background: transparent !important; border-color: rgba(126, 170, 220, .14) !important; box-shadow: none !important; padding: 3px; }
+.period-btn { color: #8ba3bf !important; border-radius: 8px; }
+.period-btn.active { background: #0c1d30 !important; color: #eaf4ff !important; box-shadow: inset 0 0 0 1px rgba(126, 170, 220, .16) !important; font-weight: 750; }
+.icon-btn, .menu-toggle, .cv-refresh { background: transparent !important; border-color: rgba(126, 170, 220, .14) !important; box-shadow: none !important; border-radius: 11px; }
+.account-trigger { border-radius: 11px; }
+.avatar { background: #16304c !important; color: #cfe4f8 !important; box-shadow: none !important; border-color: rgba(126, 170, 220, .2) !important; }
+.outline-btn { background: transparent !important; border-color: rgba(126, 170, 220, .16) !important; color: #b9d0e6 !important; box-shadow: none !important; border-radius: 10px; }
+.outline-btn:hover { border-color: rgba(126, 170, 220, .3) !important; color: #eaf4ff !important; transform: none !important; box-shadow: none !important; }
+.link-button { color: #7fb9f0 !important; }
+
+/* ── قهرمان ────────────────────────────────────────────────────────── */
+.hero { background: #071525 !important; border-color: rgba(126, 170, 220, .12) !important; border-radius: 18px; box-shadow: none !important; min-height: 148px; padding: 26px 28px; animation: none !important; }
+.hero::before, .hero::after { display: none !important; }
+.eyebrow { background: transparent !important; border: 0 !important; padding: 0 !important; color: #7f97b4 !important; font-weight: 700; letter-spacing: .2px; }
+.eyebrow::before { background: #5aa9ff !important; animation: none !important; width: 6px; height: 6px; }
+.hero h1 { color: #f2f8ff !important; font-weight: 800; text-shadow: none !important; }
+.hero p { color: #8ba3bf !important; }
+.hero-pill { background: transparent !important; border-color: rgba(126, 170, 220, .14) !important; box-shadow: none !important; border-radius: 11px; color: #cfe2f5 !important; }
+.hero-pill svg { stroke: #5aa9ff !important; }
+
+/* ── سرتیترها ──────────────────────────────────────────────────────── */
+.section-title h2::before, .panel-head h3::before { display: none !important; }
+.section-title h2 { font-weight: 750; color: #d7e6f7; letter-spacing: .2px; }
+.section-title p, .panel-head p { color: #7f97b4 !important; }
+
+/* ── کارت‌های KPI و پنل‌ها ──────────────────────────────────────────── */
+.stats-grid { gap: 14px !important; }
+.stat-card, .panel { background: #071525 !important; border-color: rgba(126, 170, 220, .12) !important; box-shadow: none !important; }
+.stat-card { border-radius: 14px; min-height: 138px; padding: 18px; transition: border-color .2s; }
+.stat-card::before, .stat-card::after { display: none !important; }
+.stat-card:hover, .stat-card:focus-visible { transform: none !important; box-shadow: none !important; border-color: rgba(126, 170, 220, .26) !important; }
+.stat-icon { background: transparent !important; border: 1px solid rgba(126, 170, 220, .14); color: #8fb6e0 !important; width: 30px; height: 30px; border-radius: 9px; box-shadow: none !important; }
+.stat-top { color: #8ba3bf !important; font-weight: 600; }
+.stat-value { color: #f4f9ff !important; font-weight: 800; text-shadow: none !important; letter-spacing: -.4px; }
+.stat-unit { color: #7f97b4 !important; }
+.stat-foot { color: #6f88a5 !important; }
+.trend { color: #63d6a4 !important; }
+.panel { border-radius: 16px; padding: 20px; }
+
+/* ── نمودار و افسانه ───────────────────────────────────────────────── */
+.panel-select { background: #0a1a2b !important; border-color: rgba(126, 170, 220, .14) !important; box-shadow: none !important; }
+.chart-legend, .chart-bottom, .legend-row, .legend-row small { color: #7f97b4 !important; }
+.legend-dot { box-shadow: none !important; }
+.chart-line { stroke: #5aa9ff !important; filter: none !important; stroke-width: 2.6; }
+.chart-line-2 { stroke: #2c659c !important; opacity: .8; }
+.chart-point { fill: #071525 !important; stroke: #5aa9ff !important; stroke-width: 2; }
+.gridline { stroke: rgba(126, 170, 220, .10) !important; }
+.axis-label { fill: #6f88a5 !important; }
+.donut { background: conic-gradient(#5aa9ff 0 52%, #2c659c 52% 80%, #4d8f74 80% 100%) !important; box-shadow: none !important; }
+.donut::before { background: #071525 !important; box-shadow: none !important; }
+.donut-center span { color: #7f97b4 !important; }
+.bar-track { background: #0c1d30 !important; border-color: transparent !important; box-shadow: none !important; height: 8px; }
+.bar-fill { background: #5aa9ff !important; box-shadow: none !important; animation: none !important; }
+.mini-note { border-top: 1px dashed rgba(126, 170, 220, .12) !important; color: #7f97b4 !important; }
+.drill-filter { background: transparent !important; border-color: rgba(126, 170, 220, .16) !important; }
+
+/* ── دکمه‌ها ───────────────────────────────────────────────────────── */
+.btn-primary { background: #2f86e8 !important; box-shadow: none !important; color: #fff !important; border-radius: 10px; font-weight: 800; transform: none !important; }
+.btn-primary::after { display: none !important; }
+.btn-primary:hover { filter: brightness(1.08); box-shadow: none !important; transform: none !important; }
+.btn-secondary { background: transparent !important; border-color: rgba(126, 170, 220, .18) !important; color: #b9d0e6 !important; border-radius: 10px; }
+
+/* ── جدول‌ها ───────────────────────────────────────────────────────── */
+th { color: #7f97b4 !important; border-bottom-color: rgba(126, 170, 220, .12) !important; }
+td { color: #c6d8ea !important; border-bottom-color: rgba(126, 170, 220, .06) !important; }
+.table-wrap tbody tr:hover { background: rgba(110, 170, 240, .05) !important; }
+.order-id { color: #7fb9f0 !important; }
+.status.pending { background: rgba(255, 200, 100, .10) !important; box-shadow: none !important; }
+.status.paid, .status.good { background: rgba(86, 214, 162, .10) !important; box-shadow: none !important; }
+.type-pill { background: transparent !important; border-color: rgba(126, 170, 220, .14) !important; }
+.search, .filter-control { background: #0a1a2b !important; border-color: rgba(126, 170, 220, .14) !important; box-shadow: none !important; }
+.search:focus, .filter-control:focus { box-shadow: 0 0 0 2px rgba(90, 169, 255, .18) !important; border-color: rgba(90, 169, 255, .4) !important; }
+.mini-avatar { background: #0f2537 !important; border-color: rgba(126, 170, 220, .16) !important; color: #a9d3f0 !important; box-shadow: none !important; }
+
+/* ── نوار پایین ────────────────────────────────────────────────────── */
+.mobile-nav { background: #050f1d !important; box-shadow: none !important; backdrop-filter: none !important; border-top-color: rgba(126, 170, 220, .12) !important; }
+.mobile-nav button { color: #7f97b4 !important; }
+.mobile-nav button.active { color: #cfe7ff !important; }
+.mobile-nav button.active::before { background: rgba(90, 169, 255, .10) !important; box-shadow: none !important; }
+.mobile-nav button.active svg { filter: none !important; transform: none !important; }
+
+/* ── نمای مشتری ────────────────────────────────────────────────────── */
+.cv-card, .cv-hero { background: #071525 !important; border-color: rgba(126, 170, 220, .12) !important; box-shadow: none !important; border-radius: 16px; }
+.cv-hero { background: #08182b !important; }
+.cv-wallet { background: #0a1c2e !important; border-color: rgba(126, 170, 220, .16) !important; box-shadow: none !important; border-radius: 16px; }
+.cv-wallet::before { display: none !important; }
+.cv-wallet-charge, .cv-buy { background: #2f86e8 !important; color: #fff !important; box-shadow: none !important; transform: none !important; }
+.cv-wallet-history { background: transparent !important; border-color: rgba(126, 170, 220, .2) !important; color: #cfe4f8 !important; box-shadow: none !important; }
+.cv-quick-tile { background: #071525 !important; border-color: rgba(126, 170, 220, .12) !important; box-shadow: none !important; border-radius: 12px; }
+.cv-quick-tile:hover, .cv-quick-tile:focus-visible { transform: none !important; box-shadow: none !important; border-color: rgba(126, 170, 220, .24) !important; }
+.cv-quick-icon { background: transparent !important; border-color: rgba(126, 170, 220, .14) !important; color: #8fb6e0 !important; border-radius: 9px; box-shadow: none !important; }
+.cv-stat { background: #071525 !important; border-color: rgba(126, 170, 220, .12) !important; box-shadow: none !important; border-radius: 12px; }
+.cv-plan { border-radius: 14px; }
+.cv-plan:hover { box-shadow: none !important; border-color: rgba(126, 170, 220, .2) !important; }
+.cv-spec { background: transparent !important; border-color: rgba(126, 170, 220, .10) !important; }
+.cv-price { color: #f2f8ff !important; text-shadow: none !important; font-weight: 800; }
+.cv-chip { background: transparent !important; border-color: rgba(126, 170, 220, .18) !important; color: #b9d0e6 !important; }
+.cv-bar { background: rgba(126, 170, 220, .14) !important; }
+.cv-bar i { background: #5aa9ff !important; box-shadow: none !important; }
+.customer-mode .customer-tabs { background: #050f1d !important; box-shadow: none !important; backdrop-filter: none !important; border-top-color: rgba(126, 170, 220, .12) !important; }
+.customer-mode .customer-tabs [role="tab"] { color: #7f97b4 !important; }
+.customer-mode .customer-tabs [role="tab"][aria-selected="true"] { background: rgba(90, 169, 255, .10) !important; box-shadow: none !important; color: #dff0ff !important; }
+.customer-mode .customer-tabs [role="tab"][aria-selected="true"]::after { background: #5aa9ff !important; }

@@ -1,0 +1,145 @@
+/* ══════════════════════════════════════════════════════════════════════
+   نمونهٔ D — «نئون» (پرانرژی)
+   فلسفه: زمینهٔ تقریباً سیاه + شبکهٔ محو + لبه‌های نئون فیروزه‌ای.
+   عددها با گرادیان روشن دیده می‌شوند. برای کسی که «زنده» یعنی پرانرژی.
+   ══════════════════════════════════════════════════════════════════════ */
+body {
+  background:
+    radial-gradient(1000px 640px at 88% -12%, rgba(0, 180, 255, .30), transparent 60%),
+    radial-gradient(740px 540px at 2% 6%, rgba(26, 96, 255, .24), transparent 62%),
+    repeating-linear-gradient(0deg, rgba(90, 200, 255, .045) 0 1px, transparent 1px 46px),
+    repeating-linear-gradient(90deg, rgba(90, 200, 255, .045) 0 1px, transparent 1px 46px),
+    #030b1b !important;
+}
+body::before { display: none !important; }
+
+/* ── کارت‌ها: لبهٔ نئون ─────────────────────────────────────────────── */
+.stat-card {
+  background: linear-gradient(160deg, rgba(7, 22, 45, .97), rgba(3, 11, 26, .99)) !important;
+  border-color: rgba(90, 230, 255, .34) !important;
+  border-radius: 18px;
+  box-shadow: 0 0 0 1px rgba(90, 230, 255, .16), 0 0 36px -10px rgba(60, 200, 255, .38), inset 0 1px 0 rgba(255, 255, 255, .08) !important;
+}
+.stat-card::before { background: linear-gradient(90deg, transparent, var(--tone, #5ae6ff), transparent) !important; opacity: 1 !important; height: 2px !important; }
+.stat-card::after { background: var(--glow, rgba(90, 230, 255, .3)) !important; filter: blur(28px) !important; opacity: 1 !important; }
+.stat-card:hover, .stat-card:focus-visible {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 0 0 1px rgba(130, 242, 255, .52), 0 0 48px -8px rgba(90, 225, 255, .55) !important;
+}
+.stat-icon {
+  background: rgba(90, 230, 255, .12) !important;
+  border: 1px solid rgba(110, 235, 255, .36) !important;
+  color: #a6f4ff !important;
+  box-shadow: 0 0 24px -8px rgba(90, 230, 255, .95) !important;
+}
+.stat-value {
+  background: linear-gradient(100deg, #ffffff 8%, #96f0ff 58%, #4fb6ff 100%) !important;
+  -webkit-background-clip: text !important; background-clip: text !important;
+  color: transparent !important; -webkit-text-fill-color: transparent;
+  font-weight: 900; text-shadow: none !important;
+}
+.stat-value .stat-unit { -webkit-text-fill-color: #86ccff !important; color: #86ccff !important; font-weight: 650 !important; }
+.stat-top { color: #a9d7f5 !important; }
+.stat-foot { color: #7ea9cc !important; }
+.trend { color: #7cf7c8 !important; }
+
+/* ── قهرمان ────────────────────────────────────────────────────────── */
+.hero {
+  background:
+    radial-gradient(600px 300px at 100% -20%, rgba(0, 200, 255, .45), transparent 62%),
+    linear-gradient(130deg, #04305f, #02101f 66%) !important;
+  border: 1px solid rgba(90, 230, 255, .45) !important;
+  box-shadow: 0 0 0 1px rgba(90, 230, 255, .16), 0 0 80px -24px rgba(60, 200, 255, .7), inset 0 1px 0 rgba(160, 246, 255, .22) !important;
+}
+.hero::after { border-color: rgba(90, 230, 255, .35) !important; box-shadow: 0 0 0 30px rgba(90, 230, 255, .06), 0 0 0 64px rgba(90, 230, 255, .03) !important; }
+.hero h1 { color: #f4ffff !important; text-shadow: 0 0 36px rgba(90, 225, 255, .55) !important; }
+.eyebrow {
+  background: rgba(90, 230, 255, .12) !important;
+  border-color: rgba(90, 230, 255, .5) !important;
+  color: #b6f6ff !important;
+  box-shadow: 0 0 26px -10px rgba(90, 230, 255, .95) !important;
+}
+.hero-pill { background: rgba(2, 22, 44, .62) !important; border-color: rgba(90, 230, 255, .36) !important; box-shadow: inset 0 0 22px rgba(90, 230, 255, .10) !important; }
+.hero-pill svg { stroke: #8cf2ff !important; }
+.section-title h2::before, .panel-head h3::before { background: linear-gradient(180deg, #a6f8ff, #1f8bff) !important; box-shadow: 0 0 18px rgba(90, 230, 255, .95) !important; }
+
+/* ── پنل‌ها، نمودار، نوارها ────────────────────────────────────────── */
+.panel {
+  background: linear-gradient(160deg, rgba(7, 22, 45, .96), rgba(3, 12, 27, .99)) !important;
+  border-color: rgba(90, 200, 255, .22) !important;
+  box-shadow: 0 0 0 1px rgba(90, 200, 255, .08), 0 26px 60px -46px rgba(0, 40, 90, 1) !important;
+}
+.chart-line { stroke: #7cf2ff !important; filter: drop-shadow(0 0 12px rgba(90, 230, 255, .75)) !important; }
+.chart-line-2 { stroke: #3f8dff !important; }
+.chart-point { fill: #041220 !important; stroke: #9cf8ff !important; }
+.legend-dot { box-shadow: 0 0 14px rgba(120, 240, 255, .95) !important; }
+.donut { background: conic-gradient(#7cf2ff 0 52%, #2f7dff 52% 80%, #5df0b4 80% 100%) !important; box-shadow: 0 0 60px -14px rgba(90, 230, 255, .95), inset 0 0 0 1px rgba(255, 255, 255, .18) !important; }
+.donut::before { background: #04121f !important; }
+.bar-fill { background: linear-gradient(90deg, #1f8bff, #9cf8ff) !important; box-shadow: 0 0 22px rgba(90, 230, 255, .9) !important; }
+.bar-track { background: rgba(4, 18, 32, .95) !important; border-color: rgba(90, 200, 255, .18) !important; }
+.panel-select, .search, .filter-control { background: rgba(3, 18, 36, .9) !important; border-color: rgba(90, 220, 255, .26) !important; }
+.mini-note { border-top-color: rgba(90, 220, 255, .18) !important; color: #7fa9cc !important; }
+
+/* ── دکمه‌ها ───────────────────────────────────────────────────────── */
+.btn-primary {
+  background: linear-gradient(115deg, #8cf5ff, #29a4ff 55%, #0b6fe0) !important;
+  color: #021223 !important;
+  box-shadow: 0 0 34px -8px rgba(90, 230, 255, .95), inset 0 1px 0 rgba(255, 255, 255, .6) !important;
+}
+.btn-primary::after { background: linear-gradient(100deg, transparent 40%, rgba(255, 255, 255, .7) 50%, transparent 60%) !important; }
+.outline-btn, .table-action, .order-follow {
+  background: rgba(90, 220, 255, .07) !important;
+  border-color: rgba(90, 220, 255, .3) !important;
+  color: #d6f6ff !important;
+}
+.outline-btn:hover, .table-action:hover { border-color: rgba(120, 240, 255, .6) !important; box-shadow: 0 0 26px -12px rgba(90, 230, 255, .9) !important; }
+th { color: #a6d4f0 !important; border-bottom-color: rgba(90, 220, 255, .18) !important; }
+td { color: #d3ebfb !important; border-bottom-color: rgba(90, 220, 255, .07) !important; }
+.order-id { color: #8cf2ff !important; }
+.status.pending { background: rgba(255, 200, 100, .14) !important; box-shadow: inset 0 0 0 1px rgba(255, 210, 120, .28) !important; }
+.status.paid, .status.good { background: rgba(86, 240, 180, .14) !important; box-shadow: inset 0 0 0 1px rgba(96, 240, 190, .3) !important; }
+.type-pill { background: rgba(90, 220, 255, .08) !important; border-color: rgba(90, 220, 255, .24) !important; }
+.mini-avatar { background: rgba(90, 230, 255, .16) !important; border-color: rgba(90, 230, 255, .34) !important; color: #d8fbff !important; }
+.avatar { background: linear-gradient(145deg, #8cf5ff, #2f86e8) !important; color: #02182c !important; box-shadow: 0 0 26px -8px rgba(90, 230, 255, .95) !important; }
+
+/* ── نوارهای پایین ─────────────────────────────────────────────────── */
+.mobile-nav, .customer-mode .customer-tabs {
+  background: linear-gradient(180deg, rgba(4, 18, 36, .95), rgba(2, 8, 18, .99)) !important;
+  border-top-color: rgba(90, 220, 255, .3) !important;
+  box-shadow: 0 -20px 50px -30px rgba(0, 0, 0, .95), inset 0 1px 0 rgba(90, 230, 255, .12) !important;
+}
+.mobile-nav button.active, .customer-mode .customer-tabs [role="tab"][aria-selected="true"] { color: #eafdff !important; }
+.mobile-nav button.active::before, .customer-mode .customer-tabs [role="tab"][aria-selected="true"] {
+  background: rgba(90, 230, 255, .12) !important;
+  box-shadow: inset 0 0 0 1px rgba(90, 230, 255, .4), 0 0 26px -12px rgba(90, 230, 255, .95) !important;
+}
+.mobile-nav button.active svg { filter: drop-shadow(0 0 10px rgba(90, 230, 255, .95)) !important; }
+.customer-mode .customer-tabs [role="tab"] { color: #8fb8d8 !important; }
+
+/* ── نمای مشتری ────────────────────────────────────────────────────── */
+.cv-card, .cv-hero {
+  background: linear-gradient(158deg, rgba(8, 26, 52, .96), rgba(3, 12, 27, .98)) !important;
+  border-color: rgba(90, 220, 255, .22) !important;
+}
+.cv-wallet {
+  background:
+    radial-gradient(340px 200px at 4% -40%, rgba(130, 245, 255, .38), transparent 66%),
+    linear-gradient(140deg, rgba(6, 80, 150, .96), rgba(2, 18, 40, .98)) !important;
+  border-color: rgba(90, 230, 255, .5) !important;
+  box-shadow: 0 0 0 1px rgba(90, 230, 255, .18), 0 0 70px -22px rgba(60, 200, 255, .85) !important;
+}
+.cv-wallet::before { border-color: rgba(140, 245, 255, .34) !important; }
+.cv-wallet-label strong { text-shadow: 0 0 30px rgba(90, 230, 255, .55) !important; }
+.cv-quick-tile, .cv-stat, .cv-sub, .cv-spec { background: rgba(4, 18, 36, .7) !important; border-color: rgba(90, 220, 255, .18) !important; }
+.cv-quick-tile:hover, .cv-quick-tile:focus-visible { box-shadow: 0 0 34px -14px rgba(90, 230, 255, .95) !important; border-color: rgba(120, 240, 255, .5) !important; }
+.cv-quick-icon { background: rgba(90, 230, 255, .14) !important; border-color: rgba(90, 230, 255, .34) !important; color: #b6f6ff !important; }
+.cv-buy, .cv-wallet-charge {
+  background: linear-gradient(115deg, #8cf5ff, #29a4ff 55%, #0b6fe0) !important;
+  color: #021223 !important;
+  box-shadow: 0 0 30px -8px rgba(90, 230, 255, .9), inset 0 1px 0 rgba(255, 255, 255, .6) !important;
+}
+.cv-wallet-history { background: rgba(90, 220, 255, .08) !important; border-color: rgba(120, 240, 255, .4) !important; }
+.cv-price { color: #f4feff !important; text-shadow: 0 0 26px rgba(90, 230, 255, .6) !important; font-weight: 900; }
+.cv-chip { background: rgba(90, 230, 255, .14) !important; border-color: rgba(90, 230, 255, .4) !important; color: #d9fbff !important; }
+.cv-bar i { background: linear-gradient(90deg, #1f8bff, #9cf8ff) !important; box-shadow: 0 0 14px rgba(90, 230, 255, .95) !important; }
+.cv-plan:hover { box-shadow: 0 0 40px -18px rgba(90, 230, 255, .9) !important; border-color: rgba(120, 240, 255, .45) !important; }
