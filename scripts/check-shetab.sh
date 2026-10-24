@@ -141,8 +141,43 @@ else
   warn 'به‌دلیل نبود آدرس/Secret، مسیر عمومی تست نشد.'
 fi
 
-head_ '۵) اپ روی گوشی؛ این دو مقدار را وارد کنید'
+head_ '۵) سازگاری با اپ شتاب (ساختار REST وردپرس)'
+# اپ نسخهٔ ۱.۷.۳ پیش از قبول آدرس، ایندکس REST وردپرس را می‌سنجد. نسخه‌های قبل از
+# 1.8.12 این ایندکس را نداشتند و اپ می‌گفت «آدرس API اشتباه است».
+if [[ -n "$BASE" ]]; then
+  WP_INDEX_RAW=$(curl -sS --max-time 12 -w '\n%{http_code}' "$BASE/wp-json/" 2>/dev/null || true)
+  WP_INDEX_CODE=$(printf '%s' "$WP_INDEX_RAW" | tail -n1)
+  WP_INDEX_JSON=$(printf '%s' "$WP_INDEX_RAW" | sed '$d')
+  if [[ "$WP_INDEX_CODE" == '200' && "$WP_INDEX_JSON" == *'webdide-cv/v1'* ]]; then
+    ok 'ایندکس /wp-json/ با namespace افزونه برمی‌گردد؛ تست اتصال اپ باید پاس شود.'
+  elif [[ "$WP_INDEX_CODE" == '000' || -z "$WP_INDEX_CODE" ]]; then
+    warn 'از این سرور به دامنهٔ خودش دسترسی نبود (NAT/DNS داخلی)؛ از گوشی تست کنید.'
+  elif [[ "$WP_INDEX_CODE" == '404' ]]; then
+    bad '/wp-json/ هنوز ۴۰۴ است؛ اپ با پیام «آدرس API اشتباه است» رد می‌کند.'
+    warn 'یعنی نسخهٔ نصب‌شده قدیمی است: sudo bash /opt/tiznetvpn/update.sh --yes'
+    PROBLEMS=$((PROBLEMS + 1))
+  else
+    bad "پاسخ غیرمنتظره از /wp-json/: ${WP_INDEX_CODE}"
+    PROBLEMS=$((PROBLEMS + 1))
+  fi
+
+  WP_CONFIRM_RAW=$(curl -sS --max-time 12 -w '\n%{http_code}' "$BASE/wp-json/webdide-cv/v1/confirm" 2>/dev/null || true)
+  WP_CONFIRM_CODE=$(printf '%s' "$WP_CONFIRM_RAW" | tail -n1)
+  WP_CONFIRM_BODY=$(printf '%s' "$WP_CONFIRM_RAW" | sed '$d')
+  if [[ "$WP_CONFIRM_CODE" == '404' && "$WP_CONFIRM_BODY" == *'rest_no_route'* ]]; then
+    ok 'مسیر confirm فقط POST می‌پذیرد و مثل وردپرس واقعی به GET با rest_no_route پاسخ می‌دهد.'
+  elif [[ "$WP_CONFIRM_CODE" == '200' ]]; then
+    warn 'مسیر confirm به GET هم ۲۰۰ می‌دهد (رفتار نسخهٔ قدیمی). برای سازگاری کامل: update.sh --yes'
+  else
+    warn "پاسخ GET روی confirm: ${WP_CONFIRM_CODE:-بدون پاسخ} — مورد انتظار ۴۰۴ با rest_no_route است."
+  fi
+else
+  warn 'بدون PUBLIC_BASE_URL بررسی سازگاری ممکن نیست.'
+fi
+
+head_ '۶) اپ روی گوشی؛ این دو مقدار را وارد کنید'
 printf '   Server URL : %s\n' "${BASE:-<PUBLIC_BASE_URL>}/wp-json/webdide-cv/v1/confirm"
+printf '   تست سلامت : %s\n' "${BASE:-<PUBLIC_BASE_URL>}/wp-json/webdide-cv/v1/health"
 if [[ -n "$SECRET" && "$SECRET_SOURCE" == 'env' ]]; then
   printf '   API Secret : %s\n' "$SECRET"
 else

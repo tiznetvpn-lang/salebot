@@ -267,8 +267,23 @@ assert(testQrPng.slice(0, 8).join(',') === '137,80,78,71,13,10,26,10' && qrWidth
 
 let r = await get('/');
 assert(r.status === 200 && r.text.includes('Tiznet'), 'GET / سلامت برند تیزنت را نشان می‌دهد');
-const shetabHealth = await get('/wp-json/webdide-cv/v1/confirm');
+const shetabHealth = await get('/wp-json/webdide-cv/v1/health');
 const powerPsShetabHealth = await get('/api/shetab-verify/');
+// لایهٔ سازگاری وردپرس: اپ شتاب برای «تست اتصال» ساختار REST وردپرس را می‌سنجد.
+const wpIndexResp = await get('/wp-json/');
+const wpIndexJson = JSON.parse(wpIndexResp.text);
+const wpIndexNoSlash = await get('/wp-json');
+const wpNamespaceResp = await get('/wp-json/webdide-cv/v1');
+const wpV2Types = await get('/wp-json/wp/v2/types');
+const wpNamespaceJson = JSON.parse(wpNamespaceResp.text);
+const wpIndexViaRestRoute = await get('/?rest_route=/');
+const wpConfirmGet = await get('/wp-json/webdide-cv/v1/confirm');
+const wpConfirmGetJson = JSON.parse(wpConfirmGet.text);
+const wpStatusNoId = await get('/wp-json/webdide-cv/v1/status');
+const wpStatusUnknown = await get('/wp-json/webdide-cv/v1/status?order_id=424242');
+const wpStatusUnknownJson = JSON.parse(wpStatusUnknown.text);
+const wpUnknownRoute = await get('/wp-json/webdide-cv/v1/does-not-exist');
+const wpOptions = await APP.fetch(new Request('https://t.test/wp-json/webdide-cv/v1/confirm', { method: 'OPTIONS' }), env, {});
 const shetabHealthWrongKey = await APP.fetch(new Request('https://t.test/api/shetab-verify', { headers: { Authorization: 'Bearer wrong-key' } }), env, {});
 const shetabHealthBlankKey = await APP.fetch(new Request('https://t.test/api/shetab-verify', { headers: { Authorization: 'Bearer' } }), env, {});
 const shetabUnconfiguredEnv = Object.assign({}, env, { SHETAB_API_SECRET: '' });
@@ -283,6 +298,26 @@ assert(shetabHealth.status === 200 && shetabHealthJson.success === true && sheta
   && shetabHealthBlankKey.status === 401
   && shetabHealthUnconfigured.status === 503 && shetabMissingJson.reason === 'secret_missing' && !!shetabMissingJson.hint,
   'تست اتصال GET روی هر دو مسیر Shetab پاسخ درست می‌دهد و reason/hint دقیق برای کلید اشتباه و Secret خالی برمی‌گرداند');
+
+assert(wpIndexResp.status === 200 && Array.isArray(wpIndexJson.namespaces) && wpIndexJson.namespaces.includes('webdide-cv/v1')
+  && wpIndexJson.routes && wpIndexJson.routes['/wp-json/webdide-cv/v1/confirm']
+  && wpIndexJson.routes['/wp-json/webdide-cv/v1/confirm'].methods.join(',') === 'POST'
+  && String(wpIndexJson.url).startsWith('https://') && wpIndexJson.timezone_string === 'Asia/Tehran'
+  && wpIndexNoSlash.status === 200
+  && wpIndexViaRestRoute.status === 200 && JSON.parse(wpIndexViaRestRoute.text).namespaces.includes('webdide-cv/v1')
+  && wpIndexJson.namespaces.includes('wp/v2') && wpV2Types.status === 200
+  && wpNamespaceResp.status === 200 && wpNamespaceJson.namespace === 'webdide-cv/v1'
+  && !!wpNamespaceJson.routes['/webdide-cv/v1/confirm']
+  && shetabWrongJson.code === 'secret_mismatch' && shetabWrongJson.data.status === 401,
+  'ایندکس REST وردپرس با namespaces و routeهای افزونه سرو می‌شود (هم /wp-json/ هم ?rest_route=/ و بدنهٔ خطا شامل code و data.status است)');
+
+assert(wpConfirmGet.status === 404 && wpConfirmGetJson.code === 'rest_no_route' && wpConfirmGetJson.data.status === 404
+  && wpUnknownRoute.status === 404
+  && wpStatusNoId.status === 400 && JSON.parse(wpStatusNoId.text).code === 'missing_order_id'
+  && wpStatusUnknown.status === 200 && wpStatusUnknownJson.status === 'not_found' && Number(wpStatusUnknownJson.order_id) === 424242
+  && wpOptions.status === 204 && String(wpOptions.headers.get('access-control-allow-origin')) === '*'
+  && String(wpOptions.headers.get('allow')).includes('POST'),
+  'مسیرهای وردپرس مثل rest_route واقعی رفتار می‌کنند: GET روی confirm → rest_no_route، status → not_found، OPTIONS → ۲۰۴ با CORS');
 const miniAsset = await get('/miniapp');
 assert(miniAsset.status === 200 && miniAsset.text.includes('TiznetVPN Mini App'), 'GET /miniapp فایل Mini App را از binding دارایی Worker می‌خواند');
 const noInitData = await miniApi('/api/miniapp/bootstrap');
@@ -628,10 +663,15 @@ let badKeyResp = await shetabPostAt('/api/shetab-verify', { amount: autoOrder.pa
 assert(badKeyResp.status === 401 && hUsers.size === hBeforeAuto, 'secret اشتباه درخواست پرداخت را رد کرد');
 let noMatchResp = await shetabPost({ amount: autoOrder.pay_amount + 12345, recipeId: 'NOMATCH' });
 assert(noMatchResp.status === 404 && hUsers.size === hBeforeAuto, 'مبلغ نامنطبق سفارشی را تأیید نکرد');
+const wpStatusPending = await get('/wp-json/webdide-cv/v1/status?order_id=' + autoId);
+const wpStatusPendingJson = JSON.parse(wpStatusPending.text);
+assert(wpStatusPending.status === 200 && wpStatusPendingJson.status === 'pending' && Number(wpStatusPendingJson.amount) === Number(autoOrder.pay_amount) && String(wpStatusPendingJson.order_id) === String(autoId), 'مسیر status افزونه، سفارش در انتظار را با همان مبلغ pending برمی‌گرداند');
 let paidResp = await shetabPost({ amount: String(autoOrder.pay_amount), recipeId: 'BANK-REF-001' });
 const paidJson = await paidResp.json();
 const paidOrder = await kvJson('o:' + autoId);
 assert(paidResp.status === 200 && paidJson.payment_confirmed && paidJson.message === 'Payment confirmed successfully.' && paidOrder.status === 'approved' && paidOrder.payment_status === 'paid', 'مسیر confirm پلاگین با پاسخ مورد انتظار، پرداخت تطبیق‌یافته را تأیید می‌کند');
+const wpStatusPaid = await get('/wp-json/webdide-cv/v1/status?order_id=' + autoId);
+assert(JSON.parse(wpStatusPaid.text).status === 'confirmed', 'بعد از تأیید پرداخت، مسیر status وضعیت confirmed می‌دهد');
 const autoSaleLedger = await kvJson('ledger:sale:' + autoId);
 assert(autoSaleLedger && autoSaleLedger.payment_method === 'shetab' && autoSaleLedger.type === 'buy', 'فروش خودکار در دفتر فروش ثبت شد');
 assert(hUsers.size === hBeforeAuto + 1, 'بعد از پرداخت تطبیق‌یافته یوزر هیدیفای ساخته شد');
@@ -712,6 +752,7 @@ const appGuideButtons = lookupButtons(appGuide);
 const secretCopy = appGuideButtons.find((b) => b.copy_text);
 assert(String(appGuide.params.text).includes('اتصال اپ Shetab Verification')
   && String(appGuide.params.text).includes('/wp-json/webdide-cv/v1/confirm')
+  && String(appGuide.params.text).includes('سازگاری REST وردپرس')
   && !!secretCopy && secretCopy.copy_text.text === 'shetab-test-secret'
   && appGuideButtons.some((b) => b.copy_text && b.copy_text.text === 'https://t.test/wp-json/webdide-cv/v1/confirm')
   && appGuideButtons.some((b) => b.callback_data === 'a_shtest'),
