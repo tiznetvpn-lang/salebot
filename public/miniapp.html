@@ -2118,6 +2118,104 @@
       .stat-card:active, .cv-quick-tile:active { transform: scale(.992); }
     }
 
+    .cv-phone { padding: 12px 13px; display: grid; gap: 8px; }
+    .cv-phone-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .cv-phone-head h3 { margin: 0; font-size: var(--fs-xs); font-weight: 850; color: #f2faff; }
+    .cv-phone-hint { margin: 0; color: #9dbcdb; font-size: var(--fs-3xs); line-height: 1.75; }
+    .cv-phone-row { display: grid; grid-template-columns: minmax(0, 1fr) 70px; gap: 7px; }
+    .cv-phone-row[hidden] { display: none; }
+    .cv-phone-input {
+      min-width: 0; min-height: 36px; padding: 0 11px; border-radius: 10px;
+      font: inherit; font-size: var(--fs-2xs); color: #f2faff; direction: ltr; text-align: center;
+      border: 1px solid rgba(126, 200, 255, .24); background: rgba(4, 20, 42, .72);
+    }
+    .cv-phone-input::placeholder { color: #62809f; }
+    .cv-phone-save {
+      min-height: 36px; padding: 0 8px; border: 0; border-radius: 10px; cursor: pointer;
+      font: inherit; font-size: var(--fs-2xs); font-weight: 800; color: #04223c;
+      background: linear-gradient(115deg, #b7eeff, #6bcaf7 55%, #34a0e6);
+      box-shadow: 0 12px 24px -16px rgba(120, 214, 255, .9);
+    }
+    .cv-phone-save:active { transform: scale(.98); }
+    .cv-phone-send {
+      display: inline-flex; align-items: center; gap: 6px; justify-self: start;
+      padding: 5px 2px; border: 0; background: none; cursor: pointer;
+      font: inherit; font-size: var(--fs-3xs); font-weight: 700; color: #86c9f4;
+    }
+    .cv-phone-send svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
+    .cv-phone-send span { text-decoration: underline; text-decoration-color: rgba(134, 201, 244, .38); text-underline-offset: 3px; }
+    .cv-phone .cv-chip { font-size: var(--fs-3xs); }
+    .cv-phone .cv-chip.good { color: #8bf0c8; background: rgba(86, 214, 162, .14); box-shadow: inset 0 0 0 1px rgba(86, 214, 162, .22); }
+    .cv-phone .mini-note { font-size: var(--fs-3xs); line-height: 1.7; padding-top: 0; border-top: 0; }
+    .cv-phone .mini-note.error { color: #ffb3b8; }
+    .cv-phone .mini-note:empty { display: none; }
+
+    /* ── ۱۲.۵) قفل کانال و ثبت شماره ────────────────────────────────────── */
+    .access-gate {
+      position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center;
+      padding: 22px; overflow: auto;
+      background:
+        radial-gradient(720px 460px at 84% -10%, rgba(47, 134, 232, .38), transparent 62%),
+        radial-gradient(560px 420px at 4% 8%, rgba(90, 216, 255, .18), transparent 64%),
+        rgba(2, 10, 24, .97);
+      backdrop-filter: blur(8px);
+    }
+    .ag-card {
+      width: min(430px, 100%); padding: 24px 22px 20px; border-radius: 24px;
+      border: 1px solid rgba(126, 200, 255, .3);
+      background: linear-gradient(158deg, rgba(16, 52, 98, .96), rgba(5, 20, 43, .98));
+      box-shadow: 0 50px 100px -50px rgba(0, 8, 26, 1), inset 0 1px 0 rgba(255, 255, 255, .12);
+      text-align: center;
+    }
+    .ag-icon {
+      width: 58px; height: 58px; margin: 0 auto 14px; border-radius: 18px;
+      display: grid; place-items: center; font-size: 26px;
+      background: linear-gradient(145deg, rgba(90, 216, 255, .28), rgba(47, 134, 232, .16));
+      border: 1px solid rgba(126, 210, 255, .4);
+      box-shadow: 0 16px 34px -20px rgba(90, 200, 255, .95), inset 0 1px 0 rgba(255, 255, 255, .3);
+    }
+    .ag-card h2 { margin: 0 0 8px; font-size: var(--fs-md); font-weight: 850; color: #f2faff; line-height: 1.6; }
+    .ag-card p { margin: 0 0 16px; color: #a9c8e6; font-size: var(--fs-2xs); line-height: 1.9; }
+    .ag-channels { display: grid; gap: 9px; margin-bottom: 14px; }
+    .ag-channel {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      min-width: 0; min-height: 46px; padding: 0 14px; border-radius: 14px; cursor: pointer;
+      font: inherit; font-size: var(--fs-xs); font-weight: 800; color: #e9f8ff;
+      border: 1px solid rgba(126, 200, 255, .34);
+      background: linear-gradient(140deg, rgba(47, 134, 232, .3), rgba(8, 32, 66, .7));
+      transition: transform .18s var(--ease-out), border-color .18s;
+    }
+    .ag-channel:active { transform: scale(.985); }
+    .ag-ch-icon { width: 17px; height: 17px; flex: 0 0 auto; fill: none; stroke: #7fd6ff; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .ag-icon svg { width: 27px; height: 27px; fill: none; stroke: #9fe4ff; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .ag-channel span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ag-primary {
+      width: 100%; min-height: 48px; border: 0; border-radius: 14px; cursor: pointer;
+      font: inherit; font-size: var(--fs-sm); font-weight: 850; color: #04223c;
+      background: linear-gradient(115deg, #b7eeff, #63c6f8 52%, #2f8fe0);
+      box-shadow: 0 22px 40px -22px rgba(140, 225, 255, .95), inset 0 1px 0 rgba(255, 255, 255, .6);
+    }
+    .ag-primary:disabled { opacity: .65; cursor: default; }
+    .ag-secondary {
+      width: 100%; min-height: 44px; margin-top: 9px; border-radius: 13px; cursor: pointer;
+      font: inherit; font-size: var(--fs-xs); font-weight: 750; color: #dff3ff;
+      border: 1px solid rgba(126, 200, 255, .3); background: rgba(10, 40, 80, .6);
+    }
+    .ag-note { margin-top: 12px; color: #7f9dbf; font-size: var(--fs-3xs); line-height: 1.9; }
+    .ag-input {
+      width: 100%; min-height: 46px; padding: 0 14px; border-radius: 13px;
+      font: inherit; font-size: var(--fs-xs); color: #f2faff; direction: ltr; text-align: center;
+      border: 1px solid rgba(126, 200, 255, .28); background: rgba(4, 20, 42, .8);
+    }
+    .ag-input::placeholder { color: #6d8aab; }
+    .ag-state { margin-top: 10px; font-size: var(--fs-2xs); color: #8fe6c2; min-height: 18px; }
+    .ag-state.error { color: #ff9aa8; }
+    .ag-phone-card { margin: 0 0 13px; }
+    .ag-or { margin: 11px 0 2px; font-size: var(--fs-3xs); color: #7f9dbf; }
+    .ag-row { display: grid; grid-template-columns: minmax(0, 1fr) 92px; gap: 8px; align-items: stretch; }
+    .ag-row .ag-secondary { min-height: 46px; margin-top: 0; }
+    .ag-row .ag-input { min-height: 46px; }
+
     /* ── ۱۳) احترام به تنظیمات حرکتی کاربر ────────────────────────────── */
     @media (prefers-reduced-motion: reduce) {
       body::before { animation: none; }
@@ -2423,6 +2521,20 @@
             <button class="cv-quick-tile" type="button" data-customer-quick="support"><span class="cv-quick-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/></svg></span><strong>پشتیبانی</strong></button>
           </div>
 
+          <article class="cv-card cv-phone" id="customerPhoneCard" hidden>
+            <div class="cv-phone-head">
+              <h3>شمارهٔ موبایل</h3>
+              <span class="cv-chip" id="customerPhoneBadge">ثبت نشده</span>
+            </div>
+            <p class="cv-phone-hint" id="customerPhoneHint">برای تکمیل حساب، شمارهٔ خودتان را ثبت کنید.</p>
+            <div class="cv-phone-row">
+              <input class="cv-phone-input" id="customerPhoneInput" type="tel" inputmode="numeric" autocomplete="tel" maxlength="16" placeholder="۰۹۱۲۱۲۳۴۵۶۷" aria-label="شمارهٔ موبایل">
+              <button class="cv-phone-save" id="customerPhoneSave" type="button">ثبت</button>
+            </div>
+            <button class="cv-phone-send" id="customerPhoneSend" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1Z"/></svg><span>ارسال شماره با تلگرام</span></button>
+            <div class="mini-note" id="customerPhoneStatus" role="status" aria-live="polite"></div>
+          </article>
+
           <div class="cv-pending-list" id="customerPendingOrders"></div>
 
           <article class="cv-card cv-free" id="customerFreeCard" aria-labelledby="customerFreeTitle">
@@ -2594,6 +2706,8 @@
     let subscriptionActionContext = null;
     let botUsername = '';
     let supportUsername = '';
+    let phoneVerified = false;
+    let myPhone = '';
 
     function toast(text) {
       const el=document.getElementById('toast');
@@ -3492,6 +3606,7 @@
     }
     function renderCustomer(data,isPreview) {
       customerData=data;
+      refreshPhoneCard();
       renderCustomerReferral(data.referral,isPreview);
       renderCustomerFreeSubscription(data.free_subscription,isPreview);
       renderCustomerOrders(data.orders||[],!!data.orders_partial);
@@ -4431,6 +4546,12 @@
       else if(e.target.id==='agentCreateForm'){e.preventDefault();createAgentSubscription(e.target);}
     });
     document.querySelectorAll('[data-scroll]').forEach(b=>b.addEventListener('click',()=>document.getElementById(b.dataset.scroll)?.scrollIntoView({behavior:'smooth'})));
+    const phoneSendBtn=document.getElementById('customerPhoneSend');
+    if(phoneSendBtn)phoneSendBtn.addEventListener('click',phoneRequestContact);
+    const phoneSaveBtn=document.getElementById('customerPhoneSave');
+    if(phoneSaveBtn)phoneSaveBtn.addEventListener('click',()=>savePhoneFromCard());
+    const phoneInputEl=document.getElementById('customerPhoneInput');
+    if(phoneInputEl)phoneInputEl.addEventListener('keydown',(ev)=>{if(ev.key==='Enter'){ev.preventDefault();savePhoneFromCard();}});
     document.getElementById('modalClose').addEventListener('click',closeModal);
     document.getElementById('modalCloseTop').addEventListener('click',closeModal);
     document.getElementById('modalConfirm').addEventListener('click',()=>{
@@ -4440,12 +4561,247 @@
 
     function startPreview() {
       renderPreviewDashboard();
+      refreshPhoneCard();
+    }
+    function openTelegramChannel(url){
+      let parsed;try{parsed=new URL(url);}catch(_){return;}
+      if(parsed.protocol!=='https:')return;
+      if(tg&&typeof tg.openTelegramLink==='function')tg.openTelegramLink(parsed.toString());
+      else if(tg&&typeof tg.openLink==='function')tg.openLink(parsed.toString());
+      else window.open(parsed.toString(),'_blank','noopener,noreferrer');
+    }
+    function renderAccessGate(access){
+      const channels=(access.missing&&access.missing.length?access.missing:(access.channels||[])).filter(c=>c&&c.url);
+      const needsJoin=!!access.join_required;
+      const needsPhone=!!access.phone_required&&!access.phone_verified;
+      const wrap=document.createElement('div');
+      wrap.className='access-gate';
+      wrap.id='accessGate';
+      const card=document.createElement('div');
+      card.className='ag-card';
+      const icon=document.createElement('div');
+      icon.className='ag-icon';
+      icon.innerHTML=needsJoin
+        ?'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/><circle cx="12" cy="15.5" r="1.6"/></svg>'
+        :'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M10.5 18.5h3"/></svg>';
+      const title=document.createElement('h2');
+      title.textContent=needsJoin?'برای استفاده از ربات، اول عضو کانال شوید':'ثبت شمارهٔ موبایل';
+      const desc=document.createElement('p');
+      desc.textContent=needsJoin
+        ?'بعد از عضویت، دکمهٔ «عضو شدم، بررسی کن» را بزنید تا دسترسی باز شود.'
+        :'برای ادامه، شمارهٔ خودتان را بفرستید تا حساب شما کامل شود.';
+      card.append(icon,title,desc);
+      if(needsJoin&&channels.length){
+        const box=document.createElement('div');
+        box.className='ag-channels';
+        channels.forEach(c=>{
+          const b=document.createElement('button');
+          b.type='button';b.className='ag-channel';
+          const ic=document.createElementNS('http://www.w3.org/2000/svg','svg');
+          ic.setAttribute('viewBox','0 0 24 24');ic.setAttribute('aria-hidden','true');ic.setAttribute('class','ag-ch-icon');
+          ic.innerHTML='<path d="M20 4 4 10.5l5.5 2L12 19l3-5.5L20 4Z"/><path d="M9.5 12.5 20 4"/>';
+          const s=document.createElement('span');s.textContent=String(c.title||'کانال');
+          b.append(ic,s);
+          b.addEventListener('click',()=>openTelegramChannel(c.url));
+          box.appendChild(b);
+        });
+        card.appendChild(box);
+      }
+      const status=document.createElement('div');
+      status.className='ag-state';
+      const primary=document.createElement('button');
+      primary.type='button';primary.className='ag-primary';
+      primary.textContent=needsJoin?'عضو شدم، بررسی کن':'ثبت شد، بررسی کن';
+      primary.addEventListener('click',async()=>{
+        primary.disabled=true;
+        status.className='ag-state';
+        status.textContent='در حال بررسی…';
+        try{
+          const boot=await api('/api/miniapp/bootstrap');
+          if(boot.access&&!boot.access.blocked){status.textContent='تأیید شد؛ در حال ورود…';location.reload();return;}
+          const next=boot.access||access;
+          if(next.join_required){status.className='ag-state error';status.textContent='هنوز عضویت شما دیده نمی‌شود. چند لحظه صبر کنید و دوباره بزنید.';}
+          else if(next.phone_required&&!next.phone_verified){status.textContent='حالا شماره را ثبت کنید.';wrap.replaceWith(renderAccessGate(next));return;}
+          else {status.textContent='✅ تأیید شد؛ ورود…';location.reload();return;}
+        }catch(e){status.className='ag-state error';status.textContent='بررسی ناموفق بود؛ دوباره تلاش کنید.';}
+        primary.disabled=false;
+      });
+      card.appendChild(primary);
+      if(needsPhone){
+        const phoneBox=document.createElement('div');
+        phoneBox.className='ag-phone-card';
+        const sendBtn=document.createElement('button');
+        sendBtn.type='button';sendBtn.className='ag-secondary';
+        sendBtn.textContent='ارسال شمارهٔ من با تلگرام';
+        sendBtn.addEventListener('click',()=>{
+          if(tg&&typeof tg.requestContact==='function'){
+            try{tg.requestContact(()=>{status.textContent='شماره فرستاده شد؛ دکمهٔ «ثبت شد، بررسی کن» را بزنید.';});}
+            catch(_){status.className='ag-state error';status.textContent='تلگرام اجازه نداد؛ شماره را دستی وارد کنید.';}
+          }else{
+            status.className='ag-state error';
+            status.textContent='این نسخهٔ تلگرام اجازهٔ ارسال خودکار نمی‌دهد؛ شماره را دستی وارد کنید.';
+          }
+        });
+        const or=document.createElement('div');
+        or.className='ag-or';
+        or.textContent='یا شماره را دستی وارد کنید';
+        const row=document.createElement('div');
+        row.className='ag-row';
+        const input=document.createElement('input');
+        input.className='ag-input';input.type='tel';input.inputMode='numeric';
+        input.autocomplete='tel';input.placeholder='۰۹۱۲۱۲۳۴۵۶۷';input.maxLength=16;
+        const saveBtn=document.createElement('button');
+        saveBtn.type='button';saveBtn.className='ag-secondary';
+        saveBtn.textContent='ثبت شماره';
+        saveBtn.addEventListener('click',async()=>{
+          const raw=String(input.value||'').trim();
+          if(!raw){status.className='ag-state error';status.textContent='شماره را وارد کنید.';return;}
+          saveBtn.disabled=true;
+          try{
+            const res=await api('/api/miniapp/phone',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:raw})});
+            status.className='ag-state';
+            status.textContent='شماره ثبت شد؛ در حال ورود…';
+            if(res&&res.access&&!res.access.blocked){location.reload();return;}
+            wrap.replaceWith(renderAccessGate(res&&res.access?res.access:Object.assign({},access,{phone_verified:true,blocked:false})));
+          }catch(e){
+            status.className='ag-state error';
+            status.textContent=e&&e.message==='invalid_phone'?'شمارهٔ واردشده معتبر نیست.':'ثبت شماره ناموفق بود.';
+            saveBtn.disabled=false;
+          }
+        });
+        row.append(input,saveBtn);
+        phoneBox.append(sendBtn,or,row);
+        card.insertBefore(phoneBox,primary);
+      }
+      card.appendChild(status);
+      const note=document.createElement('div');
+      note.className='ag-note';
+      note.textContent='این صفحه بخشی از فروشگاه تیزنت است؛ فقط برای فعال‌سازی دسترسی شما نمایش داده می‌شود.';
+      card.appendChild(note);
+      wrap.appendChild(card);
+      return wrap;
+    }
+    function showAccessGate(access){
+      const old=document.getElementById('accessGate');
+      if(old)old.remove();
+      const gate=renderAccessGate(access);
+      document.body.appendChild(gate);
+      // اگر کاربر کانال را در تلگرام باز کند و برگردد، خودکار بررسی می‌شود.
+      let tries=0;
+      const timer=setInterval(async()=>{
+        if(!document.getElementById('accessGate')||tries>=20){clearInterval(timer);return;}
+        if(document.visibilityState==='hidden')return;
+        tries++;
+        try{
+          const boot=await api('/api/miniapp/bootstrap');
+          if(boot.access&&!boot.access.blocked){clearInterval(timer);location.reload();}
+        }catch(_){}
+      },5000);
+    }
+    let phoneEditMode=false;
+    function refreshPhoneCard(){
+      const card=document.getElementById('customerPhoneCard');
+      if(!card)return;
+      const badge=document.getElementById('customerPhoneBadge');
+      const hint=document.getElementById('customerPhoneHint');
+      const input=document.getElementById('customerPhoneInput');
+      const row=input&&input.parentElement;
+      const save=document.getElementById('customerPhoneSave');
+      const send=document.getElementById('customerPhoneSend');
+      const status=document.getElementById('customerPhoneStatus');
+      if(!phoneVerified)phoneEditMode=false;
+      card.hidden=false;
+      const editing=!phoneVerified||phoneEditMode;
+      if(badge){
+        badge.textContent=phoneVerified?'ثبت شده':'ثبت نشده';
+        badge.classList.toggle('good',phoneVerified);
+      }
+      if(hint){
+        hint.textContent=phoneVerified
+          ?'شمارهٔ ثبت‌شده: '+myPhone
+          :'برای تکمیل حساب، شمارهٔ خودتان را ثبت کنید.';
+      }
+      if(row)row.hidden=!editing;
+      if(status&&!editing)status.textContent='';
+      if(send){
+        const label=send.querySelector('span');
+        if(label)label.textContent=phoneVerified?(phoneEditMode?'بستن':'تغییر شماره'):'ارسال شماره با تلگرام';
+      }
+    }
+    function renderCustomerPhoneCard(){ refreshPhoneCard(); }
+    function phoneRequestContact(){
+      const status=document.getElementById('customerPhoneStatus');
+      const reveal=(msg,isError)=>{
+        if(!status)return;
+        status.classList.toggle('error',!!isError);
+        status.textContent=msg;
+      };
+      if(phoneVerified&&!phoneEditMode){
+        phoneEditMode=true;
+        refreshPhoneCard();
+        const input=document.getElementById('customerPhoneInput');
+        if(input){input.focus();input.select&&input.select();}
+        reveal('شمارهٔ جدید را وارد و «ثبت» را بزنید.',false);
+        return;
+      }
+      if(phoneVerified&&phoneEditMode){
+        phoneEditMode=false;
+        refreshPhoneCard();
+        return;
+      }
+      if(tg&&typeof tg.requestContact==='function'){
+        try{
+          tg.requestContact(()=>reveal('شماره از طرف تلگرام فرستاده شد؛ چند لحظه صبر کنید و صفحه را بازخوانی کنید.',false));
+          return;
+        }catch(_){}
+      }
+      const input=document.getElementById('customerPhoneInput');
+      if(input)input.focus();
+      reveal('این نسخهٔ تلگرام ارسال خودکار را پشتیبانی نمی‌کند؛ شماره را دستی وارد و ثبت کنید.',true);
+    }
+    function savePhoneFromCard(raw){
+      const status=document.getElementById('customerPhoneStatus');
+      const inputEl=document.getElementById('customerPhoneInput');
+      const value=String(raw==null?(inputEl?inputEl.value:'') : raw)||'';
+      const fail=(msg)=>{ if(status){status.textContent=msg;status.classList.add('error');} };
+      const done=(msg)=>{ if(status){status.textContent=msg;status.classList.remove('error');} };
+      if(status)status.classList.remove('error');
+      if(!value.trim()){fail('شماره را وارد کنید.');return Promise.resolve(false);}
+      const save=document.getElementById('customerPhoneSave');
+      if(save)save.disabled=true;
+      return api('/api/miniapp/phone',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:value.trim()})})
+        .then((res)=>{
+          phoneVerified=true;
+          phoneEditMode=false;
+          myPhone=String((res&&res.phone)||'');
+          if(inputEl)inputEl.value='';
+          refreshPhoneCard();
+          done('شماره ثبت شد.');
+          toast('شماره ثبت شد.');
+          if(res&&res.access&&res.access.blocked){showAccessGate(res.access);}
+          return true;
+        })
+        .catch((e)=>{
+          fail(e&&e.message==='invalid_phone'?'شمارهٔ واردشده معتبر نیست.':'ثبت شماره ناموفق بود؛ دوباره تلاش کنید.');
+          return false;
+        })
+        .then((r)=>{ if(save)save.disabled=false; return r; });
     }
     async function startTelegramApp() {
       const gate=createGate();
       try {
         const boot=await api('/api/miniapp/bootstrap');
         liveMode=true;profile=boot.profile||{};adminRole=boot.role==='admin';agentRole=boot.role==='agent';
+        phoneVerified=!!(boot.access&&boot.access.phone_verified)||!!boot.phone;
+        myPhone=String(boot.phone||'');
+        renderCustomerPhoneCard();
+        if(boot.access&&boot.access.blocked){
+          gate.remove();
+          document.body.classList.add('customer-mode');
+          document.body.classList.remove('preview-data');
+          showAccessGate(boot.access);
+          return;
+        }
         botUsername=String(boot.bot_username||'');supportUsername=String(boot.support||'').replace(/^@/,'');
         setNavForRole();
         const toggle=document.getElementById('roleToggle');

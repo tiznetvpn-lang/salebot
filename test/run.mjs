@@ -25,7 +25,7 @@ if (!backupCronMatch || backupCronMatch[1] !== '0 */3 * * *') throw new Error('K
 if (!cronScriptSource.includes("'0 */3 * * *'")) throw new Error('زمان‌بندی scripts/run-cron.mjs با KV_BACKUP_CRON یکی نیست');
 if (!backupTimerUnit.includes('OnCalendar=*-*-* 00/3:00:00 UTC')) throw new Error('systemd timer بکاپ باید هر ۳ ساعت اجرا شود');
 if (!workerSource.includes('KV_BACKUP_MIN_INTERVAL_MS') || workerSource.includes('11 * 60 * 60 * 1000')) throw new Error('فاصلهٔ ایمنی بکاپ با بازهٔ ۳ ساعته هماهنگ نیست');
-src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser;');
+src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser; globalThis.__normalizePhone = normalizePhone; globalThis.__isJoinGateMarkup = isJoinGateMarkup; globalThis.__isPhoneRequestMarkup = isPhoneRequestMarkup; globalThis.__accessGate = accessGate; globalThis.__DEFAULT_SETTINGS = DEFAULT_SETTINGS;');
 // eslint-disable-next-line no-eval
 eval(src);
 const APP = globalThis.APP;
@@ -117,6 +117,10 @@ function mockHiddify(url, method, body, headers) {
 
 // ---------- موک fetch ----------
 const TG = []; // لاگ متدهای تلگرام
+let tgMemberStatus = 'member';   // وضعیت عضویت کاربر تستی در کانال
+let tgBotStatus = 'administrator'; // وضعیت خود ربات در کانال
+let tgChatError = '';
+let tgMemberError = '';
 let midSeq = 100;
 globalThis.fetch = async (url, init = {}) => {
   const u = String(url);
@@ -130,7 +134,18 @@ globalThis.fetch = async (url, init = {}) => {
       } else params = init.body ? JSON.parse(init.body) : {};
     } catch { params = { _raw: true }; }
     TG.push({ method, params });
-    if (method === 'getMe') return Response.json({ ok: true, result: { username: 'TestShopBot' } });
+    if (method === 'getMe') return Response.json({ ok: true, result: { id: 4242, username: 'TestShopBot' } });
+    if (method === 'getChat') {
+      if (tgChatError) return Response.json({ ok: false, description: tgChatError }, { status: 400 });
+      const reqId = String(params.chat_id);
+      return Response.json({ ok: true, result: { id: -1001234567890, title: 'کانال تست', type: 'channel', username: reqId.replace(/^@/, '') } });
+    }
+    if (method === 'getChatMember') {
+      if (tgMemberError) return Response.json({ ok: false, description: tgMemberError }, { status: 400 });
+      const who = Number(params.user_id);
+      if (who === 4242) return Response.json({ ok: true, result: { status: tgBotStatus } });
+      return Response.json({ ok: true, result: { status: tgMemberStatus, is_member: tgMemberStatus === 'member' } });
+    }
     if (method === 'getFile') return Response.json({ ok: true, result: { file_path: 'photos/receipt.png' } });
     if (method === 'setWebhook') return Response.json({ ok: true, result: true });
     if (method === 'sendMessage' || method === 'sendDocument')
@@ -1152,7 +1167,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg:#04152e') && miniAppSource.includes('--brand-blue:#00409a') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت آبی تیزنت (زمینهٔ تیرهٔ آبی) در بازطراحی نمای مشتری حفظ شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.17-ubuntu26.19';"), 'شمارهٔ نسخهٔ سرور 1.8.17-ubuntu26.19 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.18-ubuntu26.20';"), 'شمارهٔ نسخهٔ سرور 1.8.18-ubuntu26.20 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم «آبی زنده»') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #6ee0ff, #2f86e8 52%, #1a58b4)'), 'تم زندهٔ آبی روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ آبی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #7ad9ff;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها آبی/فیروزه‌ای‌اند');
@@ -1530,6 +1545,154 @@ assert(quotaBeforeConcurrentAgentCreation.status === 200 && concurrentSuccesses.
 const agentNoName = await miniApi('/api/miniapp/agent/subscriptions', promoterInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ panel_id: purchasable.panel_id, plan_id: purchasable.plan_id, request_id: 'agent-no-name-test-01' }) });
 const badAgentQuota = await miniApi('/api/miniapp/admin/agents/' + U12, adminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'quota_set', amount: -1 }) });
 assert(agentNoName.status === 400 && agentNoName.json.error === 'agent_customer_name_required' && badAgentQuota.status === 400 && badAgentQuota.json.error === 'invalid_agent_quota', 'نام مشتری و سهمیهٔ عددی نامعتبر پیش از هر تغییر مالی/ساخت رد می‌شوند');
+
+
+// ================= قفل کانال و ثبت شماره =================
+console.log('\n— قفل کانال و ثبت شماره —');
+const GATE_USER = 771;
+const GATE_USER2 = 772;
+const gateInit = await signedInitData(GATE_USER);
+const gateInit2 = await signedInitData(GATE_USER2);
+
+assert(globalThis.__DEFAULT_SETTINGS.join_lock_enabled === false && globalThis.__DEFAULT_SETTINGS.phone_required === false && Array.isArray(globalThis.__DEFAULT_SETTINGS.join_channels) && globalThis.__DEFAULT_SETTINGS.join_channels.length === 0, 'قفل کانال و شماره پیش‌فرض خاموش‌اند و هیچ کانالی ثبت نشده است');
+assert(globalThis.__normalizePhone('۰۹۱۲۱۲۳۴۵۶۷') === '09121234567' && globalThis.__normalizePhone('+989121234567') === '09121234567' && globalThis.__normalizePhone('00989121234567') === '09121234567' && globalThis.__normalizePhone('9121234567') === '09121234567' && globalThis.__normalizePhone('12345') === '' && globalThis.__normalizePhone('۰۹۱۲۱۲۳۴۵') === '', 'شمارهٔ موبایل فارسی/بین‌المللی به یک قالب یکسان تبدیل می‌شود و شمارهٔ ناقص رد می‌شود');
+assert(globalThis.__isJoinGateMarkup({ inline_keyboard: [[{ text: 'کانال', url: 'https://t.me/x' }], [{ text: 'چک', callback_data: 'jc:check' }]] }) === true && globalThis.__isJoinGateMarkup({ inline_keyboard: [[{ text: 'چک', callback_data: 'jc:check' }], [{ text: 'x', callback_data: 'a_admin' }]] }) === false && globalThis.__isPhoneRequestMarkup({ keyboard: [[{ text: 'شماره', request_contact: true }]] }) === true && globalThis.__isPhoneRequestMarkup({ keyboard: [[{ text: 'شماره' }]] }) === false, 'در حالت فقط‌اپ، فقط مارک‌آپ قفل کانال و دکمهٔ درخواست شماره مجاز است و بقیه حذف می‌شوند');
+
+// --- بدون قفل، رفتار قبلی ---
+const normalBefore = TG.length;
+await sendText(GATE_USER, '/start');
+const normalStart = lastMsgTo(GATE_USER);
+assert(normalStart && !String(normalStart.params.text || '').includes('عضویت در کانال'), 'تا وقتی قفل خاموش است، /start همان پاسخ همیشگی را می‌دهد');
+
+// --- روشن‌کردن قفل کانال ---
+await kvJson; // noop to keep lint calm
+const gateCfg0 = await kv.get('cfg', { type: 'json' }) || {};
+const gateCfg1 = Object.assign({}, gateCfg0, { join_lock_enabled: true, join_channels: [{ id: '-1001234567890', key: 'idm1001234567890', title: 'کانال تست', url: 'https://t.me/testchannel' }] });
+await kv.put('cfg', JSON.stringify(gateCfg1));
+
+tgMemberStatus = 'left';
+await sendText(GATE_USER, '/start');
+const gatePress = lastMsgTo(GATE_USER);
+const gateButtons = lookupButtons(gatePress);
+assert(gatePress && String(gatePress.params.text || '').includes('عضویت در کانال') && gateButtons.some((b) => b.url === 'https://t.me/testchannel') && gateButtons.some((b) => b.callback_data === 'jc:check'), 'با روشن‌بودن قفل، کاربر غیرعضو پیام «عضویت در کانال» با دکمهٔ کانال و دکمهٔ بررسی می‌گیرد');
+assert(TG.filter((x) => x.method === 'getChatMember' && Number(x.params.user_id) === GATE_USER).length >= 1, 'عضویت کاربر با getChatMember از تلگرام پرسیده می‌شود');
+
+// --- عضویت بعدی: دکمهٔ بررسی باید قفل را باز کند ---
+tgMemberStatus = 'member';
+await press(GATE_USER, 'jc:check');
+const joinedOk = TG.some((x) => x.method === 'editMessageText' && String(x.params.chat_id) === String(GATE_USER) && String(x.params.text || '').includes('عضویت تأیید شد'))
+  || TG.some((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(GATE_USER) && String(x.params.text || '').includes('عضویت تأیید شد'));
+assert(joinedOk, 'بعد از عضویت، دکمهٔ «عضو شدم، بررسی کن» دسترسی را باز می‌کند');
+
+// --- کش: بررسی دوباره هم‌زمان با تلگرام تماس نمی‌گیرد ---
+const memberCallsBefore = TG.filter((x) => x.method === 'getChatMember' && Number(x.params.user_id) === GATE_USER).length;
+await sendText(GATE_USER, '/start');
+const memberCallsAfter = TG.filter((x) => x.method === 'getChatMember' && Number(x.params.user_id) === GATE_USER).length;
+assert(memberCallsAfter === memberCallsBefore, 'نتیجهٔ عضویت کش می‌شود تا هر پیام کاربر یک درخواست به تلگرام نفرستد');
+
+// --- خطای پیکربندی: قفل نباید فروشگاه را ببندد ---
+tgMemberError = 'Bad Request: chat not found';
+await sendText(GATE_USER2, '/start');
+const degradedMsg = lastMsgTo(GATE_USER2);
+assert(degradedMsg && !String(degradedMsg.params.text || '').includes('عضویت در کانال'), 'اگر ربات نتواند عضویت را ببیند، کاربر مسدود نمی‌شود (fail-open)');
+const degradedAlert = TG.filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === '999' && String(x.params.text || '').includes('قفل کانال')).length;
+assert(degradedAlert >= 1, 'خطای پیکربندی قفل به ادمین گزارش می‌شود');
+tgMemberError = '';
+
+// --- ادمین همیشه مستثنا است ---
+tgMemberStatus = 'left';
+await sendText(ADMIN, '/start');
+const adminStart = lastMsgTo(ADMIN);
+assert(adminStart && !String(adminStart.params.text || '').includes('عضویت در کانال'), 'ادمین با قفل کانال از پنل خودش بیرون نمی‌ماند');
+tgMemberStatus = 'member';
+
+// --- قفل شماره ---
+const gateCfg2 = Object.assign({}, gateCfg1, { join_lock_enabled: false, phone_required: true });
+await kv.put('cfg', JSON.stringify(gateCfg2));
+const PHONE_USER = 773;
+await sendText(PHONE_USER, '/start');
+const phonePrompt = lastMsgTo(PHONE_USER);
+const phoneKb = phonePrompt && phonePrompt.params.reply_markup && phonePrompt.params.reply_markup.keyboard;
+assert(phonePrompt && String(phonePrompt.params.text || '').includes('ثبت شمارهٔ موبایل') && Array.isArray(phoneKb) && phoneKb[0][0].request_contact === true, 'با روشن‌بودن قفل شماره، دکمهٔ بومی «ارسال شماره من» فرستاده می‌شود');
+
+// شمارهٔ شخص دیگر
+await upd({ message: { message_id: ++midSeq, chat: { id: PHONE_USER, type: 'private' }, from: { id: PHONE_USER, first_name: 'U' }, contact: { phone_number: '+989121110000', first_name: 'دیگری', user_id: 999 } } });
+const foreignMsg = lastMsgTo(PHONE_USER);
+assert(foreignMsg && String(foreignMsg.params.text || '').includes('متعلق به حساب شما نیست'), 'کنتاکت شخص دیگر پذیرفته نمی‌شود و کاربر راهنمایی می‌شود');
+
+// کارت مخاطب بدون user_id (قابل جعل)
+await upd({ message: { message_id: ++midSeq, chat: { id: PHONE_USER, type: 'private' }, from: { id: PHONE_USER, first_name: 'U' }, contact: { phone_number: '+989121110009', first_name: 'کارت' } } });
+const cardMsg = lastMsgTo(PHONE_USER);
+const noPhoneRec = await kvJson('u:' + PHONE_USER);
+assert(cardMsg && String(cardMsg.params.text || '').includes('متعلق به حساب شما نیست') && !(noPhoneRec && noPhoneRec.phone), 'کارت مخاطب بدون شناسهٔ تلگرام پذیرفته نمی‌شود');
+
+// شمارهٔ خودش
+await upd({ message: { message_id: ++midSeq, chat: { id: PHONE_USER, type: 'private' }, from: { id: PHONE_USER, first_name: 'U' }, contact: { phone_number: '+989121110001', first_name: 'خودم', user_id: PHONE_USER } } });
+const ownMsg = lastMsgTo(PHONE_USER);
+const phoneRec = await kvJson('u:' + PHONE_USER);
+assert(ownMsg && String(ownMsg.params.text || '').includes('ثبت شد') && phoneRec && phoneRec.phone === '09121110001' && phoneRec.phone_source === 'contact', 'شمارهٔ خودِ کاربر ذخیره می‌شود و پیام تأیید می‌گیرد');
+
+await sendText(PHONE_USER, '/start');
+const afterPhone = lastMsgTo(PHONE_USER);
+assert(afterPhone && !String(afterPhone.params.text || '').includes('ثبت شمارهٔ موبایل'), 'بعد از ثبت شماره، دیگر پیام قفل شماره فرستاده نمی‌شود');
+
+// تایپ دستی شماره
+const TYPE_USER = 774;
+await sendText(TYPE_USER, '۰۹۱۲۲۲۲۰۰۰۰');
+const typedRec = await kvJson('u:' + TYPE_USER);
+assert(typedRec && typedRec.phone === '09122220000' && typedRec.phone_source === 'text', 'کاربر می‌تواند شماره را دستی هم تایپ کند');
+
+// --- Mini App: دسترسی ---
+const gateInitLocked = await signedInitData(TYPE_USER + 10);
+const bootOpen = await miniApi('/api/miniapp/bootstrap', gateInitLocked);
+assert(bootOpen.status === 200 && bootOpen.json.access && bootOpen.json.access.phone_required === true && bootOpen.json.access.blocked === true && bootOpen.json.access.phone_verified === false, 'bootstrap وضعیت قفل را برای Mini App می‌فرستد');
+const blockedCustomer = await miniApi('/api/miniapp/customer', gateInitLocked);
+assert(blockedCustomer.status === 403 && blockedCustomer.json.error === 'phone_required', 'تا وقتی شماره ثبت نشده، دادهٔ مشتری به Mini App داده نمی‌شود');
+const badPhone = await miniApi('/api/miniapp/phone', gateInitLocked, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: '123' }) });
+assert(badPhone.status === 400 && badPhone.json.error === 'invalid_phone', 'شمارهٔ نامعتبر از Mini App رد می‌شود');
+const goodPhone = await miniApi('/api/miniapp/phone', gateInitLocked, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: '۰۹۳۳۳۳۳۰۰۰۰' }) });
+const unlockedBoot = await miniApi('/api/miniapp/bootstrap', gateInitLocked);
+assert(goodPhone.status === 200 && goodPhone.json.ok === true && unlockedBoot.json.access.blocked === false && unlockedBoot.json.phone === '0933 333 0000', 'ثبت شماره از Mini App قفل را باز می‌کند و شماره در bootstrap برمی‌گردد');
+
+// --- کانال در Mini App ---
+const gateInitJoin = await signedInitData(TYPE_USER + 20);
+const cfgJoin = Object.assign({}, gateCfg2, { phone_required: false, join_lock_enabled: true });
+await kv.put('cfg', JSON.stringify(cfgJoin));
+tgMemberStatus = 'left';
+const joinBoot = await miniApi('/api/miniapp/bootstrap', gateInitJoin);
+const joinBlocked = await miniApi('/api/miniapp/customer', gateInitJoin);
+assert(joinBoot.json.access.join_required === true && joinBoot.json.access.channels.length === 1 && joinBoot.json.access.channels[0].url === 'https://t.me/testchannel' && joinBlocked.status === 403 && joinBlocked.json.error === 'join_required', 'قفل کانال در Mini App هم دیده می‌شود و داده‌ها تا عضویت بسته‌اند');
+tgMemberStatus = 'member';
+
+// --- پنل ادمین ---
+await sendText(ADMIN, '/admin');
+await press(ADMIN, 'a_set');
+const settingsMsg = lastMsgTo(ADMIN, 'editMessageText') || lastMsgTo(ADMIN);
+assert(lookupButtons(settingsMsg).some((b) => b.callback_data === 's_gate'), 'در «⚙️ تنظیمات» دکمهٔ «🔒 قفل کانال و شماره» وجود دارد');
+await press(ADMIN, 's_gate');
+const gatePanel = TG.filter((x) => (x.method === 'sendMessage' || x.method === 'editMessageText') && String(x.params.chat_id) === String(ADMIN) && String(x.params.text || '').includes('قفل کانال')).slice(-1)[0];
+const gatePanelButtons = lookupButtons(gatePanel);
+assert(gatePanel && String(gatePanel.params.text || '').includes('قفل کانال') && gatePanelButtons.some((b) => b.callback_data === 's_gate_toggle') && gatePanelButtons.some((b) => b.callback_data === 's_phone_toggle') && gatePanelButtons.some((b) => b.callback_data === 's_gate_add'), 'پنل قفل، کلید روشن/خاموش کانال و شماره و افزودن کانال را دارد');
+
+// افزودن کانال از داخل تلگرام
+await press(ADMIN, 's_gate_add');
+await sendText(ADMIN, '@tiznetvpn_test');
+const cfgAfterAdd = await kvJson('cfg');
+assert(cfgAfterAdd.join_channels.some((c) => c.key === 'tiznetvpn_test' && c.url === 'https://t.me/tiznetvpn_test' && c.title === 'کانال تست'), 'ادمین می‌تواند کانال را با آیدی از داخل تلگرام اضافه کند');
+
+// کانالی که ربات ادمینش نیست پذیرفته نمی‌شود
+tgBotStatus = 'member';
+await press(ADMIN, 's_gate_add');
+await sendText(ADMIN, '@tiznetvpn_other');
+const cfgNoAdmin = await kvJson('cfg');
+const failMsg = TG.filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN) && String(x.params.text || '').includes('ادمین نیست')).length;
+assert(!cfgNoAdmin.join_channels.some((c) => c.key === 'tiznetvpn_other') && failMsg >= 1, 'کانالی که ربات در آن ادمین نیست اضافه نمی‌شود و دلیلش گفته می‌شود');
+tgBotStatus = 'administrator';
+await sendText(ADMIN, '/cancel');
+
+// پاک‌کردن قفل‌ها تا تست‌های بعدی تحت‌تأثیر نباشند
+const cfgClean = Object.assign({}, (await kvJson('cfg')) || {}, { join_lock_enabled: false, phone_required: false });
+await kv.put('cfg', JSON.stringify(cfgClean));
 
 console.log('— تمام —');
 if (process.exitCode) console.error('❌ بعضی تست‌ها شکست خوردند');

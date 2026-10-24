@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.17-ubuntu26.19';
+const VERSION = '1.8.18-ubuntu26.20';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -2673,7 +2673,12 @@ const DEFAULT_SETTINGS = {
   free_subscription_panel_id: '',
   free_subscription_claim_policy: '',
   shetab_secret: '',        // Secret پرداخت خودکار؛ اگر در env نبود، از همین‌جا ساخته می‌شود
-  shetab_secret_created_at: 0
+  shetab_secret_created_at: 0,
+  join_lock_enabled: false, // قفل کانال: کاربر باید عضو کانال‌های فهرست باشد
+  join_channels: [],        // [{ id, key, title, url }]
+  join_lock_text: '',       // متن دلخواه پیام قفل کانال
+  phone_required: false,    // قفل شمارهٔ موبایل
+  phone_lock_text: ''       // متن دلخواه پیام قفل شماره
 };
 
 async function getCfg(env) {
@@ -2972,6 +2977,8 @@ function WEBAPPBTN(text, url) { return { text: text, web_app: { url: url } }; }
 const BOT_CUSTOMER_BUTTONS = ['خرید اشتراک', 'پشتیبانی', 'اشتراک رایگان', 'راهنما', 'اطلاعات حساب', 'دریافت نمایندگی'];
 function isAllowedMiniAppOnlyMarkup(markup) {
   if (!markup || typeof markup !== 'object') return false;
+  // دو مارک‌آپ مجاز دیگر: پیام قفل کانال و دکمهٔ درخواست شماره.
+  if (isJoinGateMarkup(markup) || isPhoneRequestMarkup(markup)) return true;
   if (Array.isArray(markup.inline_keyboard)) {
     const rows = markup.inline_keyboard;
     if (rows.length !== 1 || !Array.isArray(rows[0]) || rows[0].length !== 1) return false;
@@ -5007,9 +5014,354 @@ async function adminSettings(env, chatId, messageId) {
     [BTN(manualOn ? '⛔ خاموش‌کردن کارت‌به‌کارت دستی' : '✅ روشن‌کردن کارت‌به‌کارت دستی', 's_pay_manual')],
     [BTN(autoOn ? '⛔ خاموش‌کردن کارت‌به‌کارت خودکار' : '✅ روشن‌کردن کارت‌به‌کارت خودکار', 's_pay_auto')],
     [BTN('📲 اتصال اپ شتاب', 'a_shapp'), BTN('🧪 آزمون پرداخت خودکار', 'a_shtest')],
+    [BTN('🔒 قفل کانال و شماره', 's_gate')],
     [BTN('📜 رویدادهای بانکی', 'a_shlog')],
     [BTN('◀️ پنل مدیریت', 'admin')]
   ];
+  if (messageId) await editMsg(env, chatId, messageId, t, KB(rows));
+  else await msg(env, chatId, t, KB(rows));
+}
+
+/* ============================================================================
+   قفل کانال و ثبت شماره
+   ────────────────────────────────────────────────────────────────────────────
+   قاعده: تا وقتی ادمین قفل را روشن نکرده باشد، هیچ رفتاری عوض نمی‌شود.
+   • قفل کانال: کاربر باید در همهٔ کانال‌های فهرست عضو باشد تا جلو برود.
+   • قفل شماره: کاربر باید شمارهٔ موبایل خودش را ثبت کند.
+   • ادمین‌ها همیشه مستثنا هستند (وگرنه دسترسی به پنل قطع می‌شود).
+   • اگر ربات نتواند عضویت را ببیند (ادمین کانال نیست/شناسه غلط)، برای آن
+     کانال «fail-open» عمل می‌کنیم و به ادمین هشدار می‌دهیم؛ ترجیح این است که
+     یک تنظیم اشتباه، فروشگاه را برای همه قفل نکند.
+   ========================================================================== */
+
+const JOIN_GATE_YES_TTL = 600;    // کش «عضو است» (ثانیه)
+const JOIN_GATE_NO_TTL = 45;      // کش «عضو نیست» (کوتاه، تا تأیید سریع دیده شود)
+const JOIN_GATE_MSG_TTL = 45;     // فاصلهٔ دو پیام قفل برای یک کاربر
+const JOIN_GATE_ALERT_TTL = 3600; // هشدار خطای پیکربندی، حداکثر هر ساعت
+
+// شمارهٔ موبایل ایران: ۰۹۱۲۱۲۳۴۵۶۷ / +98912… / 98912… / 0098912…
+function normalizePhone(raw) {
+  const fa = '۰۱۲۳۴۵۶۷۸۹';
+  let s = String(raw == null ? '' : raw).trim();
+  s = s.replace(/[۰-۹]/g, (d) => String(fa.indexOf(d)));
+  s = s.replace(/[^\d+]/g, '');
+  if (s.startsWith('+')) s = s.slice(1);
+  if (s.startsWith('0098')) s = s.slice(4);
+  else if (s.startsWith('98') && s.length > 10) s = s.slice(2);
+  if (s.length === 10 && s.startsWith('9')) s = '0' + s;
+  return /^09\d{9}$/.test(s) ? s : '';
+}
+
+function phonePretty(raw) {
+  const n = normalizePhone(raw);
+  if (!n) return '';
+  return n.slice(0, 4) + ' ' + n.slice(4, 7) + ' ' + n.slice(7);
+}
+
+function phoneMasked(raw) {
+  const n = normalizePhone(raw);
+  if (!n) return '';
+  return n.slice(0, 4) + '***' + n.slice(-4);
+}
+
+// کیبورد درخواست شماره (دکمهٔ بومی تلگرام؛ همیشه شمارهٔ خودِ کاربر را می‌فرستد)
+function phoneRequestMarkup() {
+  return { reply_markup: {
+    keyboard: [[{ text: '📱 ارسال شماره من', request_contact: true }]],
+    resize_keyboard: true,
+    one_time_keyboard: true
+  } };
+}
+
+function isPhoneRequestMarkup(markup) {
+  if (!markup || !Array.isArray(markup.keyboard)) return false;
+  const buttons = markup.keyboard.flat();
+  if (buttons.length !== 1) return false;
+  const b = buttons[0];
+  if (!b || typeof b !== 'object') return false;
+  if (Object.keys(b).some((k) => !['text', 'request_contact'].includes(k))) return false;
+  return b.request_contact === true && typeof b.text === 'string';
+}
+
+// کیبورد قفل کانال: فقط دکمه‌های لینک کانال + دکمهٔ بررسی
+function isJoinGateMarkup(markup) {
+  if (!markup || !Array.isArray(markup.inline_keyboard)) return false;
+  const rows = markup.inline_keyboard;
+  if (!rows.length || rows.length > 6) return false;
+  let checks = 0;
+  for (const row of rows) {
+    if (!Array.isArray(row) || row.length !== 1) return false;
+    const b = row[0];
+    if (!b || typeof b !== 'object') return false;
+    const keys = Object.keys(b);
+    if (keys.length === 2 && keys.includes('text') && keys.includes('url')) {
+      try { if (new URL(String(b.url)).protocol !== 'https:') return false; } catch (e) { return false; }
+      continue;
+    }
+    if (keys.length === 2 && keys.includes('text') && keys.includes('callback_data') && b.callback_data === 'jc:check') { checks++; continue; }
+    return false;
+  }
+  return checks === 1;
+}
+
+// «@name» / «name» / «-100…» / «https://t.me/name» → شناسهٔ قابل‌بررسی
+function normalizeChannelRef(raw) {
+  let t = String(raw == null ? '' : raw).trim();
+  if (!t) return null;
+  t = t.replace(/^https?:\/\/(?:www\.)?(?:t\.me|telegram\.me)\//i, '');
+  t = t.replace(/^telegram\.me\//i, '');
+  t = t.replace(/^@+/, '').trim();
+  if (!t) return null;
+  if (/^-?\d{5,20}$/.test(t)) return { kind: 'id', chat: t, key: 'id' + t.replace('-', 'm').replace('+', 'p') };
+  t = t.replace(/[/?#].*$/, '');
+  if (!t || t.startsWith('+')) return null;
+  if (/^[A-Za-z][A-Za-z0-9_]{2,31}$/.test(t)) return { kind: 'username', chat: '@' + t, key: t.toLowerCase() };
+  return null;
+}
+
+async function botIdCached(env) {
+  const cached = Number(await kvGet(env, 'system:bot_id', 0) || 0);
+  if (cached) return cached;
+  try {
+    const me = await tg(env, 'getMe');
+    const id = Number((me && me.id) || 0);
+    if (id) await kvPut(env, 'system:bot_id', id, 7 * 86400);
+    return id;
+  } catch (e) { return 0; }
+}
+
+async function resolveJoinChannel(env, raw) {
+  const ref = normalizeChannelRef(raw);
+  if (!ref) return { ok: false, error: 'invalid_ref' };
+  let chat;
+  try {
+    chat = await tg(env, 'getChat', { chat_id: ref.kind === 'id' ? Number(ref.chat) : ref.chat });
+  } catch (e) {
+    return { ok: false, error: 'getchat_failed', detail: String((e && e.message) || e) };
+  }
+  const username = String((chat && chat.username) || '');
+  const id = chat && chat.id != null ? String(chat.id) : ref.chat;
+  const title = String((chat && (chat.title || chat.first_name)) || username || 'کانال');
+  const url = username ? 'https://t.me/' + username : String((chat && chat.invite_link) || '');
+  if (!url) return { ok: false, error: 'no_public_link' };
+  const channel = { id: id, key: username ? username.toLowerCase() : 'id' + id.replace('-', 'm'), title: title, url: url };
+  const admin = await channelBotStatus(env, channel, true);
+  if (!admin) return { ok: false, error: 'bot_not_admin', channel: channel };
+  return { ok: true, channel: channel };
+}
+
+// آیا ربات اجازهٔ دیدن عضویت‌ها را در این کانال دارد؟
+async function channelBotStatus(env, channel, fresh) {
+  if (!channel || !channel.id) return false;
+  const key = 'jg:rights:' + channel.key;
+  if (!fresh) {
+    const cached = await kvGet(env, key, null);
+    if (cached && typeof cached.ok === 'boolean' && Date.now() - Number(cached.at || 0) < 300000) return cached.ok;
+  }
+  let ok = false;
+  try {
+    const botId = await botIdCached(env);
+    if (botId) {
+      const r = await tg(env, 'getChatMember', { chat_id: channel.id, user_id: botId });
+      const st = String((r && r.status) || '');
+      ok = st === 'administrator' || st === 'creator';
+    }
+  } catch (e) { ok = false; }
+  await kvPut(env, key, { ok: ok, at: Date.now() }, 900);
+  return ok;
+}
+
+// true = عضو است، false = عضو نیست، null = نمی‌دانیم (خطای پیکربندی)
+async function channelMembership(env, channel, tgId) {
+  try {
+    const r = await tg(env, 'getChatMember', { chat_id: channel.id, user_id: Number(tgId) });
+    const st = String((r && r.status) || '');
+    if (st === 'creator' || st === 'administrator' || st === 'member') return true;
+    if (st === 'restricted') return r.is_member === true;
+    return false;
+  } catch (e) { return null; }
+}
+
+async function joinedChannel(env, channel, tgId) {
+  const key = 'jg:' + tgId + ':' + channel.key;
+  const cached = await kvGet(env, key, null);
+  if (cached === true || cached === false) return cached;
+  const fresh = await channelMembership(env, channel, tgId);
+  if (fresh === null) return null;
+  await kvPut(env, key, fresh, fresh ? JOIN_GATE_YES_TTL : JOIN_GATE_NO_TTL);
+  return fresh;
+}
+
+async function clearJoinCache(env, tgId, cfg) {
+  const list = Array.isArray(cfg && cfg.join_channels) ? cfg.join_channels : [];
+  for (const ch of list) {
+    if (ch && ch.key) await kvDel(env, 'jg:' + tgId + ':' + ch.key);
+  }
+}
+
+// وضعیت یکپارچهٔ دسترسی؛ هم ربات و هم Mini App از همین استفاده می‌کنند.
+async function accessGate(env, user, cfg) {
+  const conf = cfg || await getCfg(env);
+  const channels = (Array.isArray(conf.join_channels) ? conf.join_channels : []).filter((c) => c && c.id && c.key);
+  const lockOn = conf.join_lock_enabled === true && channels.length > 0;
+  const missing = [];
+  let degraded = false;
+  if (lockOn && user && user.tg_id != null) {
+    for (const ch of channels) {
+      const ok = await joinedChannel(env, ch, user.tg_id);
+      if (ok === null) { degraded = true; continue; }
+      if (!ok) missing.push(ch);
+    }
+  }
+  const phoneOn = conf.phone_required === true;
+  const phoneVerified = !!normalizePhone(user && user.phone);
+  return {
+    join_lock: lockOn,
+    channels: channels.map((c) => ({ title: c.title || 'کانال', url: c.url || '' })),
+    missing: missing.map((c) => ({ title: c.title || 'کانال', url: c.url || '' })),
+    join_required: missing.length > 0,
+    phone_required: phoneOn,
+    phone_verified: phoneVerified,
+    blocked: missing.length > 0 || (phoneOn && !phoneVerified),
+    degraded: degraded
+  };
+}
+
+function accessView(gate) {
+  return {
+    blocked: !!gate.blocked,
+    join_required: !!gate.join_required,
+    join_lock: !!gate.join_lock,
+    phone_required: !!gate.phone_required,
+    phone_verified: !!gate.phone_verified,
+    channels: gate.channels || [],
+    missing: gate.missing || []
+  };
+}
+
+function defaultJoinText(gate) {
+  const names = (gate.missing || []).map((c) => '«' + esc(c.title) + '»').join(' و ');
+  return '🔒 <b>عضویت در کانال لازم است</b>\n\n' +
+    'برای استفاده از ربات، اول در ' + (names || 'کانال') + ' عضو شوید.\n' +
+    'بعد دکمهٔ <b>✅ عضو شدم، بررسی کن</b> را بزنید.';
+}
+
+function defaultPhoneText(cfg) {
+  return '📱 <b>ثبت شمارهٔ موبایل</b>\n\n' +
+    'برای ادامه، شمارهٔ خودتان را با دکمهٔ زیر بفرستید.\n' +
+    'می‌توانید شماره را تایپ کنید؛ مثال: <code>۰۹۱۲۱۲۳۴۵۶۷</code>';
+}
+
+async function sendJoinGate(env, chatId, gate, cfg) {
+  const conf = cfg || await getCfg(env);
+  const key = 'jgmsg:' + chatId;
+  if (await kvGet(env, key, 0)) return;
+  await kvPut(env, key, 1, JOIN_GATE_MSG_TTL);
+  const list = (gate.missing && gate.missing.length ? gate.missing : gate.channels) || [];
+  const rows = list.slice(0, 4).map((c) => [{
+    text: '📣 ' + String(c.title || 'کانال').slice(0, 40),
+    url: c.url
+  }]).filter((row) => row[0].url);
+  rows.push([BTN('✅ عضو شدم، بررسی کن', 'jc:check')]);
+  const text = String(conf.join_lock_text || '').trim() || defaultJoinText(gate);
+  await msg(env, chatId, text, KB(rows));
+}
+
+async function sendPhoneGate(env, chatId, cfg) {
+  const conf = cfg || await getCfg(env);
+  const text = String(conf.phone_lock_text || '').trim() || defaultPhoneText(conf);
+  await msg(env, chatId, text, phoneRequestMarkup());
+}
+
+async function alertGateDegraded(env) {
+  if (await kvGet(env, 'jg:degraded_alert', 0)) return;
+  await kvPut(env, 'jg:degraded_alert', 1, JOIN_GATE_ALERT_TTL);
+  try {
+    await notifyAdmins(env,
+      '⚠️ <b>قفل کانال: بررسی عضویت ناموفق است</b>\n\n' +
+      'ربات نمی‌تواند وضعیت عضویت کاربران را ببیند (احتمالاً در کانال ادمین نیست یا شناسهٔ کانال اشتباه است).\n' +
+      'تا رفع این مشکل، ورود کاربران به‌خاطر کانال بسته نمی‌شود.\n\n' +
+      'مسیر: «⚙️ تنظیمات → 🔒 قفل کانال و شماره»');
+  } catch (e) {}
+}
+
+// اگر کاربر باید چیزی تکمیل کند، پیام راهنما می‌فرستد و true برمی‌گرداند.
+async function enforceAccess(env, user, chatId, cfg) {
+  if (!user || isAdmin(env, user.tg_id)) return false;
+  const conf = cfg || await getCfg(env);
+  if (conf.join_lock_enabled !== true && conf.phone_required !== true) return false;
+  const gate = await accessGate(env, user, conf);
+  if (gate.degraded) await alertGateDegraded(env);
+  if (gate.join_required) { await sendJoinGate(env, chatId, gate, conf); return true; }
+  if (gate.phone_required && !gate.phone_verified) { await sendPhoneGate(env, chatId, conf); return true; }
+  return false;
+}
+
+// ثبت شماره‌ای که تلگرام با دکمهٔ «📱 ارسال شماره من» می‌فرستد.
+async function saveSharedPhone(env, user, contact, chatId, origin) {
+  if (!contact) return false;
+  // فقط شمارهٔ خودِ کاربر پذیرفته می‌شود: کارت مخاطبی که user_id ندارد هم قابل جعل است.
+  if (contact.user_id == null || String(contact.user_id) !== String(user.tg_id)) {
+    await msg(env, chatId, '⚠️ این شماره متعلق به حساب شما نیست. دکمهٔ «📱 ارسال شماره من» را بزنید تا شمارهٔ خودتان ثبت شود.', phoneRequestMarkup());
+    return false;
+  }
+  const phone = normalizePhone(contact.phone_number);
+  if (!phone) {
+    await msg(env, chatId, '⚠️ شمارهٔ ارسالی معتبر نیست. شماره را دستی بفرستید؛ مثال: <code>۰۹۱۲۱۲۳۴۵۶۷</code>', phoneRequestMarkup());
+    return false;
+  }
+  user.phone = phone;
+  user.phone_at = Date.now();
+  user.phone_source = 'contact';
+  await saveUser(env, user);
+  await kvDel(env, 'joingate:' + user.tg_id);
+  const appUrl = miniAppUrl(env, origin);
+  const extra = appUrl ? KB([[WEBAPPBTN('ورود به اپ', appUrl)]]) : undefined;
+  await msg(env, chatId, '✅ شمارهٔ ' + phonePretty(phone) + ' ثبت شد.', extra);
+  return true;
+}
+
+async function saveTypedPhone(env, user, raw, chatId) {
+  const phone = normalizePhone(raw);
+  if (!phone) return false;
+  user.phone = phone;
+  user.phone_at = Date.now();
+  user.phone_source = 'text';
+  await saveUser(env, user);
+  await msg(env, chatId, '✅ شمارهٔ ' + phonePretty(phone) + ' ثبت شد.');
+  return true;
+}
+
+/* ── پنل ادمین: 🔒 قفل کانال و شماره ────────────────────────────────────── */
+
+async function adminGateSettings(env, chatId, messageId) {
+  const cfg = await getCfg(env);
+  const channels = (Array.isArray(cfg.join_channels) ? cfg.join_channels : []).filter((c) => c && c.id);
+  const lockOn = cfg.join_lock_enabled === true;
+  const phoneOn = cfg.phone_required === true;
+  let lines = [];
+  for (let i = 0; i < channels.length; i++) {
+    const ch = channels[i];
+    const ready = await channelBotStatus(env, ch);
+    lines.push(faNum(i + 1) + '. ' + esc(ch.title || ch.id) + ' — ' + (ready ? 'ربات ادمین است ✅' : 'ربات ادمین نیست ⚠️'));
+  }
+  const t = '🔒 <b>قفل کانال و ثبت شماره</b>\n\n' +
+    '🛡 قفل کانال: ' + (lockOn ? 'روشن ✅' : 'خاموش ⛔') + '\n' +
+    '📣 کانال‌ها: ' + (channels.length ? faNum(channels.length) + ' مورد' : 'هیچ‌کدام') + '\n' +
+    (channels.length ? lines.map((x) => '   • ' + x).join('\n') + '\n' : '') +
+    '📱 قفل شماره: ' + (phoneOn ? 'روشن ✅' : 'خاموش ⛔') + '\n\n' +
+    '<i>تا وقتی قفل روشن نشده، هیچ‌چیز عوض نمی‌شود. ادمین‌ها همیشه مستثنا هستند.</i>\n' +
+    '<i>ربات باید در کانال «ادمین» باشد تا بتواند عضویت را ببیند.</i>';
+  const rows = [];
+  rows.push([BTN(lockOn ? '⛔ خاموش‌کردن قفل کانال' : '✅ روشن‌کردن قفل کانال', 's_gate_toggle')]);
+  rows.push([BTN('➕ افزودن کانال', 's_gate_add')]);
+  for (let i = 0; i < channels.length && i < 5; i++) {
+    rows.push([BTN('🗑 حذف: ' + String(channels[i].title || channels[i].id).slice(0, 22), 's_gate_del:' + i)]);
+  }
+  if (channels.length) rows.push([BTN('🔍 بررسی دسترسی ربات به کانال‌ها', 's_gate_check')]);
+  rows.push([BTN(phoneOn ? '⛔ خاموش‌کردن قفل شماره' : '✅ روشن‌کردن قفل شماره', 's_phone_toggle')]);
+  rows.push([BTN('✏️ متن پیام قفل', 's_gate_text')]);
+  rows.push([BTN('◀️ تنظیمات', 'a_set')]);
   if (messageId) await editMsg(env, chatId, messageId, t, KB(rows));
   else await msg(env, chatId, t, KB(rows));
 }
@@ -5028,6 +5380,40 @@ async function onCallback(env, q, origin) {
   if (u.banned && !data.startsWith('noop')) {
     await ansCb(env, q.id, '⛔ شما مسدود هستید.', true);
     return;
+  }
+
+  // --- قفل کانال/شماره: دکمهٔ «عضو شدم» و درخواست شماره همیشه پاسخ دارند ---
+  if (data === 'jc:check') {
+    const cfg = await getCfg(env);
+    await clearJoinCache(env, u.tg_id, cfg);
+    const gate = await accessGate(env, u, cfg);
+    if (gate.join_required) {
+      await ansCb(env, q.id, 'هنوز عضویت شما در همهٔ کانال‌ها دیده نمی‌شود. اول عضو شوید، بعد دوباره بزنید.', true);
+      return;
+    }
+    await ansCb(env, q.id, '✅ عضویت تأیید شد.');
+    await kvDel(env, 'jgmsg:' + chatId);
+    if (gate.phone_required && !gate.phone_verified) {
+      await sendPhoneGate(env, chatId, cfg);
+      if (messageId) { try { await editMsg(env, chatId, messageId, '✅ عضویت تأیید شد.', KB([])); } catch (e) {} }
+      return;
+    }
+    if (messageId) { try { await editMsg(env, chatId, messageId, '✅ عضویت تأیید شد.', KB([])); } catch (e) {} }
+    if (miniAppOnlyMode(env)) { await showMiniAppOnlyStart(env, chatId, origin); return; }
+    await showHome(env, chatId, u, null, origin, true);
+    return;
+  }
+  if (data === 'ph:ask') {
+    await ansCb(env, q.id);
+    await sendPhoneGate(env, chatId, await getCfg(env));
+    return;
+  }
+  if (!admEarly && data !== 'noop') {
+    const cfgGate = await getCfg(env);
+    if (await enforceAccess(env, u, chatId, cfgGate)) {
+      await ansCb(env, q.id, 'اول عضویت کانال یا ثبت شماره لازم است.', true);
+      return;
+    }
   }
 
   // دکمه‌های inline قدیمی ممکن است در پیام‌های قبلی هنوز دیده شوند؛ در حالت Mini App فقط پاسخ خنثی می‌دهیم.
@@ -5450,6 +5836,68 @@ async function onCallback(env, q, origin) {
     return;
   }
   if (data === 'a_set') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminSettings(env, chatId, messageId); return; }
+  if (data === 's_gate') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminGateSettings(env, chatId, messageId); return; }
+  if (data === 's_gate_toggle') {
+    if (!await needAdmin()) return;
+    const c0 = await getCfg(env);
+    const chans = (Array.isArray(c0.join_channels) ? c0.join_channels : []).filter((c) => c && c.id);
+    if (c0.join_lock_enabled !== true && !chans.length) { await ansCb(env, q.id, 'اول یک کانال اضافه کنید.', true); return; }
+    c0.join_lock_enabled = c0.join_lock_enabled !== true;
+    await saveCfg(env, c0);
+    await ansCb(env, q.id, c0.join_lock_enabled ? 'قفل کانال روشن شد.' : 'قفل کانال خاموش شد.');
+    await adminGateSettings(env, chatId, messageId);
+    return;
+  }
+  if (data === 's_phone_toggle') {
+    if (!await needAdmin()) return;
+    const c1 = await getCfg(env);
+    c1.phone_required = c1.phone_required !== true;
+    await saveCfg(env, c1);
+    await ansCb(env, q.id, c1.phone_required ? 'قفل شماره روشن شد.' : 'قفل شماره خاموش شد.');
+    await adminGateSettings(env, chatId, messageId);
+    return;
+  }
+  if (data === 's_gate_add') {
+    if (!await needAdmin()) return;
+    await ansCb(env, q.id);
+    await setState(env, u.tg_id, 'gate_ch', {});
+    await msg(env, chatId, '📣 <b>افزودن کانال</b>\n\nآیدی کانال را بفرستید:\n<code>@tiznetvpn_channel</code> یا <code>-1001234567890</code> یا لینک <code>https://t.me/tiznetvpn_channel</code>\n\n⚠️ ربات باید در کانال <b>ادمین</b> باشد.', KB([[BTN('❌ انصراف', 's_gate')]]));
+    return;
+  }
+  if (data.startsWith('s_gate_del:')) {
+    if (!await needAdmin()) return;
+    const idx = Number(data.slice('s_gate_del:'.length));
+    const c2 = await getCfg(env);
+    const list = (Array.isArray(c2.join_channels) ? c2.join_channels : []).slice();
+    if (!Number.isInteger(idx) || idx < 0 || idx >= list.length) { await ansCb(env, q.id, 'کانال پیدا نشد.', true); return; }
+    const removed = list.splice(idx, 1)[0];
+    c2.join_channels = list;
+    if (!list.length) c2.join_lock_enabled = false;
+    await saveCfg(env, c2);
+    await ansCb(env, q.id, 'حذف شد: ' + String((removed && (removed.title || removed.id)) || ''));
+    await adminGateSettings(env, chatId, messageId);
+    return;
+  }
+  if (data === 's_gate_check') {
+    if (!await needAdmin()) return;
+    const c3 = await getCfg(env);
+    const list = (Array.isArray(c3.join_channels) ? c3.join_channels : []).filter((c) => c && c.id);
+    const out = [];
+    for (const ch of list) {
+      const ok = await channelBotStatus(env, ch, true);
+      out.push((ok ? '✅ ' : '⚠️ ') + esc(ch.title || ch.id) + ' — ' + (ok ? 'ربات ادمین است.' : 'ربات ادمین نیست؛ عضویت قابل‌بررسی نیست.'));
+    }
+    await ansCb(env, q.id);
+    await msg(env, chatId, '🔍 <b>بررسی دسترسی ربات</b>\n\n' + (out.length ? out.join('\n') : 'کانالی ثبت نشده است.'), KB([[BTN('◀️ بازگشت', 's_gate')]]));
+    return;
+  }
+  if (data === 's_gate_text') {
+    if (!await needAdmin()) return;
+    await ansCb(env, q.id);
+    await setState(env, u.tg_id, 'gate_text', {});
+    await msg(env, chatId, '✏️ متن پیام قفل کانال را بفرستید (حداکثر ۸۰۰ کاراکتر).\nبرای بازگشت به متن پیش‌فرض، فقط <code>-</code> بفرستید.', KB([[BTN('❌ انصراف', 's_gate')]]));
+    return;
+  }
   if (data === 's_pay_manual') {
     if (!await needAdmin()) return;
     const cfg = await getCfg(env);
@@ -5963,6 +6411,37 @@ async function onStateText(env, u, chatId, text) {
     await msg(env, chatId, '✅ پورسانت ' + faNum(n) + '٪ شد.', KB([[BTN('◀️ تنظیمات', 'a_set')]]));
     return true;
   }
+  if (step === 'gate_ch' && adm) {
+    const resolved = await resolveJoinChannel(env, text);
+    if (!resolved.ok) {
+      const reasons = {
+        invalid_ref: 'آیدی نامعتبر است. نمونه: <code>@tiznetvpn_channel</code> یا <code>-1001234567890</code>',
+        getchat_failed: 'کانال پیدا نشد یا ربات به آن دسترسی ندارد. مطمئن شوید ربات در کانال ادمین است.',
+        no_public_link: 'برای این کانال لینک عمومی/دعوت پیدا نشد؛ یک کانال عمومی با یوزرنیم بدهید.',
+        bot_not_admin: 'ربات در این کانال ادمین نیست؛ اول ربات را ادمین کنید تا عضویت قابل‌بررسی باشد.'
+      };
+      await msg(env, chatId, '❌ ' + (reasons[resolved.error] || 'افزودن کانال ناموفق بود.'), KB([[BTN('🔁 تلاش دوباره', 's_gate_add')], [BTN('❌ انصراف', 's_gate')]]));
+      return true;
+    }
+    const cfg = await getCfg(env);
+    const list = (Array.isArray(cfg.join_channels) ? cfg.join_channels : []).slice();
+    const exists = list.findIndex((c) => c && (c.key === resolved.channel.key || String(c.id) === String(resolved.channel.id)));
+    if (exists >= 0) list[exists] = resolved.channel;
+    else list.push(resolved.channel);
+    cfg.join_channels = list.slice(0, 8);
+    await saveCfg(env, cfg);
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, '✅ کانال «' + esc(resolved.channel.title) + '» اضافه شد.\nبرای فعال‌شدن قفل، «✅ روشن‌کردن قفل کانال» را بزنید.', KB([[BTN('◀️ قفل کانال', 's_gate')]]));
+    return true;
+  }
+  if (step === 'gate_text' && adm) {
+    const cfg = await getCfg(env);
+    cfg.join_lock_text = text.trim() === '-' ? '' : text.slice(0, 800);
+    await saveCfg(env, cfg);
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, cfg.join_lock_text ? '✅ متن پیام قفل ذخیره شد.' : '✅ به متن پیش‌فرض برگشت.', KB([[BTN('◀️ قفل کانال', 's_gate')]]));
+    return true;
+  }
   if (step === 's_minwd_v' && adm) {
     const n = parseMoney(text);
     if (!n || n < 0) { await msg(env, chatId, '❌ مبلغ نامعتبر:'); return true; }
@@ -6016,6 +6495,21 @@ async function onMessage(env, m, origin) {
   }
 
   const text = (m.text || '').trim();
+
+  // ── قفل کانال و شماره ──────────────────────────────────────────────────
+  const gateCfg = await getCfg(env);
+  if (!isAdminUser) {
+    // پیام کنتاکتی که تلگرام بعد از دکمهٔ «📱 ارسال شماره من» می‌فرستد
+    if (m.contact) {
+      const saved = await saveSharedPhone(env, u, m.contact, chatId, origin);
+      if (!saved) return;
+    } else if (gateCfg.phone_required === true && !normalizePhone(u.phone) && text && !text.startsWith('/')) {
+      // ثبت دستیِ شماره فقط وقتی قفل شماره روشن است و کاربر هنوز شماره ندارد
+      if (normalizePhone(text)) await saveTypedPhone(env, u, text, chatId);
+    }
+    if (await enforceAccess(env, u, chatId, gateCfg)) return;
+  }
+
   await ensureMiniAppMenuButton(env, u, chatId, origin);
 
   if (miniAppOnlyMode(env) && !isAdminUser) {
@@ -8766,13 +9260,44 @@ async function miniAppApi(request, env, url) {
   if (user.banned && admin) { user.banned = false; await saveUser(env, user); }
   if (user.banned && !admin) return miniAppJson({ ok: false, error: 'account_blocked' }, 403);
   const path = url.pathname;
+
+  // ── قفل کانال/شماره (فقط مشتری؛ ادمین و نماینده مستثنا) ────────────────
+  const gateApplies = !admin && !agentRole;
+  const gateCfg = gateApplies ? await getCfg(env) : null;
+  if (path === '/api/miniapp/phone') {
+    if (request.method !== 'POST') return miniAppJson({ ok: false, error: 'method_not_allowed' }, 405);
+    let body = {};
+    try { body = await request.json(); } catch (e) { return miniAppJson({ ok: false, error: 'invalid_json' }, 400); }
+    const phone = normalizePhone(body && body.phone);
+    if (!phone) return miniAppJson({ ok: false, error: 'invalid_phone' }, 400);
+    user.phone = phone;
+    user.phone_at = Date.now();
+    user.phone_source = 'miniapp';
+    await saveUser(env, user);
+    const after = gateApplies ? accessGate(env, user, gateCfg) : null;
+    return miniAppJson({ ok: true, phone: phonePretty(phone), access: after ? accessView(await after) : { blocked: false } }, 200);
+  }
+
+  const access = gateApplies ? await accessGate(env, user, gateCfg) : {
+    join_lock: false, channels: [], missing: [], join_required: false,
+    phone_required: false, phone_verified: true, blocked: false, degraded: false
+  };
+  if (gateApplies && access.blocked && path !== '/api/miniapp/bootstrap') {
+    return miniAppJson({
+      ok: false,
+      error: access.join_required ? 'join_required' : 'phone_required',
+      access: accessView(access)
+    }, 403);
+  }
   if (path === '/api/miniapp/bootstrap') {
     await recordCustomerActivity(env, user.tg_id, 'miniapp_open');
-    const cfg = await getCfg(env);
+    const cfg = gateCfg || await getCfg(env);
     return miniAppJson({
       ok: true, version: VERSION, role: admin ? 'admin' : agentRole ? 'agent' : 'customer',
       profile: { id: String(user.tg_id), first_name: String(user.first_name || ''), username: String(user.username || '') },
-      bot_username: String(cfg.bot_username || ''), support: String(cfg.support || '')
+      bot_username: String(cfg.bot_username || ''), support: String(cfg.support || ''),
+      phone: normalizePhone(user.phone) ? phonePretty(user.phone) : '',
+      access: accessView(access)
     }, 200);
   }
   if (path.startsWith('/api/miniapp/agent/')) {
