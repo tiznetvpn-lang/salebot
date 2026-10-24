@@ -1,6 +1,6 @@
 {
   "name": "tiznetvpn-ubuntu26-selfhosted",
-  "version": "1.8.7-ubuntu26.9",
+  "version": "1.8.8-ubuntu26.10",
   "private": true,
   "type": "module",
   "description": "Self-hosted TiznetVPN Telegram shop for Ubuntu 26, Node.js and SQLite",
@@ -17,6 +17,6 @@
     "cron:reminders": "node scripts/run-cron.mjs reminders",
     "cron:backup": "node scripts/run-cron.mjs backup",
     "db:backup": "node scripts/backup-sqlite.mjs",
-    "check": "node --check server/server.mjs && node --check server/sqlite-kv.mjs && node --check server/runtime.mjs && node --check src/worker.js"
+    "check": "node --check server/server.mjs && node --check server/sqlite-kv.mjs && node --check server/runtime.mjs && node --check src/worker.js && node scripts/check-miniapp.mjs"
   }
 }

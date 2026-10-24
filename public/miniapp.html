@@ -59,7 +59,6 @@
     .top-left { display:flex; align-items:center; gap:12px; min-width:0; }
     .customer-brand { display:none; align-items:center; min-width:0; flex:0 1 auto; }
     .customer-brand img { display:block; width:auto; height:36px; max-width:min(38vw,138px); object-fit:contain; }
-    .customer-mode .customer-brand { display:flex; }
     .crumb { color:#8092ad; font-size:12px; white-space:nowrap; }
     .crumb strong { color:#e9f0fb; font-weight:700; }
     .top-actions { display:flex; align-items:center; gap:9px; }
@@ -166,26 +165,8 @@
     .page-top { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin:2px 0 17px; }
     .page-top h1 { margin:0; font-size:22px; letter-spacing:-.5px; }
     .page-top p { margin:7px 0 0; color:var(--muted); font-size:11px; }
-    .customer-mode .sidebar { display:none; }
-    .customer-mode .main { max-width:1030px; padding-left:25px; padding-right:25px; }
-    .customer-mode .topbar { min-height:69px; }
-    .customer-mode .crumb { display:none; }
-    .store-hero { min-height:270px; padding:29px; display:flex; position:relative; overflow:hidden; align-items:center; justify-content:space-between; border-radius:26px; border:1px solid rgba(43,161,222,.18); background:radial-gradient(270px 210px at 17% 35%,rgba(43,161,222,.17),transparent 75%),linear-gradient(115deg,#103455,#102a50 55%,#1c3769); }
-    .store-hero h1 { max-width:470px; font-size:27px; line-height:1.5; margin:0; }
-    .store-hero p { color:#adc0d0; line-height:2; font-size:12px; max-width:430px; }
     .store-art { width:145px; height:145px; border-radius:42px; background:linear-gradient(145deg,rgba(43,161,222,.25),rgba(26,103,196,.25)); border:1px solid rgba(78,180,230,.25); display:grid; place-items:center; transform:rotate(-8deg); margin-left:30px; box-shadow:0 20px 55px rgba(0,0,0,.2); }
     .store-art img { width:146px; height:116px; object-fit:contain; transform:rotate(5deg); }
-    .customer-summary { display:grid; grid-template-columns:1.3fr .7fr; gap:14px; margin-top:15px; }
-    .customer-history-panel { margin:14px 0 20px; }
-    .customer-history-table table { min-width:700px; }
-    .customer-sub-list { display:grid; gap:10px; margin-top:14px; }
-    .customer-sub-card { padding:14px; border:1px solid var(--line); border-radius:14px; background:rgba(7,18,36,.5); }
-    .customer-sub-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
-    .customer-sub-top strong { display:block; font-size:11px; }
-    .customer-sub-top small { display:block; color:var(--muted); font-size:9px; line-height:1.9; margin-top:5px; }
-    .customer-sub-card .usage { margin-top:12px; }
-    .customer-sub-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
-    .customer-sub-actions button { font-size:9px; }
     .active-sub { display:flex; align-items:center; justify-content:space-between; gap:12px; }
     .sub-info { display:flex; align-items:center; gap:12px; }
     .sub-symbol { width:42px; height:42px; display:grid; place-items:center; border-radius:14px; color:var(--teal); background:rgba(43,161,222,.1); }
@@ -198,17 +179,7 @@
     .btn-primary { border:0; border-radius:12px; color:#06172c; font-size:11px; font-weight:800; padding:11px 16px; background:linear-gradient(110deg,#64d1f1,#188fd5); cursor:pointer; box-shadow:0 8px 22px rgba(43,161,222,.14); transition:transform .16s, filter .16s; }
     .btn-primary:hover { filter:brightness(1.04); transform:translateY(-1px); }
     .btn-secondary { border:1px solid rgba(43,161,222,.25); background:rgba(43,161,222,.07); color:var(--teal); border-radius:11px; padding:10px 14px; font-size:10px; cursor:pointer; font-weight:750; }
-    .plans-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:13px; margin-top:15px; }
-    .store-plan { position:relative; padding:19px; border-radius:18px; border:1px solid var(--line); background:linear-gradient(145deg,#142038,#111b2e); min-height:190px; display:flex; flex-direction:column; }
-    .store-plan.featured { border-color:rgba(43,161,222,.5); box-shadow:0 0 0 1px rgba(43,161,222,.10),0 12px 32px rgba(0,0,0,.15); }
     .featured-label { position:absolute; top:14px; left:14px; background:rgba(43,161,222,.12); color:var(--teal); font-size:8px; border-radius:20px; padding:5px 8px; }
-    .store-plan small { color:#9cadc1; font-size:10px; }
-    .store-plan h3 { margin:12px 0 7px; font-size:17px; }
-    .store-plan p { color:#899bb3; font-size:10px; margin:0 0 14px; }
-    .store-price { margin-top:auto; display:flex; align-items:baseline; gap:5px; font-size:16px; font-weight:850; }
-    .store-price small { color:#8fa0b6; font-size:9px; font-weight:500; }
-    .store-plan .btn-primary, .store-plan .btn-secondary { margin-top:12px; width:100%; }
-    .customer-notice { margin-top:14px; padding:13px 15px; border:1px solid rgba(26,103,196,.18); border-radius:13px; background:rgba(26,103,196,.06); color:#9eb0ca; font-size:10px; line-height:1.9; }
     .brand-showcase { display:grid; grid-template-columns:minmax(170px,230px) 1fr; gap:22px; align-items:center; margin-top:20px; }
     .brand-logo-tile { min-height:190px; display:grid; place-items:center; padding:12px; border:1px solid var(--line); border-radius:17px; background:radial-gradient(160px 100px at 50% 18%,rgba(43,161,222,.12),transparent 75%),rgba(7,18,36,.65); }
     .brand-logo-tile img { width:100%; max-width:205px; height:auto; object-fit:contain; }
@@ -234,7 +205,7 @@
       .stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .lower-grid { grid-template-columns:1fr; }
     }
-    @media (max-width: 760px) {
+    @media (max-width: 760px)  {
       body { font-size:13px; }
       .sidebar { display:none; }
       .main { padding:0 15px calc(83px + var(--safe-bottom)); }
@@ -270,20 +241,11 @@
       .mobile-nav button { display:grid; gap:4px; justify-items:center; color:#71839d; border:0; background:none; font-size:8px; padding:4px 7px; cursor:pointer; }
       .mobile-nav button svg { width:17px; height:17px; stroke:currentColor; fill:none; stroke-width:1.8; }
       .mobile-nav button.active { color:var(--teal); }
-      .customer-mode .main { padding:0 14px calc(25px + var(--safe-bottom)); }
-      .customer-mode .topbar { margin-bottom:14px; }
-      .store-hero { min-height:220px; padding:20px; border-radius:20px; }
-      .store-hero h1 { font-size:20px; max-width:330px; }
-      .store-hero p { font-size:10px; max-width:300px; }
       .store-art { width:83px; height:83px; border-radius:26px; margin-left:7px; }
       .store-art img { width:84px; height:68px; }
-      .customer-summary { grid-template-columns:1fr; }
-      .plans-grid { grid-template-columns:1fr; }
       .brand-showcase { grid-template-columns:1fr; gap:14px; }
       .brand-logo-tile { min-height:145px; }
       .brand-logo-tile img { max-width:175px; }
-      .store-plan { min-height:170px; }
-      .customer-mode .mobile-nav { display:none; }
     }
     @media (max-width: 390px) {
       .main { padding-left:11px; padding-right:11px; }
@@ -315,45 +277,17 @@
     .hero { border-color:rgba(55, 153, 255,.17); background:linear-gradient(112deg,#101a24,#101317 58%,#101821); }
     .hero:after { border-color:rgba(61, 156, 255,.15); box-shadow:0 0 0 28px rgba(48, 149, 255,.025),0 0 0 58px rgba(48, 149, 255,.018); }
     .stat-card,.panel { background:linear-gradient(145deg,#151617,#101011); }
-    .store-hero { border-color:rgba(49, 150, 255,.25); background:radial-gradient(300px 220px at 10% 22%,rgba(25, 128, 235,.18),transparent 76%),linear-gradient(112deg,#0c131a 0%,#0d0f11 55%,#0e1720 100%); box-shadow:0 20px 60px rgba(0,0,0,.3); }
-    .store-hero:after { content:""; position:absolute; width:310px; height:310px; left:9%; top:-190px; border:1px solid rgba(55, 153, 255,.13); border-radius:50%; box-shadow:0 0 0 30px rgba(50, 150, 255,.025),0 0 0 62px rgba(50, 150, 255,.018); }
-    .store-hero>div:first-child { position:relative; z-index:1; }
-    .store-hero h1 { font-size:clamp(23px,3vw,35px); line-height:1.45; letter-spacing:-.6px; }
-    .store-hero p { color:#b8bec5; max-width:500px; }
-    .store-hero .eyebrow { color:#66b1ff; letter-spacing:.4px; }
     .store-art { position:relative; z-index:1; transform:rotate(-5deg); }
     .btn-primary { color:white; background:linear-gradient(115deg,#429fff,#0c69c9); box-shadow:0 9px 26px rgba(13, 100, 190,.25); }
     .btn-secondary { border-color:rgba(55, 153, 255,.28); background:rgba(20, 121, 227,.09); color:#6bb4ff; }
     .outline-btn:hover { border-color:rgba(55, 153, 255,.5); color:#68b2ff; }
-    .store-plan { min-height:248px; padding:20px; border-color:rgba(255,255,255,.08); background:linear-gradient(150deg,#161719,#0e0f10 80%); box-shadow:0 12px 32px rgba(0,0,0,.2); transition:transform .18s,border-color .18s,box-shadow .18s; }
-    .store-plan:hover { transform:translateY(-3px); border-color:rgba(58, 155, 255,.4); box-shadow:0 18px 40px rgba(0,0,0,.32); }
-    .store-plan.featured { border-color:rgba(55, 153, 255,.58); box-shadow:0 0 0 1px rgba(45, 148, 255,.14),0 16px 38px rgba(5, 54, 105,.2); }
-    .store-plan h3 { margin:11px 0 5px; font-size:19px; }
-    .store-plan p { color:#a4aab0; line-height:1.8; margin:10px 0 14px; }
-    .store-price { color:#fff; font-size:23px; gap:6px; }
-    .store-price small { color:#a5acb4; font-size:10px; }
     .featured-label { background:rgba(45, 148, 255,.13); color:#66b1ff; border:1px solid rgba(60, 156, 255,.16); }
-    .store-plan .btn-primary { padding:13px 14px; border-radius:12px; font-size:12px; }
-    .plan-specs { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:11px 0 15px; }
-    .plan-spec { padding:9px 10px; border:1px solid rgba(255,255,255,.065); background:rgba(255,255,255,.025); border-radius:11px; }
-    .plan-spec small { display:block; color:#8e9297; font-size:9px; }
-    .plan-spec strong { display:block; margin-top:3px; color:#f8eeee; font-size:12px; }
-    .plan-server { display:inline-flex; align-items:center; gap:6px; color:#98c5f3!important; background:rgba(23, 122, 225,.09); border:1px solid rgba(52, 151, 255,.16); border-radius:30px; padding:5px 9px; font-size:9px!important; }
-    .plan-server:before { content:""; width:5px; height:5px; border-radius:50%; background:#429fff; box-shadow:0 0 8px rgba(66, 159, 255,.8); }
-    .customer-summary { grid-template-columns:1fr; }
-    .customer-history-panel { margin-top:14px; }
-    .customer-notice { border-color:rgba(49, 150, 255,.16); background:rgba(10, 98, 190,.06); color:#aab0b7; }
-    .customer-sub-card { border-color:rgba(255,255,255,.08); background:linear-gradient(145deg,#141517,#0e0f10); }
     .sub-symbol { color:#55a8ff; background:rgba(20, 120, 225,.12); }
     .nav-count { background:rgba(61, 156, 255,.13); color:#78baff; }
     .mobile-nav { background:rgba(8, 8, 9,.97); }
     .mobile-nav button.active { color:#59aaff; }
     .modal { max-height:min(88vh,760px); overflow:auto; background:#131517; border-color:rgba(65, 158, 255,.2); }
     .toast { border-color:rgba(60, 156, 255,.3); background:#131920; }
-    .customer-mode .top-periods,.customer-mode #topPeriods { display:none!important; }
-    .customer-mode .main { max-width:1050px; }
-    .customer-mode .topbar { border-bottom-color:rgba(55, 153, 255,.12); }
-    .customer-mode .customer-history-table table { min-width:790px; }
     .modal-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
     .modal-close-x { border:0; background:transparent; color:#9ca2a9; font-size:22px; line-height:1; padding:3px 7px; cursor:pointer; }
     .payment-options { display:grid; gap:9px; margin-top:14px; }
@@ -378,21 +312,10 @@
     .order-state { display:flex; align-items:center; gap:9px; padding:10px 12px; margin-top:11px; border-radius:11px; color:#d2e8ff; background:rgba(25, 121, 220,.11); border:1px solid rgba(50, 150, 255,.19); font-size:10px; line-height:1.8; }
     .order-state.good { color:#a8e8c8; background:rgba(54,176,119,.1); border-color:rgba(74,206,144,.18); }
     .order-state.warn { color:#b2d8ff; background:rgba(58, 141, 227,.09); border-color:rgba(58, 141, 227,.2); }
-    .pending-orders { display:grid; gap:9px; margin:14px 0 16px; }
-    .pending-order { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border:1px solid rgba(86, 169, 255,.18); border-radius:14px; background:linear-gradient(110deg,rgba(13, 70, 130,.13),rgba(14, 17, 20,.92)); }
-    .pending-order strong,.pending-order small { display:block; }
-    .pending-order small { color:#a1b2c3; font-size:9px; margin-top:4px; }
-    .pending-order .outline-btn { font-size:9px; }
     .order-follow { border:1px solid rgba(61, 156, 255,.2); color:#74b8ff; background:rgba(17, 116, 220,.08); padding:5px 8px; border-radius:8px; cursor:pointer; font-size:9px; }
-    @media(max-width:700px) {
-      .store-hero { min-height:205px; padding:19px; }
+    @media(max-width:700px)  {
       .store-art { width:76px; height:76px; border-radius:24px; margin-left:1px; }
       .store-art img { width:77px; height:62px; }
-      .store-hero h1 { max-width:300px; font-size:21px; }
-      .plans-grid { grid-template-columns:1fr; gap:11px; }
-      .store-plan { min-height:0; padding:17px; }
-      .customer-mode .top-actions { gap:6px; }
-      .customer-history-panel { overflow:hidden; }
       .modal-backdrop { padding:12px; align-items:end; }
       .modal { width:100%; border-radius:22px 22px 14px 14px; padding:18px; max-height:88vh; }
       .modal-actions { position:sticky; bottom:-18px; padding:12px 0 4px; background:linear-gradient(0deg,#131517 72%,transparent); }
@@ -467,23 +390,7 @@
     .chart-grid,.gridline { stroke:rgba(255,255,255,.18); }
     .donut-center strong { color:white; }
     .donut-center span { color:#cbdff3; font-size:11px; }
-    .store-hero { border-color:rgba(208, 231, 255,.30); background:radial-gradient(320px 240px at 10% 22%,rgba(140, 196, 255,.17),transparent 76%),linear-gradient(112deg,#1d64ad 0%,#1a5899 55%,#15487e 100%); box-shadow:0 20px 55px rgba(0, 31, 64,.22); }
-    .store-hero h1 { color:#f3f8ff; }
-    .store-hero p { color:#e4f1ff; font-size:14px; }
-    .store-hero .eyebrow { color:#add5ff; }
-    .store-plan { background:linear-gradient(150deg,#2066ae,#17508c 82%); border-color:rgba(225, 240, 255,.20); box-shadow:0 12px 32px rgba(0, 30, 61,.19); }
-    .store-plan:hover { border-color:rgba(173, 213, 255,.62); box-shadow:0 18px 40px rgba(0, 30, 62,.26); }
-    .store-plan.featured { border-color:rgba(164, 209, 255,.72); }
-    .store-plan h3 { font-size:21px; }
-    .store-plan p { color:#ddecfb; font-size:14px; }
-    .store-price { color:#fff; font-size:25px; }
-    .store-price small,.plan-spec small { color:#cbdef1; font-size:12px; }
-    .plan-spec { background:rgba(4, 43, 83,.18); border-color:rgba(238, 246, 255,.18); }
-    .plan-spec strong { color:#f3f8ff; font-size:14px; }
-    .plan-server { color:#add5ff!important; font-size:12px!important; }
     .featured-label { background:rgba(166, 210, 255,.17); color:#b8dbff; border-color:rgba(191, 222, 255,.25); }
-    .customer-notice { border-color:rgba(185, 219, 255,.24); background:rgba(155, 204, 255,.09); color:#e5f2ff; font-size:14px; }
-    .customer-sub-card { background:linear-gradient(145deg,#2064aa,#164e88); border-color:rgba(236, 245, 255,.2); }
     .mobile-nav { background:rgba(10, 58, 108,.98); border-color:rgba(231, 243, 255,.2); }
     .mobile-nav button { color:#d2e3f5; font-size:12px; }
     .mobile-nav button.active { color:#a8d3ff; }
@@ -508,13 +415,12 @@
     .brand-showcase { background:rgba(255,255,255,.035); }
     .donut:before { background:#17508b; }
     .modal-actions { background:linear-gradient(0deg,#184e87 72%,transparent); }
-    @media (max-width:760px) {
+    @media (max-width:760px)  {
       body { font-size:16px; }
       .main { padding-left:16px; padding-right:16px; }
       .topbar { min-height:66px; }
       .crumb { font-size:13px; }
-      .hero h1 { font-size:23px; }
-      .hero p,.store-hero p { font-size:14px; }
+      .hero h1 { font-size:23px; }.hero p { font-size:14px; }
       .stat-top { font-size:13px; }
       .stat-value { font-size:22px; }
       .stat-foot { font-size:11px; }
@@ -546,10 +452,6 @@
     .free-settings-block { margin:18px 0 8px; padding:15px; border:1px solid rgba(132,190,250,.25); border-radius:15px; background:rgba(10,49,92,.24); }
     .free-settings-block .settings-toggles { grid-template-columns:minmax(0,1fr); margin:10px 0; }
     .free-settings-block .settings-grid { margin-top:10px; }
-    .free-claim-card { margin-bottom:14px; border-color:rgba(132,190,250,.28); background:linear-gradient(145deg,rgba(22,70,122,.47),rgba(7,31,65,.78)); }
-    .free-claim-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-top:10px; }
-    .free-claim-footer .mini-note { flex:1 1 220px; min-width:0; margin:0; }
-    .free-claim-footer .btn-primary { min-height:44px; white-space:normal; overflow-wrap:anywhere; }
     .settings-wide { grid-column:1/-1; }
     .settings-toggles { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:16px 0; }
     .toggle-row { position:relative; display:flex; align-items:center; gap:12px; padding:14px; min-height:78px; border:1px solid rgba(234, 244, 255,.2); border-radius:15px; background:rgba(5, 44, 85,.18); cursor:pointer; }
@@ -572,6 +474,9 @@
     .kv-restore-confirm p { color:#e7d9b7; line-height:1.8; margin:6px 0 10px; }
     .kv-restore-confirm label { display:grid; gap:7px; max-width:380px; color:#f0f7ff; font-size:13px; }
     .kv-restore-confirm input { min-width:0; width:100%; min-height:44px; padding:10px 12px; border:1px solid rgba(234,244,255,.28); border-radius:10px; background:#081f40; color:#fff; font:inherit; }
+    /* اطلاعیهٔ مشترک پنل مدیریت و نماینده */
+    .customer-notice { margin-top:14px; padding:13px 15px; border:1px solid rgba(87,158,234,.27); border-radius:13px;
+      background:rgba(15,70,132,.2); color:#c1d7ef; font-size:14px; line-height:1.9; }
     .kv-backup-warning { margin-top:10px; }
     .form-message { color:#a8d3ff; font-size:13px; }
     .form-hint,.muted-text { color:#cbdef2; font-size:13px; line-height:1.8; }
@@ -609,15 +514,11 @@
     .axis-label { font-size:12px; }
     .donut-center span,.legend-row small { font-size:12px; }
     .mini-avatar { font-size:12px; }
-    .type-pill { font-size:12px; }
-    .customer-sub-top small,.sub-info small { font-size:12px; }
-    .customer-sub-actions button,.pending-order .outline-btn,.order-follow,.copy-line button { font-size:12px; }
+    .type-pill { font-size:12px; }.sub-info small { font-size:12px; }.order-follow, .copy-line button { font-size:12px; }
     .featured-label { font-size:12px; }
-    .store-price small,.plan-spec small { font-size:12px; }
     .order-id { font-size:12px; }
     .status-banned { font-size:11px; }
     @media (max-width:390px) { .preview-tag { font-size:11px; } }
-
 
     /* Final responsive layer: mobile cards, safe-area spacing, no clipped controls. */
     :root { --tap-size:46px; --blue-deep:#103f6f; --blue-mid:#1b5694; --blue-card:#2264a9; }
@@ -626,32 +527,13 @@
     .shell,.main,.page,.panel,.table-wrap,.panel-head,.page-top { min-width:0; }
     .btn-primary,.btn-secondary,.outline-btn,.table-action,.order-follow,.icon-btn,.avatar,
     input,select,textarea { max-width:100%; }
-    .table-wrap { scrollbar-width:thin; scrollbar-color:rgba(173, 213, 255,.42) rgba(4, 43, 83,.2); }
-    .panel,.stat-card,.hero,.store-hero,.store-plan,.customer-sub-card,.pending-order { min-width:0; }
+    .table-wrap { scrollbar-width:thin; scrollbar-color:rgba(173, 213, 255,.42) rgba(4, 43, 83,.2); }.panel, .stat-card, .hero { min-width:0; }
     .admin-actions,.managed-actions,.form-actions { flex-wrap:wrap; }
     .admin-actions > button,.managed-actions > button { min-width:0; }
-    .customer-detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
-    .customer-detail-kpi { min-width:0; padding:12px; border:1px solid rgba(238, 246, 255,.2); border-radius:13px; background:rgba(4, 43, 83,.22); overflow-wrap:anywhere; }
-    .customer-detail-kpi small,.customer-detail-kpi strong { display:block; }
-    .customer-detail-kpi small { color:#cbe0f5; font-size:12px; line-height:1.6; }
-    .customer-detail-kpi strong { margin-top:4px; color:#fff; font-size:15px; line-height:1.7; }
-    .customer-detail-section { margin-top:13px; padding:13px; border:1px solid rgba(238, 246, 255,.18); border-radius:14px; background:rgba(4, 43, 83,.15); }
-    .customer-detail-section > h4 { margin:0 0 9px; font-size:15px; color:#b3d8ff; }
-    .customer-detail-list { display:grid; gap:8px; margin:0; padding:0; list-style:none; }
-    .customer-detail-row { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:10px; border:1px solid rgba(238, 246, 255,.14); border-radius:11px; background:rgba(3, 31, 60,.18); min-width:0; }
-    .customer-detail-row > div { min-width:0; overflow-wrap:anywhere; }
-    .customer-detail-row strong,.customer-detail-row small { display:block; }
-    .customer-detail-row strong { font-size:13px; line-height:1.7; }
-    .customer-detail-row small { margin-top:2px; color:#cbdff3; font-size:12px; line-height:1.8; }
-    .customer-detail-row .amount { flex:0 0 auto; white-space:nowrap; color:#add5ff; font-weight:800; }
-    .customer-activity { border-right:2px solid rgba(173, 213, 255,.55); margin-right:5px; padding-right:12px; }
-    .customer-detail-section details > summary { cursor:pointer; color:#e7f3ff; font-weight:750; padding:5px 0; }
-    .customer-detail-section details[open] > summary { margin-bottom:10px; }
 
-    @media (max-width:760px) {
+    @media (max-width:760px)  {
       body { font-size:16px; }
-      .shell { display:block; width:100%; max-width:100%; overflow-x:clip; }
-      .main,.customer-mode .main { width:100%; max-width:100%; padding:0 12px calc(86px + var(--safe-bottom)) !important; }
+      .shell { display:block; width:100%; max-width:100%; overflow-x:clip; }.main { width:100%; max-width:100%; padding:0 12px calc(86px + var(--safe-bottom)) !important; }
       .topbar { min-height:60px; margin-bottom:14px; gap:8px; }
       .customer-brand img { height:30px; max-width:min(31vw,112px); }
       .top-left,.top-actions { min-width:0; gap:7px; }
@@ -667,8 +549,7 @@
       .section-title > *, .panel-head > * { min-width:0; }
       .stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:9px; }
       .stat-card { min-height:110px; padding:12px; }
-      .stat-value { overflow-wrap:anywhere; font-size:clamp(17px,5vw,22px); }
-      .content-grid,.lower-grid,.customer-summary,.admin-layout-grid { grid-template-columns:minmax(0,1fr) !important; }
+      .stat-value { overflow-wrap:anywhere; font-size:clamp(17px,5vw,22px); }.content-grid, .lower-grid, .admin-layout-grid { grid-template-columns:minmax(0,1fr) !important; }
       .panel { padding:13px; border-radius:15px; }
       .hero { min-height:0; padding:17px; align-items:flex-start; }
       .hero-copy { min-width:0; }
@@ -679,8 +560,7 @@
       .search { width:100%; min-width:0; }
       .filters { display:grid; grid-template-columns:minmax(0,1fr); width:100%; gap:8px; margin-top:13px; }
       .filter-control,.filters .search { width:100%; min-width:0; min-height:var(--tap-size); font-size:16px; }
-      .table-wrap { margin-top:12px; overflow:visible !important; width:100%; }
-      .table-wrap table,.customer-history-table table { display:block; width:100%; min-width:0 !important; }
+      .table-wrap { margin-top:12px; overflow:visible !important; width:100%; }.table-wrap table { display:block; width:100%; min-width:0 !important; }
       .table-wrap thead { display:none; }
       .table-wrap tbody { display:grid; gap:9px; width:100%; }
       .table-wrap tbody tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 12px; width:100%; min-width:0; padding:11px; border:1px solid rgba(235, 245, 255,.22); border-radius:14px; background:linear-gradient(145deg,rgba(31, 101, 174,.86),rgba(18, 71, 126,.9)); box-shadow:0 8px 20px rgba(0, 27, 56,.12); }
@@ -728,20 +608,8 @@
       #customerOrdersBody td:nth-child(6)::before { content:"تاریخ"; }
       #customerOrdersBody td:nth-child(7)::before { content:"وضعیت"; }
       #customerOrdersBody td:nth-child(8)::before { content:"پیگیری"; }
-      .store-hero { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:center; min-height:0; padding:17px; }
-      .store-hero h1 { max-width:none; font-size:clamp(20px,6vw,26px); line-height:1.55; }
-      .store-hero p { max-width:none; font-size:14px; line-height:1.8; }
       .store-art { width:66px; height:66px; margin:0; border-radius:19px; }
       .store-art img { width:66px; height:55px; }
-      .plans-grid { grid-template-columns:minmax(0,1fr); gap:10px; }
-      .store-plan { min-height:0; padding:16px; }
-      .store-plan h3 { font-size:19px; }
-      .store-plan p { line-height:1.8; }
-      .customer-sub-top { flex-wrap:wrap; }
-      .customer-sub-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
-      .customer-sub-actions button { min-width:0; min-height:44px; white-space:normal; }
-      .pending-order { align-items:flex-start; flex-direction:column; }
-      .pending-order > button { width:100%; min-height:44px; }
       .settings-grid,.settings-toggles,.admin-layout-grid { grid-template-columns:minmax(0,1fr) !important; }
       .settings-wide { grid-column:auto; }
       .admin-actions,.managed-actions,.form-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
@@ -752,8 +620,6 @@
       .mobile-nav::-webkit-scrollbar { display:none; }
       .mobile-nav button { flex:0 0 68px; min-width:68px; min-height:48px; gap:4px; padding:5px 4px; font-size:11px; line-height:1.3; }
       .mobile-nav button svg { width:18px; height:18px; }
-      .customer-mode .mobile-nav { display:none !important; }
-      .customer-mode .main { padding-bottom:calc(26px + var(--safe-bottom)) !important; }
       .toast { left:12px; right:12px; bottom:calc(82px + var(--safe-bottom)); width:auto; max-width:calc(100vw - 24px); transform:translateY(14px); text-align:center; z-index:95; }
       .toast.show { transform:translateY(0); }
       .modal-backdrop { padding:0; align-items:end; }
@@ -763,13 +629,9 @@
       .modal-actions { position:sticky; bottom:calc(-12px - var(--safe-bottom)); z-index:2; padding:12px 0 calc(5px + var(--safe-bottom)); gap:8px; background:linear-gradient(0deg,#184e87 78%,rgba(24, 78, 135,0)); }
       .modal-actions > button { min-height:46px; }
       .modalBody,.modal-intro { overflow-wrap:anywhere; }
-      .customer-detail-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
-      .customer-detail-row { flex-direction:column; }
-      .customer-detail-row .amount { white-space:normal; }
       .table-tools .outline-btn,.page-top .btn-primary,.page-top .outline-btn { min-height:42px; }
     }
-    @media (max-width:390px) {
-      .main,.customer-mode .main { padding-left:10px !important; padding-right:10px !important; }
+    @media (max-width:390px)  {.main { padding-left:10px !important; padding-right:10px !important; }
       .top-actions { gap:4px; }
       .preview-tag { max-width:43vw; font-size:10px; }
       .stats-grid { gap:7px; }
@@ -779,12 +641,10 @@
       .table-wrap tbody tr { gap:7px 9px; padding:9px; }
       .table-wrap tbody td { font-size:12px; }
       .table-wrap tbody td::before { flex-basis:40%; font-size:10px; }
-      .customer-detail-grid { grid-template-columns:1fr; }
       .store-art { width:56px; height:56px; }
       .store-art img { width:56px; height:46px; }
       .mobile-nav button { flex-basis:64px; min-width:64px; }
     }
-
 
     /* Unified TiznetVPN navy and royal-blue palette. */
     :root {
@@ -803,9 +663,7 @@
     .brand-mark,.store-art { background:linear-gradient(145deg,rgba(0,91,198,.3),rgba(0,37,86,.42)); border-color:rgba(67,145,240,.42); box-shadow:0 9px 30px rgba(0,64,154,.22); }
     .nav-btn.active { color:#a9d4ff; background:linear-gradient(90deg,rgba(28,113,222,.22),rgba(28,113,222,.055)); box-shadow:inset -2px 0 #3c95ff; }
     .nav-btn:hover { background:rgba(52,133,226,.11); }
-    .hero { border-color:rgba(75,154,247,.25); background:linear-gradient(112deg,#0b3978,#092b5b 58%,#071f43); box-shadow:0 18px 48px rgba(0,22,58,.32); }
-    .hero:after,.store-hero:after { border-color:rgba(101,177,255,.18); box-shadow:0 0 0 28px rgba(28,113,222,.05),0 0 0 58px rgba(28,113,222,.025); }
-    .hero p,.store-hero p { color:#c7dcf5; }
+    .hero { border-color:rgba(75,154,247,.25); background:linear-gradient(112deg,#0b3978,#092b5b 58%,#071f43); box-shadow:0 18px 48px rgba(0,22,58,.32); }.hero:after { border-color:rgba(101,177,255,.18); box-shadow:0 0 0 28px rgba(28,113,222,.05),0 0 0 58px rgba(28,113,222,.025); }.hero p { color:#c7dcf5; }
     .eyebrow,.hero-pill svg { color:#9bcaff; stroke:#9bcaff; }
     .hero-pill { border-color:rgba(114,183,255,.28); background:rgba(2,22,53,.38); color:#e3f1ff; }
     .section-title p,.panel-head p,.page-top p,.mini-note,.empty-state { color:#a9bfdc; }
@@ -843,22 +701,7 @@
     .donut:before { background:#0b2a51 !important; }
     .donut-center strong { color:#fff; }
     .donut-center span { color:#afc5e0; }
-    .store-hero { border-color:rgba(78,154,244,.34); background:radial-gradient(320px 240px at 10% 22%,rgba(26,107,222,.25),transparent 76%),linear-gradient(112deg,#0b3976 0%,#082957 55%,#061d40 100%); box-shadow:0 20px 55px rgba(0,18,50,.34); }
-    .store-hero h1 { color:#fff; }
-    .store-hero .eyebrow { color:#a6d2ff; }
-    .store-plan { background:linear-gradient(150deg,#123f78,#0a2850 82%); border-color:rgba(125,184,244,.22); box-shadow:0 12px 32px rgba(0,12,36,.3); }
-    .store-plan:hover { border-color:rgba(82,165,255,.58); box-shadow:0 18px 40px rgba(0,16,44,.4); }
-    .store-plan.featured { border-color:rgba(97,176,255,.75); box-shadow:0 0 0 1px rgba(36,124,226,.2),0 16px 38px rgba(0,23,57,.28); }
-    .store-plan p,.plan-spec small,.store-price small { color:#b7cce6; }
-    .store-price { color:#fff; }
-    .plan-spec { background:rgba(3,22,48,.35); border-color:rgba(137,188,245,.17); }
-    .plan-spec strong { color:#f5f9ff; }
-    .plan-server { color:#b7dcff!important; background:rgba(33,117,216,.16); border-color:rgba(92,166,244,.26); }
-    .plan-server:before { background:#58b8ff; box-shadow:0 0 8px rgba(75,171,255,.8); }
     .featured-label { color:#bfe0ff; background:rgba(33,117,216,.2); border-color:rgba(92,166,244,.28); }
-    .customer-notice { border-color:rgba(87,158,234,.27); background:rgba(15,70,132,.2); color:#bfd5ee; }
-    .customer-sub-card { border-color:rgba(108,174,244,.22); background:linear-gradient(145deg,#123f78,#0a2850); }
-    .customer-sub-card:hover { border-color:rgba(96,178,255,.58); box-shadow:0 12px 28px rgba(0,20,52,.3); }
     .sub-symbol { color:#8ec9ff; background:rgba(36,123,225,.18); }
     .mobile-nav { background:rgba(4,21,46,.98); border-color:rgba(113,177,240,.25); }
     .mobile-nav button { color:#9cb4d4; }
@@ -878,13 +721,6 @@
     .copy-line code { color:#e6f3ff; }
     .receipt-form label { color:#cfe4ff; }
     .toast { background:#0a2f5f; border-color:rgba(105,176,246,.45); }
-    .customer-mode .topbar { border-bottom-color:rgba(102,168,235,.18); }
-    .customer-detail-kpi,.customer-detail-section { border-color:rgba(128,183,239,.2); background:rgba(5,30,62,.56); }
-    .customer-detail-kpi small,.customer-detail-row small { color:#b6cce7; }
-    .customer-detail-kpi strong { color:#f6faff; }
-    .customer-detail-section > h4 { color:#a8d4ff; }
-    .customer-detail-row { border-color:rgba(129,184,241,.18); background:rgba(5,25,53,.7); }
-    .customer-detail-row .amount { color:#a9d7ff; }
     .status.pending { background:rgba(255,210,120,.13); color:#ffd278; }
     .status.paid,.status.good { background:rgba(100,217,172,.13); color:#7be2b7; }
     .status.failed,.status-banned { background:rgba(255,123,138,.13); color:#ff9ba5; }
@@ -902,29 +738,16 @@
     .drill-filter { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; padding:9px 12px; border:1px solid rgba(105,173,241,.26); border-radius:11px; background:rgba(19,74,135,.2); color:#cbe2ff; }
     .drill-filter.hidden { display:none; }
     .drill-filter .link-button { color:#8bc7ff; white-space:nowrap; }
-    .customer-sub-card[role="button"] { cursor:pointer; }
-    .customer-sub-actions { flex-wrap:wrap; }
-    .customer-transactions { display:grid; gap:8px; padding:12px; }
-    .customer-transaction { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px; min-width:0; border:1px solid rgba(125,183,242,.18); border-radius:13px; background:rgba(5,26,55,.48); }
-    .customer-transaction-main { min-width:0; }
-    .customer-transaction-main strong,.customer-transaction-main small { display:block; overflow-wrap:anywhere; }
-    .customer-transaction-main strong { font-size:13px; line-height:1.65; color:#eef6ff; }
-    .customer-transaction-main small { margin-top:3px; font-size:11px; line-height:1.7; color:#a9c0dd; }
-    .customer-transaction-amount { flex:0 0 auto; text-align:left; font-weight:800; white-space:nowrap; }
-    .customer-transaction-amount.in { color:#76e0b4; }
-    .customer-transaction-amount.out { color:#a6d2ff; }
-    .customer-transaction-amount small { display:block; margin-top:2px; font-size:10px; font-weight:500; color:#a9c0dd; }
     @media (max-width:760px) {
       .account-trigger { max-width:150px; gap:6px; }
       .account-name { max-width:88px; font-size:12px; }
       .mobile-nav { background:rgba(4,21,46,.98); border-top-color:rgba(113,177,240,.28); }
       .modal-actions { background:linear-gradient(0deg,#08264c 78%,rgba(8,38,76,0)); }
     }
-    @media (max-width:390px) {
+    @media (max-width:390px)  {
       .account-trigger { max-width:118px; gap:4px; padding-inline:3px; }
       .account-name { max-width:67px; font-size:11px; }
       .top-actions { gap:4px; }
-      .customer-transaction { align-items:flex-start; }
     }
 
     /* Unified TiznetVPN blue system and refreshed store/result components. */
@@ -944,8 +767,7 @@
     .nav-btn.active { color:#b6dcff; background:linear-gradient(90deg,rgba(45,132,237,.2),rgba(45,132,237,.045)); box-shadow:inset -2px 0 #52a7ff; }
     .nav-count { color:#c1e0ff; background:rgba(49,137,239,.18); }
     .preview-tag,.period-switch,.icon-btn,.menu-toggle { background:rgba(7,37,76,.58); border-color:rgba(117,178,240,.24); color:#e1efff; }
-    .hero { border-color:rgba(83,160,249,.27); background:linear-gradient(112deg,#0d3973,#0b2b58 57%,#071f42); }
-    .hero:after,.store-hero:after { border-color:rgba(111,185,255,.2); box-shadow:0 0 0 28px rgba(47,133,229,.045),0 0 0 58px rgba(47,133,229,.025); }
+    .hero { border-color:rgba(83,160,249,.27); background:linear-gradient(112deg,#0d3973,#0b2b58 57%,#071f42); }.hero:after { border-color:rgba(111,185,255,.2); box-shadow:0 0 0 28px rgba(47,133,229,.045),0 0 0 58px rgba(47,133,229,.025); }
     .stat-card,.panel { border-color:var(--line); background:linear-gradient(145deg,rgba(16,48,87,.97),rgba(8,31,60,.99)); box-shadow:0 12px 32px rgba(0,8,24,.24); }
     .panel-select,.filter-control,.search { color:#f4f8ff; border-color:rgba(129,183,240,.28); background:#0a2850; }
     .panel-select option,.filter-control option { background:#0a2850; color:#f4f8ff; }
@@ -958,50 +780,10 @@
     .btn-secondary { border-color:rgba(74,151,239,.38); background:rgba(28,110,215,.17); color:#b3dcff; }
     .outline-btn { color:#dcecff; border-color:rgba(122,181,241,.31); background:rgba(12,49,93,.42); }
     .outline-btn:hover { border-color:#68adff; color:#b9dcff; }
-    .store-hero { border-color:rgba(80,160,250,.34); background:radial-gradient(330px 250px at 10% 22%,rgba(34,118,230,.27),transparent 75%),linear-gradient(112deg,#0c3a78 0%,#0a2c5c 56%,#061d3d 100%); box-shadow:0 22px 58px rgba(0,18,50,.37); }
-    .store-hero .eyebrow { color:#acd7ff; }
-    .store-hero p { color:#c9def7; }
     .store-art { transform:rotate(-4deg); }
-    .plans-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(265px,1fr)); align-items:stretch; gap:17px; }
-    .store-plan {
-      position:relative; isolation:isolate; overflow:hidden; display:flex; flex-direction:column; min-width:0; min-height:370px;
-      padding:22px; border:1px solid rgba(126,187,249,.26); border-radius:24px;
-      background:linear-gradient(148deg,rgba(18,61,112,.98),rgba(8,33,68,.99) 74%);
-      box-shadow:0 16px 38px rgba(0,12,37,.28); transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
-    }
-    .store-plan::before { content:""; position:absolute; z-index:-1; width:260px; height:190px; top:-105px; left:-55px; border-radius:50%; background:radial-gradient(circle,rgba(63,153,246,.2),transparent 70%); pointer-events:none; }
-    .store-plan:hover { transform:translateY(-4px); border-color:rgba(116,190,255,.55); box-shadow:0 23px 48px rgba(0,17,48,.4); }
-    .store-plan.featured { border-color:rgba(121,195,255,.68); box-shadow:0 0 0 1px rgba(72,154,239,.15),0 18px 42px rgba(0,20,54,.34); }
-    .plan-card-orbit { position:absolute; z-index:-1; width:138px; height:138px; left:-45px; top:62px; border:1px solid rgba(113,184,249,.1); border-radius:50%; box-shadow:0 0 0 18px rgba(83,156,231,.025),0 0 0 38px rgba(83,156,231,.018); pointer-events:none; }
-    .store-plan-header,.plan-card-title,.store-plan-price-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-    .store-plan-header { position:relative; z-index:1; }
-    .plan-card-brand { color:#93bce9; font-size:9px; font-weight:800; letter-spacing:1.6px; direction:ltr; white-space:nowrap; }
-    .plan-server { color:#c5e2ff!important; background:rgba(43,126,218,.17); border:1px solid rgba(108,176,242,.27); border-radius:99px; padding:6px 10px; font-size:10px!important; font-weight:750; }
-    .plan-server:before { background:#68bdff; box-shadow:0 0 9px rgba(85,175,255,.7); }
-    .plan-card-title { margin-top:17px; align-items:flex-start; }
-    .plan-card-title h3 { margin:0; color:#f6faff; font-size:21px; line-height:1.5; }
-    .plan-card-title p { margin:3px 0 0; color:#9ebce0; font-size:11px; }
-    .plan-card-emblem { display:grid; place-items:center; flex:0 0 39px; width:39px; height:39px; border:1px solid rgba(124,191,250,.28); border-radius:14px; color:#a5d4ff; background:linear-gradient(145deg,rgba(49,137,239,.2),rgba(5,35,75,.35)); font-size:20px; box-shadow:inset 0 1px rgba(255,255,255,.06); }
-    .plan-specs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:17px 0 14px; }
-    .plan-spec { padding:12px; border:1px solid rgba(137,190,247,.17); border-radius:15px; background:linear-gradient(145deg,rgba(7,31,64,.74),rgba(14,49,91,.42)); }
-    .plan-spec small { display:block; color:#96b4d7; font-size:10px; }
-    .plan-spec small span { color:#8fcbff; margin-left:3px; }
-    .plan-spec strong { display:block; margin-top:4px; color:#f5f9ff; font-size:15px; }
-    .store-plan-price-row { align-items:flex-end; margin-top:3px; padding-top:13px; border-top:1px solid rgba(137,190,247,.15); }
-    .store-plan-price-label { display:block; margin-bottom:2px; color:#9ebad9; font-size:10px; }
-    .store-price { display:flex; align-items:baseline; gap:6px; color:#fff; font-size:24px; line-height:1.5; font-weight:850; }
-    .store-price small { color:#a9c6e6; font-size:10px; font-weight:500; }
-    .plan-billing-chip { align-self:center; padding:5px 8px; border:1px solid rgba(101,185,255,.19); border-radius:99px; background:rgba(30,104,187,.13); color:#b9d9fa; font-size:9px; white-space:nowrap; }
-    .plan-summary { min-height:42px; margin:10px 0 14px; color:#a9c2df; font-size:11px; line-height:1.85; }
-    .plan-buy { width:100%; min-height:48px; display:flex; align-items:center; justify-content:center; gap:10px; border-radius:14px; font-size:13px; font-weight:800; }
-    .plan-buy svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; transform:rotate(180deg); }
-    .plan-card-foot { display:flex; justify-content:space-between; gap:8px; margin-top:12px; color:#819fc4; font-size:9px; }
     .empty-plan { min-height:180px; }
     .featured-label { color:#d1e8ff; background:rgba(33,117,216,.2); border-color:rgba(92,166,244,.28); }
-    .customer-sub-card { border-color:rgba(108,174,244,.24); background:linear-gradient(145deg,#123f78,#0a2850); }
-    .customer-sub-card:hover { border-color:rgba(96,178,255,.58); box-shadow:0 12px 28px rgba(0,20,52,.3); }
     .sub-symbol { color:#9bd1ff; background:rgba(36,123,225,.18); }
-    .customer-notice { border-color:rgba(87,158,234,.27); background:rgba(15,70,132,.2); color:#c1d7ef; }
     .mobile-nav { background:rgba(4,21,46,.98); border-color:rgba(113,177,240,.28); }
     .mobile-nav button { color:#adc4e0; }
     .mobile-nav button.active { color:#91caff; }
@@ -1027,139 +809,49 @@
     .order-state { background:rgba(255,120,140,.09); border-color:rgba(255,120,140,.19); color:#ffd5dc; }
     .order-state.warn { color:#ffe2ae; background:rgba(227,156,58,.09); border-color:rgba(227,156,58,.2); }
     .order-state.good { color:#a8e8c8; background:rgba(54,176,119,.1); border-color:rgba(74,206,144,.18); }
-    .pending-order { border-color:rgba(255,210,120,.2); background:linear-gradient(110deg,rgba(96,67,25,.18),rgba(7,29,59,.92)); }
-    .pending-order small { color:#bfd0e3; }
     .order-follow { border-color:rgba(108,178,244,.25); color:#b7dcff; background:rgba(29,105,194,.13); }
-    .customer-detail-kpi,.customer-detail-section { border-color:rgba(128,183,239,.2); background:rgba(5,30,62,.56); }
-    .customer-detail-row { border-color:rgba(129,184,241,.18); background:rgba(5,25,53,.7); }
-    .customer-detail-row .amount { color:#a9d7ff; }
-    .customer-detail-kpi small,.customer-detail-row small { color:#b6cce7; }
-    .customer-detail-kpi strong { color:#f6faff; }
-    .customer-detail-section>h4 { color:#a8d4ff; }
-    .subscription-delivery-card { display:grid; justify-items:center; gap:13px; margin:12px 0; padding:18px 15px; border:1px solid rgba(107,183,249,.3); border-radius:21px; background:radial-gradient(260px 180px at 50% 0%,rgba(50,135,226,.19),transparent 75%),linear-gradient(155deg,rgba(7,34,72,.95),rgba(5,25,54,.98)); box-shadow:0 16px 36px rgba(0,10,31,.27); text-align:center; }
     .delivery-card-heading { width:100%; display:flex; align-items:center; justify-content:center; gap:10px; text-align:right; }
     .delivery-ready-icon { display:grid; place-items:center; flex:0 0 32px; width:32px; height:32px; border:1px solid rgba(105,221,176,.3); border-radius:11px; color:#8be7c4; background:rgba(68,193,148,.14); font-size:16px; font-weight:900; }
     .delivery-card-heading strong,.delivery-card-heading small { display:block; }
     .delivery-card-heading strong { color:#f4f9ff; font-size:15px; }
     .delivery-card-heading small { margin-top:2px; color:#a9c4e3; font-size:10px; }
-    .subscription-qr-frame { display:flex; align-items:center; justify-content:center; width:min(100%,284px); min-height:160px; padding:12px; border:1px solid rgba(117,179,241,.28); border-radius:20px; background:#ffffff; box-shadow:0 12px 28px rgba(0,0,0,.24); }
-    .subscription-qr-image { display:block; width:100%; max-width:260px; height:auto; margin:0 auto; object-fit:contain; image-rendering:pixelated; border-radius:8px; background:#fff; }
     .qr-unavailable { display:grid; gap:8px; color:#1c497a; font-size:13px; }
     .qr-unavailable small { color:#5e7692; font-size:11px; }
-    .subscription-link-heading { width:100%; color:#d9eafa; font-size:11px; font-weight:800; text-align:right; }
-    .subscription-copy { width:100%; align-items:flex-start; background:rgba(2,18,40,.72); }
-    .subscription-copy code { flex:1; max-height:85px; overflow:auto; overflow-wrap:anywhere; white-space:normal; font-size:10px; line-height:1.7; }
-    .subscription-copy button { flex:0 0 auto; color:#d8ecff; background:rgba(42,123,210,.24); }
-    .subscription-qr-help { margin:0; color:#a9c1de; font-size:10px; line-height:1.8; }
     .manual-confirm-check { display:flex!important; align-items:flex-start; gap:11px!important; margin-top:13px; padding:14px; border:1px solid rgba(125,182,239,.28); border-radius:15px; background:rgba(6,29,62,.76); cursor:pointer; }
     .manual-confirm-check input { flex:0 0 auto; width:20px!important; height:20px; margin:2px 0 0; accent-color:#3289f2; }
     .manual-confirm-check span { display:grid; gap:4px; }
     .manual-confirm-check strong { color:#eef6ff; font-size:12px; }
     .manual-confirm-check small { color:#b3c9e2; font-size:10px; line-height:1.8; font-weight:450; }
     .toast { background:#0a2f5f; border-color:rgba(105,176,246,.45); }
-    .customer-mode .topbar { border-bottom-color:rgba(102,168,235,.18); }
-    @media (max-width:760px) {
-      .plans-grid { grid-template-columns:minmax(0,1fr); gap:12px; }
-      .store-plan { min-height:0; padding:18px; }
-      .plan-summary { min-height:0; }
+    @media (max-width:760px)  {
       .mobile-nav { background:rgba(4,21,46,.98); border-top-color:rgba(113,177,240,.28); }
       .modal-actions { background:linear-gradient(0deg,#08264c 78%,rgba(8,38,76,0)); }
       .table-wrap tbody tr { border-color:rgba(124,181,240,.23); background:linear-gradient(145deg,rgba(16,53,99,.95),rgba(7,29,61,.97)); box-shadow:0 8px 20px rgba(0,10,31,.2); }
       .table-wrap tbody td::before { color:#b9d3ef; }
     }
-    @media (max-width:390px) {
-      .store-plan { padding:15px; }
-      .plan-card-title h3 { font-size:19px; }
-      .plan-billing-chip { font-size:8px; }
-      .subscription-delivery-card { padding:14px 11px; }
-      .subscription-qr-frame { width:min(100%,260px); }
+    @media (max-width:390px)  {
     }
 
-    /* Customer tabs and responsive wrapping hardening */
-    .customer-tabs { display:none; }
-    .customer-mode .customer-tabs {
-      grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin:0 0 15px; padding:5px;
-      border:1px solid rgba(137,190,247,.22); border-radius:15px; background:rgba(4,24,49,.68);
-    }
-    .customer-tabs [role="tab"] {
-      min-width:0; min-height:45px; padding:8px 10px; border:1px solid transparent; border-radius:11px;
-      background:transparent; color:#c2d9f3; font:inherit; font-size:13px; font-weight:750;
-      white-space:normal; overflow-wrap:anywhere; cursor:pointer; transition:background .18s,border-color .18s,color .18s;
-    }
-    .customer-tabs [role="tab"][aria-selected="true"] {
-      color:#fff; border-color:rgba(126,190,250,.35);
-      background:linear-gradient(135deg,rgba(47,132,222,.35),rgba(15,64,119,.62));
-      box-shadow:inset 0 1px rgba(255,255,255,.08),0 5px 15px rgba(0,20,52,.18);
-    }
-    .customer-tabs [role="tab"]:focus-visible,.customer-click-row:focus-visible { outline:2px solid #91caff; outline-offset:2px; }
-    .customer-tab-panel,.customer-summary > *,.store-plan,.store-hero > div:first-child { min-width:0; }
-    .customer-tab-panel[hidden] { display:none!important; }
-    .referral-link-card,.referral-progress-card,.referral-points-card { margin-bottom:14px; }
-    .referral-link-box { display:grid; gap:9px; min-width:0; margin-top:8px; padding:14px; border:1px solid rgba(137,190,247,.25); border-radius:14px; background:rgba(4,24,49,.34); }
-    .referral-label,.referral-stat>span,.referral-conversion-box span { color:#c5daf1; font-size:13px; }
-    .referral-link-box code { display:block; min-width:0; padding:11px 12px; overflow-wrap:anywhere; border:1px solid rgba(137,190,247,.2); border-radius:10px; background:rgba(2,19,40,.45); color:#fff; font-size:14px; }
-    .referral-share-actions { display:flex; align-items:center; flex-wrap:wrap; gap:9px; margin-top:12px; }
-    .referral-share-actions .mini-note { min-width:0; flex:1 1 220px; }
-    .referral-stats-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:0 0 14px; }
-    .referral-stat { display:grid; gap:6px; min-width:0; }
-    .referral-stat strong { color:#f7fbff; font-size:25px; line-height:1.35; overflow-wrap:anywhere; }
-    .referral-stat small { color:#c9def3; font-size:12px; line-height:1.8; }
-    .referral-progress-track { height:11px; overflow:hidden; margin-top:14px; border-radius:99px; background:rgba(255,255,255,.12); }
-    .referral-progress-track i { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#73b7ff,#c0e0ff); transition:width .25s ease; }
-    .referral-progress-copy { margin:10px 0 0; color:#dcecff; font-size:14px; }
-    .referral-conversion-box { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:14px; }
-    .referral-conversion-box>div { display:grid; gap:6px; min-width:0; padding:12px; border:1px solid rgba(137,190,247,.2); border-radius:12px; background:rgba(4,24,49,.32); }
-    .referral-conversion-box strong { color:#fff; font-size:17px; overflow-wrap:anywhere; }
+    /* ردیف مشتری در پنل مدیریت: فوکوس و اشاره‌گر */
+    .customer-click-row:focus-visible { outline:2px solid #91caff; outline-offset:2px; }
     .customer-click-row { cursor:pointer; }
     .customer-click-row:hover { background:rgba(121,188,255,.10)!important; }
     .customer-click-row:focus-visible { position:relative; z-index:1; }
-    .store-hero { min-height:0; padding:clamp(16px,3vw,29px); gap:clamp(12px,3vw,26px); }
-    .store-hero h1 { max-width:100%; font-size:clamp(19px,4vw,27px); overflow-wrap:anywhere; }
-    .store-hero p,.plan-card-title h3,.plan-summary,.plan-spec strong,.pending-order > div,.customer-detail-row > div { overflow-wrap:anywhere; }
     .store-art { flex:0 0 auto; margin:0; max-width:100%; }
-    .plans-grid { grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); }
-    .store-plan { min-height:0; }
-    .store-plan-header,.store-plan-price-row,.plan-card-foot { flex-wrap:wrap; }
-    .plan-card-title > div,.store-plan-price-row > div { min-width:0; }
-    .plan-card-brand,.plan-server { white-space:normal; overflow-wrap:anywhere; }
-    .store-price { flex-wrap:wrap; overflow-wrap:anywhere; }
-    .plan-billing-chip { max-width:100%; white-space:normal; text-align:center; }
-    @media (max-width:760px) {
-      .customer-tabs { gap:6px; margin-bottom:12px; }
-      .customer-tabs [role="tab"] { min-height:46px; padding:8px 6px; font-size:14px; }
-      .customer-summary { grid-template-columns:minmax(0,1fr)!important; }
-      .referral-stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
-      .referral-stat { padding:12px; }
-      .referral-stat strong { font-size:21px; }
-      .referral-conversion-box { grid-template-columns:minmax(0,1fr); }
-      .referral-share-actions > button { flex:1 1 145px; }
-      .store-hero { grid-template-columns:minmax(0,1fr) minmax(56px,clamp(56px,13vw,82px)); padding:15px; }
+    @media (max-width:760px)  {
       .store-art { width:clamp(56px,13vw,82px); height:clamp(56px,13vw,82px); border-radius:20px; }
       .store-art img { width:100%; height:auto; }
-      .store-plan-header,.store-plan-price-row,.plan-card-foot { align-items:flex-start; }
-      .pending-order > div { width:100%; }
-      .customer-transaction { align-items:flex-start; flex-wrap:wrap; }
-      .customer-transaction-amount { margin-inline-start:auto; }
-      .free-claim-footer .btn-primary { width:100%; }
       .kv-backup-actions > button,.kv-backup-actions > .kv-restore-file-label { width:100%; min-width:0; }
       .outline-btn,.table-action,.btn-primary,.btn-secondary { min-width:0; white-space:normal; overflow-wrap:anywhere; }
       .stat-top,.stat-foot { gap:6px; flex-wrap:wrap; }
       .status,.type-pill { max-width:100%; white-space:normal; overflow-wrap:anywhere; }
     }
-    @media (max-width:390px) {
-      .customer-tabs { gap:4px; padding:4px; }
-      .customer-tabs [role="tab"] { padding:7px 4px; font-size:12px; }
-      .store-hero { padding:12px; gap:8px; }
-      .store-hero h1 { font-size:19px; }
-      .store-plan { padding:14px; }
-      .plan-card-foot { justify-content:flex-start; }
-      .customer-transaction { padding:10px; }
+    @media (max-width:390px)  {
     }
     .agent-admin-grid { display:grid; grid-template-columns:minmax(280px,.9fr) minmax(320px,1.1fr); gap:14px; align-items:start; }
     .agent-admin-stack { display:grid; gap:14px; min-width:0; }
     .agent-detail-panel,.agent-create-panel,.agent-history-panel { margin-top:14px; }
     .agent-stat-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:0 0 14px; }
-    .agent-stat-grid .referral-stat strong { font-size:22px; }
     .agent-invites-list,.agent-sub-list,.agent-transaction-list { display:grid; gap:10px; margin-top:14px; }
     .agent-invite-result,.agent-link-box { display:grid; gap:9px; min-width:0; margin-top:12px; padding:13px; border:1px solid rgba(137,190,247,.28); border-radius:13px; background:rgba(4,24,49,.4); }
     .agent-invite-result code,.agent-link-box code { display:block; min-width:0; padding:10px; overflow-wrap:anywhere; border-radius:9px; background:rgba(2,19,40,.5); color:#f5faff; direction:ltr; text-align:left; }
@@ -1180,188 +872,455 @@
     @media(max-width:900px){.agent-admin-grid{grid-template-columns:minmax(0,1fr)}.agent-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:520px){.agent-stat-grid,.agent-price-grid{grid-template-columns:minmax(0,1fr)}.agent-wallet-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.agent-wallet-controls .admin-field{grid-column:1/-1}.agent-wallet-controls button{width:100%}}
 
-    /* ── نمای مشتری: طراحی جدید — آبی عمیق، کارت‌های شیشه‌ای، ناوبری پایین ── */
-    /* .page keeps transform:translateY(0) after fadeIn (animation-fill-mode:both);
-       that would make it the containing block for position:fixed children and push
-       the bottom nav into the middle of the page. Fade opacity only, no transform. */
-    .customer-mode #storePage { animation-name:fadeInNoTransform; }
-    @keyframes fadeInNoTransform { from { opacity:0; } to { opacity:1; } }
-    .customer-top { display:none; }
-    .customer-mode .customer-top { display:block; }
-    .customer-mode[data-customer-tab]:not([data-customer-tab="buy"]) .customer-top { display:none; }
-
-    body.customer-mode {
-      background:
-        radial-gradient(920px 540px at 88% -10%, rgba(47,134,232,.30), transparent 62%),
-        radial-gradient(760px 460px at 4% 2%, rgba(90,216,255,.15), transparent 60%),
-        radial-gradient(720px 540px at 50% 114%, rgba(29,96,190,.28), transparent 66%),
-        linear-gradient(180deg,#02091c 0%,#04152e 46%,#03102a 100%);
-      background-attachment:fixed;
-    }
-    .customer-mode .main { max-width:1180px; padding-bottom:calc(96px + var(--safe-bottom)) !important; }
-    .customer-mode .mobile-nav { display:none !important; }
-    .customer-mode .topbar { min-height:62px; margin-bottom:14px; border-bottom-color:rgba(126,196,255,.16); }
-    .customer-mode .customer-notice { border-color:rgba(126,196,255,.22); background:rgba(11,44,88,.42); color:#a8c4e4; }
-
-    /* ── هرو / خوش‌آمدگویی ── */
-    .customer-hero { position:relative; overflow:hidden; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:14px;
-      padding:18px; border-radius:24px; border:1px solid rgba(146,214,255,.26);
-      background:radial-gradient(330px 200px at 92% -30%, rgba(90,216,255,.34), transparent 70%),
-                 radial-gradient(270px 190px at 6% 124%, rgba(47,134,232,.36), transparent 72%),
-                 linear-gradient(145deg,#0d3a72 0%,#071f45 62%,#041530 100%);
-      box-shadow:0 22px 46px rgba(0,8,26,.5), inset 0 1px rgba(255,255,255,.10); }
-    .customer-hero::after { content:""; position:absolute; inset:0; pointer-events:none;
-      background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.07) 45%,transparent 60%); }
-    body.customer-mode.preview-data .customer-hero::before { content:"دادهٔ نمونه"; position:absolute; top:12px; left:12px; z-index:2;
-      padding:4px 10px; border-radius:99px; font-size:9px; font-weight:800; letter-spacing:.2px; color:#ffdfa3;
-      background:rgba(246,200,107,.14); border:1px solid rgba(246,200,107,.42); }
-    .customer-hero-main { display:flex; align-items:center; gap:13px; min-width:0; flex:1 1 180px; }
-    .customer-avatar { width:52px; height:52px; flex:0 0 52px; border-radius:18px; display:grid; place-items:center; font-size:19px; font-weight:850; color:#03152f;
-      background:linear-gradient(145deg,#a9ecff,#3aa4ea); box-shadow:0 10px 26px rgba(30,140,220,.5), inset 0 1px rgba(255,255,255,.6); }
-    .customer-hero-copy { min-width:0; flex:1 1 auto; }
-    .customer-hero-copy small { display:block; color:#9fd0f5; font-size:10px; letter-spacing:.4px; }
-    .customer-hero-copy h2 { margin:3px 0 0; font-size:18px; font-weight:850; line-height:1.5; color:#f2f9ff; overflow-wrap:anywhere; }
-    .customer-hero-copy p { margin:5px 0 0; color:#a6c6e6; font-size:10px; line-height:1.7; }
-    .customer-refresh { position:relative; z-index:1; width:42px; height:42px; flex:0 0 42px; border-radius:14px; display:grid; place-items:center; cursor:pointer;
-      border:1px solid rgba(146,214,255,.34); background:rgba(6,28,60,.6); color:#bfe6ff;
-      box-shadow:inset 0 1px rgba(255,255,255,.08); transition:transform .18s, background .18s; }
-    .customer-refresh:active { transform:scale(.94); }
-    .customer-refresh svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
-    .customer-refresh.busy svg { animation:customer-spin .8s linear infinite; }
-    @keyframes customer-spin { to { transform:rotate(360deg); } }
-
-    /* ── کارت کیف پول ── */
-    .customer-mode .wallet-card { position:relative; overflow:hidden; margin:12px 0 0; padding:18px; border-radius:24px;
-      border:1px solid rgba(146,214,255,.34);
-      background:radial-gradient(340px 210px at 8% -22%, rgba(120,220,255,.34), transparent 70%),
-                 radial-gradient(300px 210px at 102% 132%, rgba(47,134,232,.42), transparent 72%),
-                 linear-gradient(140deg,#10559c 0%,#0a2c58 70%,#071d3e 100%);
-      box-shadow:0 24px 48px rgba(0,8,26,.55), inset 0 1px rgba(255,255,255,.12); }
-    .customer-mode .wallet-card::after { content:""; position:absolute; inset:0; pointer-events:none;
-      background:linear-gradient(100deg,transparent 34%,rgba(255,255,255,.08) 48%,transparent 62%); }
-    .customer-mode .wallet-card .panel-head h3 { font-size:12px; color:#e2f2ff; }
-    .customer-mode .wallet-card .panel-head p { color:#b6d5f2; }
-    .customer-mode .wallet-card .stat-icon { position:relative; z-index:1; color:#d8f1ff; background:rgba(4,24,52,.42); border-color:rgba(197,227,255,.4); }
-    .customer-mode .wallet-card .stat-value { position:relative; z-index:1; margin-top:10px; font-size:27px; color:#fff; text-shadow:0 3px 18px rgba(10,80,170,.6); }
-    .customer-mode .wallet-card .stat-unit { font-size:10px; color:#c3ddf6; }
-    .customer-mode .wallet-card .stat-foot { position:relative; z-index:1; color:#c3dcf5; font-size:10px; }
-    .customer-mode .wallet-card .mini-note { display:none; }
-    .customer-wallet-actions { position:relative; z-index:1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:15px; }
-    .customer-wallet-actions button { min-height:44px; border-radius:14px; font-size:11px; font-weight:800; cursor:pointer; transition:transform .16s, box-shadow .18s; }
-    .customer-wallet-actions button:active { transform:scale(.98); }
-    .customer-wallet-charge { border:0; color:#03152f; background:linear-gradient(110deg,#b5efff,#4fb6f0); box-shadow:0 10px 24px rgba(45,150,225,.42); }
-    .customer-wallet-history { border:1px solid rgba(197,227,255,.5); color:#eaf5ff; background:rgba(5,26,56,.5); }
-
-    /* ── کارت‌های KPI ── */
-    .customer-kpis { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:12px; }
-    .customer-kpi { display:flex; flex-direction:column; gap:7px; min-width:0; padding:13px 14px; border-radius:18px;
-      border:1px solid rgba(126,196,255,.18); background:linear-gradient(158deg,rgba(17,60,116,.66),rgba(6,25,56,.8));
-      backdrop-filter:blur(14px); box-shadow:0 12px 28px rgba(0,8,26,.4), inset 0 1px rgba(255,255,255,.06); }
-    .kpi-icon { width:32px; height:32px; border-radius:11px; display:grid; place-items:center; color:#8fd8ff;
-      background:linear-gradient(145deg,rgba(90,216,255,.22),rgba(47,134,232,.14)); border:1px solid rgba(146,214,255,.26); }
-    .kpi-icon svg { width:17px; height:17px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-    .customer-kpi span:not(.kpi-icon) { color:#9dbbdb; font-size:10px; }
-    .customer-kpi strong { font-size:19px; font-weight:850; color:#f4faff; overflow-wrap:anywhere; line-height:1.3; }
-    .customer-kpi strong small { margin-right:4px; color:#8fb0d4; font-size:9px; font-weight:650; }
-
-    /* ── میان‌برها ── */
-    .customer-quick { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:12px; }
-    .customer-quick-tile { display:flex; align-items:center; gap:11px; min-width:0; padding:13px; border-radius:18px; text-align:right; font:inherit; color:#eaf5ff;
-      border:1px solid rgba(126,196,255,.2); background:linear-gradient(158deg,rgba(20,68,128,.7),rgba(7,30,64,.82));
-      backdrop-filter:blur(14px); box-shadow:0 12px 26px rgba(0,8,26,.38), inset 0 1px rgba(255,255,255,.06);
-      cursor:pointer; transition:transform .18s, border-color .18s, box-shadow .18s; }
-    .customer-quick-tile:hover { border-color:rgba(146,214,255,.5); transform:translateY(-2px); box-shadow:0 18px 34px rgba(0,10,30,.5); }
-    .customer-quick-tile:active { transform:scale(.985); }
-    .customer-quick-icon { width:40px; height:40px; flex:0 0 40px; border-radius:14px; display:grid; place-items:center; color:#9fdcff;
-      background:linear-gradient(145deg,rgba(90,216,255,.26),rgba(47,134,232,.16)); border:1px solid rgba(146,214,255,.28); }
-    .customer-quick-icon svg { width:20px; height:20px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-    .customer-quick-tile > span:last-child { min-width:0; flex:1 1 auto; }
-    .customer-quick-tile strong { display:block; font-size:11px; font-weight:800; }
-    .customer-quick-tile small { display:block; margin-top:3px; color:#93b1d2; font-size:9px; line-height:1.6; }
-
-    /* ── بنر سفارش در انتظار ── */
-    .pending-order-head { display:flex; align-items:center; gap:10px; min-width:0; }
-    .pending-order-icon { width:36px; height:36px; flex:0 0 36px; border-radius:13px; display:grid; place-items:center; color:#ffd278;
-      background:rgba(246,200,107,.16); border:1px solid rgba(246,200,107,.32); }
-    .pending-order-icon svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
-    .customer-mode .pending-orders { margin-top:12px; }
-    .customer-mode .pending-order { border-color:rgba(255,206,128,.32);
-      background:linear-gradient(120deg,rgba(96,67,25,.34),rgba(7,29,59,.9)); box-shadow:0 14px 30px rgba(0,8,26,.42); }
-
-    /* ── پنل‌ها و کارت‌های محتوا: شیشه‌ای ── */
-    .customer-mode .panel,
-    .customer-mode .store-plan,
-    .customer-mode .customer-sub-card,
-    .customer-mode .referral-stat,
-    .customer-mode .customer-transaction,
-    .customer-mode .customer-history-panel {
+    /* ── اجزای مشترک پنل نماینده و مودال‌ها (عیناً مثل نسخهٔ قبل) ────── */
+    .customer-detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .customer-detail-kpi { min-width:0; padding:12px; border:1px solid rgba(238, 246, 255,.2); border-radius:13px; background:rgba(4, 43, 83,.22); overflow-wrap:anywhere; }
+    .customer-detail-kpi small, .customer-detail-kpi strong { display:block; }
+    .customer-detail-kpi small { color:#cbe0f5; font-size:12px; line-height:1.6; }
+    .customer-detail-kpi strong { margin-top:4px; color:#fff; font-size:15px; line-height:1.7; }
+    .customer-detail-section { margin-top:13px; padding:13px; border:1px solid rgba(238, 246, 255,.18); border-radius:14px; background:rgba(4, 43, 83,.15); }
+    .customer-detail-section > h4 { margin:0 0 9px; font-size:15px; color:#b3d8ff; }
+    .customer-detail-list { display:grid; gap:8px; margin:0; padding:0; list-style:none; }
+    .customer-detail-row { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:10px; border:1px solid rgba(238, 246, 255,.14); border-radius:11px; background:rgba(3, 31, 60,.18); min-width:0; }
+    .customer-detail-row > div { min-width:0; overflow-wrap:anywhere; }
+    .customer-detail-row strong, .customer-detail-row small { display:block; }
+    .customer-detail-row strong { font-size:13px; line-height:1.7; }
+    .customer-detail-row small { margin-top:2px; color:#cbdff3; font-size:12px; line-height:1.8; }
+    .customer-detail-row .amount { flex:0 0 auto; white-space:nowrap; color:#add5ff; font-weight:800; }
+    .customer-detail-section details > summary { cursor:pointer; color:#e7f3ff; font-weight:750; padding:5px 0; }
+    .customer-detail-section details[open] > summary { margin-bottom:10px; }
+    .customer-detail-kpi, .customer-detail-section { border-color:rgba(128,183,239,.2); background:rgba(5,30,62,.56); }
+    .customer-detail-kpi small, .customer-detail-row small { color:#b6cce7; }
+    .customer-detail-kpi strong { color:#f6faff; }
+    .customer-detail-section > h4 { color:#a8d4ff; }
+    .customer-detail-row { border-color:rgba(129,184,241,.18); background:rgba(5,25,53,.7); }
+    .customer-detail-row .amount { color:#a9d7ff; }
+    .customer-detail-kpi, .customer-detail-section { border-color:rgba(128,183,239,.2); background:rgba(5,30,62,.56); }
+    .customer-detail-row { border-color:rgba(129,184,241,.18); background:rgba(5,25,53,.7); }
+    .customer-detail-row .amount { color:#a9d7ff; }
+    .customer-detail-kpi small, .customer-detail-row small { color:#b6cce7; }
+    .customer-detail-kpi strong { color:#f6faff; }
+    .customer-detail-section>h4 { color:#a8d4ff; }
+    .referral-link-card, .referral-progress-card, .referral-points-card { margin-bottom:14px; }
+    .referral-link-box { display:grid; gap:9px; min-width:0; margin-top:8px; padding:14px; border:1px solid rgba(137,190,247,.25); border-radius:14px; background:rgba(4,24,49,.34); }
+    .referral-label, .referral-stat>span, .referral-conversion-box span { color:#c5daf1; font-size:13px; }
+    .referral-link-box code { display:block; min-width:0; padding:11px 12px; overflow-wrap:anywhere; border:1px solid rgba(137,190,247,.2); border-radius:10px; background:rgba(2,19,40,.45); color:#fff; font-size:14px; }
+    .referral-share-actions { display:flex; align-items:center; flex-wrap:wrap; gap:9px; margin-top:12px; }
+    .referral-share-actions .mini-note { min-width:0; flex:1 1 220px; }
+    .referral-stats-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:0 0 14px; }
+    .referral-stat { display:grid; gap:6px; min-width:0; }
+    .referral-stat strong { color:#f7fbff; font-size:25px; line-height:1.35; overflow-wrap:anywhere; }
+    .referral-stat small { color:#c9def3; font-size:12px; line-height:1.8; }
+    .referral-progress-track { height:11px; overflow:hidden; margin-top:14px; border-radius:99px; background:rgba(255,255,255,.12); }
+    .referral-progress-track i { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#73b7ff,#c0e0ff); transition:width .25s ease; }
+    .referral-progress-copy { margin:10px 0 0; color:#dcecff; font-size:14px; }
+    .referral-conversion-box { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:14px; }
+    .referral-conversion-box>div { display:grid; gap:6px; min-width:0; padding:12px; border:1px solid rgba(137,190,247,.2); border-radius:12px; background:rgba(4,24,49,.32); }
+    .referral-conversion-box strong { color:#fff; font-size:17px; overflow-wrap:anywhere; }
+    .customer-detail-row > div { overflow-wrap:anywhere; }
+    .agent-stat-grid .referral-stat strong { font-size:22px; }
+    .customer-mode .referral-stat {
       border-color:rgba(126,196,255,.18);
       background:linear-gradient(158deg,rgba(17,60,116,.6),rgba(6,25,56,.8));
       backdrop-filter:blur(14px);
       box-shadow:0 14px 32px rgba(0,8,26,.4), inset 0 1px rgba(255,255,255,.05);
     }
-    .customer-mode .store-plan { border-color:rgba(126,196,255,.2); }
-    .customer-mode .store-plan:hover { border-color:rgba(146,214,255,.55); box-shadow:0 22px 44px rgba(0,10,30,.55); }
-    .customer-mode .section-title h2,
-    .customer-mode .section-title h3 { position:relative; padding-right:12px; color:#eef7ff; }
-    .customer-mode .section-title h2::before,
-    .customer-mode .section-title h3::before { content:""; position:absolute; right:0; top:.35em; bottom:.35em; width:4px; border-radius:99px;
-      background:linear-gradient(180deg,#7ce0ff,#2f86e8); box-shadow:0 0 12px rgba(90,216,255,.6); }
+    @media (max-width:760px) {
+      .customer-detail-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .customer-detail-row { flex-direction:column; }
+      .customer-detail-row .amount { white-space:normal; }
+      .referral-stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+      .referral-stat { padding:12px; }
+      .referral-stat strong { font-size:21px; }
+      .referral-conversion-box { grid-template-columns:minmax(0,1fr); }
+      .referral-share-actions > button { flex:1 1 145px; }
+    }
+    @media (max-width:390px) {
+      .customer-detail-grid { grid-template-columns:1fr; }
+    }
 
-    /* ── نوار ناوبری پایین (ثابت در همهٔ اندازه‌ها) ── */
-    .customer-mode .customer-tabs { position:fixed; left:0; right:0; bottom:0; z-index:60;
-      display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; margin:0; border:0; border-radius:0;
-      padding:8px max(10px, calc((100% - 760px) / 2)) calc(8px + var(--safe-bottom));
-      border-top:1px solid rgba(126,196,255,.22);
-      background:linear-gradient(0deg,rgba(2,9,26,.98) 0%,rgba(5,22,50,.94) 100%);
-      backdrop-filter:blur(22px); box-shadow:0 -16px 42px rgba(0,4,16,.6); }
-    .customer-mode .customer-tabs [role="tab"] { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
-      min-height:54px; padding:6px 4px; border:1px solid transparent; border-radius:16px;
-      background:transparent; color:#8fb2d6; font:inherit; font-size:11px; font-weight:750;
-      white-space:nowrap; cursor:pointer; transition:color .18s, background .18s, border-color .18s; }
-    .customer-mode .customer-tabs [role="tab"]::before { content:""; width:21px; height:21px; background-color:currentColor;
+    /* ══════════════════════════════════════════════════════════════════════
+       نمای مشتری — بازنویسی کامل (۱.۸.۸)
+       یک لایهٔ مستقل با پیشوند «cv-»؛ هیچ قانون قدیمیِ نمای مشتری باقی نمانده است.
+       قواعد این بخش فقط داخل body.customer-mode اثر می‌گذارند تا پنل مدیریت
+       دست‌نخورده بماند.
+       ══════════════════════════════════════════════════════════════════════ */
+
+    /* انیمیشن صفحه فقط opacity را تغییر می‌دهد؛ اگر transform بماند،
+       نوار ثابت پایین به‌جای viewport به باکس صفحه می‌چسبد. */
+    .customer-mode #storePage { animation-name:fadeInNoTransform; display:block; padding:0; }
+    @keyframes fadeInNoTransform { from { opacity:0; } to { opacity:1; } }
+
+    /* توکن‌های طراحی نمای مشتری؛ سراسری‌اند تا پیش‌نمایش فروشگاه در پنل مدیریت هم درست دیده شود. */
+    :root {
+      --cv-line:rgba(126,196,255,.16);
+      --cv-line-strong:rgba(146,214,255,.4);
+      --cv-ink:#eef7ff;
+      --cv-muted:#9dbcd9;
+      --cv-dim:#82a3c4;
+      --cv-accent:#5ad8ff;
+      --cv-accent-deep:#2f86e8;
+      --cv-radius:18px;
+      --cv-gap:10px;
+    }
+    body.customer-mode {
+      background:
+        radial-gradient(900px 520px at 88% -12%, rgba(47,134,232,.26), transparent 62%),
+        radial-gradient(700px 460px at 4% 4%, rgba(90,216,255,.12), transparent 60%),
+        linear-gradient(180deg,#02091c 0%,#04152e 48%,#030f26 100%);
+      background-attachment:fixed;
+    }
+    .customer-mode .topbar { min-height:54px; margin-bottom:10px; border-bottom-color:rgba(126,196,255,.14); }
+    /* padding به‌صورت longhand نوشته می‌شود تا اگر مرورگر env() را نشناسد،
+       مقدار پشتیبان حفظ شود و نوار پایین روی محتوا نیفتد. */
+    .customer-mode .main {
+      max-width:1120px;
+      padding-top:0;
+      padding-left:clamp(10px,2.4vw,26px);
+      padding-right:clamp(10px,2.4vw,26px);
+      padding-bottom:86px;
+      padding-bottom:calc(86px + var(--safe-bottom));
+    }
+    .customer-mode .mobile-nav { display:none !important; }
+    .customer-mode .customer-brand img { max-height:30px; height:auto; }
+    .customer-mode .customer-tab-panel[hidden] { display:none !important; }
+
+    /* ── پوسته و کارت پایه ─────────────────────────────────────────────── */
+    .cv-shell { display:grid; gap:var(--cv-gap); min-width:0; }
+    .cv-card {
+      position:relative; min-width:0; box-sizing:border-box;
+      border:1px solid var(--cv-line); border-radius:var(--cv-radius);
+      background:linear-gradient(158deg,rgba(16,55,106,.72),rgba(6,23,49,.88));
+      box-shadow:0 10px 24px rgba(0,8,26,.32), inset 0 1px rgba(255,255,255,.05);
+    }
+    .cv-card-head { display:flex; align-items:center; justify-content:space-between; gap:10px; min-width:0; }
+    .cv-card-head h3 { margin:0; font-size:12px; font-weight:800; color:var(--cv-ink); min-width:0; }
+    .cv-card-head p { margin:2px 0 0; font-size:9.5px; color:var(--cv-muted); }
+    .cv-sec-title { display:flex; align-items:center; justify-content:space-between; gap:10px; min-width:0; margin:4px 2px 0; }
+    .cv-sec-title h2 { display:flex; align-items:center; gap:7px; margin:0; font-size:13px; font-weight:850; color:var(--cv-ink); min-width:0; }
+    .cv-sec-title h2::before { content:""; flex:0 0 auto; width:3px; height:14px; border-radius:99px;
+      background:linear-gradient(180deg,var(--cv-accent),var(--cv-accent-deep)); box-shadow:0 0 10px rgba(90,216,255,.55); }
+    .cv-sec-title p { margin:0; font-size:9px; color:var(--cv-dim); text-align:left; }
+    .cv-empty { padding:16px 12px; text-align:center; color:var(--cv-dim); font-size:10.5px; line-height:1.9; }
+
+    /* ── هدر خوش‌آمد ───────────────────────────────────────────────────── */
+    .cv-hero {
+      display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:11px;
+      padding:11px 13px; overflow:hidden;
+      background:
+        radial-gradient(280px 160px at 94% -30%, rgba(90,216,255,.3), transparent 70%),
+        linear-gradient(145deg,rgba(15,60,118,.92),rgba(6,25,54,.94));
+      backdrop-filter:blur(12px);
+    }
+    .cv-avatar { width:40px; height:40px; border-radius:13px; display:grid; place-items:center;
+      font-size:15px; font-weight:850; color:#03152f;
+      background:linear-gradient(145deg,#a9ecff,#3aa4ea);
+      box-shadow:0 8px 18px rgba(30,140,220,.42), inset 0 1px rgba(255,255,255,.55); }
+    .cv-hero-copy { min-width:0; }
+    .cv-hero-copy small { display:block; color:#9fd0f5; font-size:8.5px; letter-spacing:.3px; }
+    .cv-hero-copy h2 { margin:1px 0 0; font-size:14px; font-weight:850; line-height:1.45; color:var(--cv-ink);
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cv-hero-copy p { margin:2px 0 0; color:var(--cv-muted); font-size:9px; line-height:1.6;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cv-refresh { width:34px; height:34px; flex:0 0 34px; padding:0; border-radius:11px; display:grid; place-items:center;
+      cursor:pointer; border:1px solid rgba(146,214,255,.32); background:rgba(5,26,56,.62); color:#bfe6ff;
+      transition:background .18s, border-color .18s; }
+    .cv-refresh svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+    .cv-refresh.busy svg { animation:cv-spin .8s linear infinite; }
+    @keyframes cv-spin { to { transform:rotate(360deg); } }
+
+    /* ── نوار آمار (۳ شاخص) ───────────────────────────────────────────── */
+    .cv-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; min-width:0; }
+    .cv-stat { min-width:0; padding:8px 9px; border-radius:13px; border:1px solid var(--cv-line);
+      background:linear-gradient(158deg,rgba(14,49,95,.6),rgba(5,20,43,.78)); text-align:center; }
+    .cv-stat small { display:block; color:var(--cv-dim); font-size:8.5px; line-height:1.5;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cv-stat strong { display:block; margin-top:2px; color:var(--cv-ink); font-size:14px; font-weight:850; line-height:1.3;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cv-stat strong em { font-style:normal; margin-right:2px; color:var(--cv-dim); font-size:8.5px; font-weight:650; }
+
+    /* ── کارت کیف پول ──────────────────────────────────────────────────── */
+    .cv-wallet { padding:12px 13px; display:grid; gap:10px;
+      background:
+        radial-gradient(240px 150px at 6% -30%, rgba(120,220,255,.28), transparent 70%),
+        linear-gradient(140deg,rgba(16,80,150,.9),rgba(8,32,64,.94));
+      border-color:rgba(146,214,255,.3);
+      box-shadow:0 14px 30px rgba(0,8,26,.4), inset 0 1px rgba(255,255,255,.1); }
+    .cv-wallet-top { display:flex; align-items:flex-end; justify-content:space-between; gap:10px; min-width:0; }
+    .cv-wallet-label { min-width:0; }
+    .cv-wallet-label span { display:block; color:#bfe0fb; font-size:9px; }
+    .cv-wallet-label strong { display:block; margin-top:1px; color:#fff; font-size:21px; font-weight:850; line-height:1.2;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-shadow:0 2px 12px rgba(10,80,170,.5); }
+    .cv-wallet-label strong small { margin-right:3px; font-size:9px; font-weight:650; color:#c3ddf6; }
+    .cv-wallet-spent { flex:0 0 auto; text-align:left; color:#c3dcf5; font-size:8.5px; line-height:1.6; }
+    .cv-wallet-spent b { display:block; color:#eaf5ff; font-size:10.5px; font-weight:800; }
+    .cv-wallet-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+    .cv-wallet-actions button { min-width:0; min-height:36px; padding:0 8px; border-radius:11px; cursor:pointer;
+      font:inherit; font-size:10.5px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      transition:filter .18s, background .18s; }
+    .cv-wallet-charge { border:0; color:#03152f; background:linear-gradient(110deg,#b5efff,#4fb6f0); box-shadow:0 8px 18px rgba(45,150,225,.36); }
+    .cv-wallet-history { border:1px solid rgba(197,227,255,.45); color:#eaf5ff; background:rgba(5,26,56,.5); }
+
+    /* ── میان‌برهای چهارگانه (یک ردیف، بدون شکست خط) ──────────────────── */
+    .cv-quick { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; min-width:0; }
+    .cv-quick-tile {
+      display:grid; justify-items:center; align-content:center; gap:5px;
+      min-width:0; min-height:0; box-sizing:border-box; margin:0;
+      padding:9px 3px; border:1px solid var(--cv-line); border-radius:14px;
+      font:inherit; color:var(--cv-ink); text-align:center; cursor:pointer;
+      background:linear-gradient(158deg,rgba(18,60,116,.66),rgba(6,25,54,.82));
+      transition:border-color .18s, background .18s;
+    }
+    .cv-quick-tile:active { background:linear-gradient(158deg,rgba(26,84,158,.8),rgba(8,33,70,.9)); }
+    .cv-quick-icon { width:30px; height:30px; border-radius:10px; display:grid; place-items:center; color:#9fdcff;
+      background:linear-gradient(145deg,rgba(90,216,255,.24),rgba(47,134,232,.15)); border:1px solid rgba(146,214,255,.26); }
+    .cv-quick-icon svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.85; stroke-linecap:round; stroke-linejoin:round; }
+    .cv-quick-tile strong { display:block; width:100%; min-width:0; font-size:9.5px; font-weight:800; line-height:1.4;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    @media (min-width:520px) {
+      .cv-quick { gap:9px; }
+      .cv-quick-tile { padding:11px 6px; gap:6px; }
+      .cv-quick-icon { width:34px; height:34px; border-radius:11px; }
+      .cv-quick-icon svg { width:18px; height:18px; }
+      .cv-quick-tile strong { font-size:11px; }
+    }
+
+    /* ── کارت اشتراک رایگان ────────────────────────────────────────────── */
+    .cv-free { padding:11px 13px; display:grid; gap:9px; }
+    .cv-free-foot { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+    .cv-free-foot .mini-note { margin:0; flex:1 1 140px; min-width:0; font-size:9.5px; line-height:1.7; color:var(--cv-muted); }
+    .cv-free-foot button { flex:0 0 auto; min-height:34px; padding:0 12px; border-radius:10px; font-size:10.5px; }
+
+    /* ── کارت پلن (فشرده) ─────────────────────────────────────────────── */
+    .cv-plans { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr)); gap:9px; align-items:start; }
+    .cv-plan { display:grid; gap:8px; padding:12px; align-content:start; }
+    .cv-plan-top { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
+    .cv-plan-top h3 { margin:0; min-width:0; font-size:13.5px; font-weight:850; color:var(--cv-ink); line-height:1.5;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cv-chip { flex:0 0 auto; max-width:50%; padding:2px 8px; border-radius:99px; font-size:8px; font-weight:750;
+      color:#bfe6ff; border:1px solid rgba(146,214,255,.28); background:rgba(90,216,255,.12);
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cv-specs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; min-width:0; }
+    .cv-spec { min-width:0; padding:6px 8px; border-radius:10px; border:1px solid rgba(126,196,255,.13); background:rgba(4,21,45,.45); }
+    .cv-spec small { display:block; color:#8fb0d4; font-size:8px; line-height:1.6; }
+    .cv-spec strong { display:block; margin-top:1px; color:var(--cv-ink); font-size:12px; font-weight:800; line-height:1.4;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cv-plan-foot { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0;
+      padding-top:8px; border-top:1px solid rgba(137,190,247,.13); }
+    .cv-price { min-width:0; color:#fff; font-size:16px; font-weight:850; line-height:1.25;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cv-price small { margin-right:2px; font-size:8.5px; font-weight:600; color:var(--cv-muted); }
+    .cv-buy { flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; gap:5px;
+      min-height:40px; padding:0 13px; border:0; border-radius:11px; cursor:pointer;
+      font:inherit; font-size:11.5px; font-weight:800; color:#03152f;
+      background:linear-gradient(110deg,#b5efff,#4fb6f0); box-shadow:0 8px 18px rgba(45,150,225,.32);
+      transition:filter .18s; }
+    .cv-buy span { white-space:nowrap; }
+    .cv-buy svg { width:13px; height:13px; stroke:currentColor; fill:none; stroke-width:2.1; stroke-linecap:round; stroke-linejoin:round; }
+
+    /* ── اشتراک‌های من ─────────────────────────────────────────────────── */
+    .cv-subs { padding:12px; display:grid; gap:10px; }
+    .cv-sub-list { display:grid; gap:8px; min-width:0; }
+    .cv-sub { display:grid; gap:8px; min-width:0; padding:10px 11px; border-radius:13px;
+      border:1px solid rgba(126,196,255,.14); background:rgba(4,21,45,.42); cursor:pointer;
+      transition:border-color .18s, background .18s; }
+    .cv-sub-head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; min-width:0; }
+    .cv-sub-head > div { min-width:0; }
+    .cv-sub-head strong { display:block; color:var(--cv-ink); font-size:11.5px; font-weight:800; line-height:1.6;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cv-sub-head small { display:block; margin-top:1px; color:var(--cv-dim); font-size:8.5px; line-height:1.7;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cv-sub-head .status { flex:0 0 auto; }
+    .cv-usage { display:grid; gap:4px; }
+    .cv-usage-label { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0;
+      color:var(--cv-dim); font-size:8.5px; }
+    .cv-usage-label b { color:#cfe6fb; font-weight:700; font-size:8.5px;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cv-bar { display:block; height:5px; border-radius:99px; background:rgba(126,196,255,.16); overflow:hidden; }
+    .cv-bar i { display:block; height:100%; border-radius:99px;
+      background:linear-gradient(90deg,#5ad8ff,#2f86e8); box-shadow:0 0 8px rgba(90,216,255,.5); }
+    .cv-sub-actions { display:flex; flex-wrap:wrap; gap:6px; }
+    .cv-sub-actions button { flex:1 1 auto; min-width:0; min-height:32px; padding:0 10px; border-radius:9px;
+      font:inherit; font-size:9.5px; font-weight:750; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+
+    /* ── سفارش در انتظار ───────────────────────────────────────────────── */
+    .cv-pending-list { display:grid; gap:8px; min-width:0; }
+    .cv-pending { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+      padding:10px 12px; border-radius:13px; border:1px solid rgba(255,206,128,.3);
+      background:linear-gradient(120deg,rgba(96,67,25,.34),rgba(7,29,59,.9)); }
+    .cv-pending-head { display:flex; align-items:center; gap:9px; min-width:0; flex:1 1 auto; }
+    .cv-pending-icon { width:30px; height:30px; flex:0 0 30px; border-radius:10px; display:grid; place-items:center;
+      color:#ffd278; background:rgba(246,200,107,.16); border:1px solid rgba(246,200,107,.3); }
+    .cv-pending-icon svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+    .cv-pending-head > div { min-width:0; }
+    .cv-pending-head strong { display:block; color:#ffe9c2; font-size:10.5px; font-weight:800;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cv-pending-head small { display:block; margin-top:1px; color:#d8bd8f; font-size:8.5px;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cv-pending button { flex:0 0 auto; min-height:30px; padding:0 10px; border-radius:9px; font-size:9.5px; }
+
+    /* ── تراکنش‌ها ─────────────────────────────────────────────────────── */
+    .cv-tx-list { display:grid; gap:7px; min-width:0; }
+    .cv-tx { display:flex; align-items:center; justify-content:space-between; gap:10px; min-width:0;
+      padding:9px 11px; border-radius:11px; border:1px solid rgba(126,196,255,.13); background:rgba(4,21,45,.4); }
+    .cv-tx-main { min-width:0; }
+    .cv-tx-main strong { display:block; color:var(--cv-ink); font-size:10.5px; font-weight:800;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cv-tx-main small { display:block; margin-top:1px; color:var(--cv-dim); font-size:8.5px; line-height:1.6;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cv-tx-amount { flex:0 0 auto; font-size:10.5px; font-weight:850; white-space:nowrap; }
+    .cv-tx-amount.in { color:#6ee7a8; }
+    .cv-tx-amount.out { color:#ffb3a7; }
+    .cv-tx-amount small { font-size:8px; font-weight:600; color:var(--cv-dim); }
+
+    /* ── اطلاع پایین صفحه ──────────────────────────────────────────────── */
+    .cv-notice { padding:9px 11px; border-radius:11px; border:1px solid rgba(126,196,255,.18);
+      background:rgba(11,44,88,.4); color:#a8c4e4; font-size:9px; line-height:1.9; }
+
+    /* ── نوار ناوبری پایین (ثابت) ─────────────────────────────────────── */
+    .customer-tabs { display:none; }
+    .customer-mode .customer-tabs {
+      position:fixed; left:0; right:0; bottom:0; z-index:60;
+      display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:3px;
+      margin:0; border:0; border-top:1px solid rgba(126,196,255,.16); border-radius:0;
+      padding-top:6px;
+      padding-bottom:6px;
+      padding-bottom:calc(6px + var(--safe-bottom));
+      padding-left:max(8px,calc((100% - 720px) / 2));
+      padding-right:max(8px,calc((100% - 720px) / 2));
+      background:linear-gradient(0deg,rgba(2,8,22,.985) 0%,rgba(6,24,52,.95) 100%);
+      backdrop-filter:blur(18px); box-shadow:0 -10px 30px rgba(0,4,16,.55);
+    }
+    .customer-mode .customer-tabs [role="tab"] {
+      position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+      min-width:0; min-height:44px; padding:5px 2px; border:1px solid transparent; border-radius:12px;
+      background:transparent; color:#8fb2d6; font:inherit; font-size:9.5px; font-weight:750;
+      white-space:nowrap; overflow:hidden; cursor:pointer; transition:color .18s, background .18s, border-color .18s;
+    }
+    .customer-mode .customer-tabs [role="tab"]::before { content:""; width:18px; height:18px; background-color:currentColor;
       -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-position:center; mask-position:center;
-      -webkit-mask-size:21px 21px; mask-size:21px 21px; }
-    .customer-mode .customer-tabs [role="tab"][aria-selected="true"] { color:#f0f9ff; border-color:rgba(146,214,255,.42);
-      background:linear-gradient(150deg,rgba(47,134,232,.46),rgba(90,216,255,.18));
-      box-shadow:inset 0 1px rgba(255,255,255,.14), 0 10px 22px rgba(10,60,130,.42); }
-    .customer-mode .customer-tabs [role="tab"][aria-selected="true"]::after { content:""; position:absolute; top:4px; width:24px; height:3px; border-radius:99px;
-      background:linear-gradient(90deg,#7ce0ff,#2f86e8); box-shadow:0 0 12px rgba(124,224,255,.85); }
+      -webkit-mask-size:18px 18px; mask-size:18px 18px; }
+    .customer-mode .customer-tabs [role="tab"][aria-selected="true"] { color:#f0f9ff; border-color:rgba(146,214,255,.36);
+      background:linear-gradient(150deg,rgba(47,134,232,.42),rgba(90,216,255,.16));
+      box-shadow:inset 0 1px rgba(255,255,255,.12), 0 8px 18px rgba(10,60,130,.36); }
+    .customer-mode .customer-tabs [role="tab"][aria-selected="true"]::after { content:""; position:absolute; top:1px; width:20px; height:2px;
+      border-radius:99px; background:linear-gradient(90deg,#7ce0ff,#2f86e8); box-shadow:0 0 10px rgba(124,224,255,.8); }
     .customer-mode .customer-tabs [role="tab"]:focus-visible { outline:2px solid #91caff; outline-offset:2px; }
     .customer-mode .customer-tabs [data-customer-tab="buy"]::before { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 9.5h16l-1.3-5H5.3L4 9.5ZM5 9.5v9A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5v-9'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 9.5h16l-1.3-5H5.3L4 9.5ZM5 9.5v9A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5v-9'/></svg>"); }
     .customer-mode .customer-tabs [data-customer-tab="orders"]::before { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M7 3.5h8l4 4V20H5V5a1.5 1.5 0 0 1 2-1.5ZM14 4v4h4M8 12h8M8 16h8'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M7 3.5h8l4 4V20H5V5a1.5 1.5 0 0 1 2-1.5ZM14 4v4h4M8 12h8M8 16h8'/></svg>"); }
     .customer-mode .customer-tabs [data-customer-tab="history"]::before { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='8'/><path d='M12 8v4l3 2'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='8'/><path d='M12 8v4l3 2'/></svg>"); }
     .customer-mode .customer-tabs [data-customer-tab="referrals"]::before { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='9' cy='8' r='3.5'/><path d='M2.5 20v-1a6.5 6.5 0 0 1 13 0v1M17 7h4M19 5v4'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='9' cy='8' r='3.5'/><path d='M2.5 20v-1a6.5 6.5 0 0 1 13 0v1M17 7h4M19 5v4'/></svg>"); }
 
-    /* ── کارت QR و لینک اشتراک + دکمه‌های نصب هیدیفای ── */
-    .subscription-qr-slot { display:block; margin-bottom:10px; }
-    .subscription-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-    .subscription-actions button { flex:1 1 132px; min-height:40px; border-radius:12px; font-size:11px; font-weight:750; cursor:pointer; }
-    .hiddify-downloads { width:100%; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:6px; }
-    .hiddify-downloads button { display:flex; align-items:center; justify-content:center; gap:7px; min-width:0; min-height:44px; padding:8px 10px;
-      border-radius:13px; font:inherit; font-size:11px; font-weight:750; color:#eaf5ff; border:1px solid rgba(127,183,244,.28);
-      background:linear-gradient(150deg,rgba(15,62,116,.92),rgba(8,36,70,.94)); cursor:pointer; transition:transform .16s, border-color .18s; }
-    .hiddify-downloads button:hover { border-color:rgba(136,205,255,.55); transform:translateY(-1px); }
-    .hiddify-downloads button:active { transform:scale(.985); }
-    .hiddify-downloads button svg { width:17px; height:17px; flex:0 0 17px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-    .hiddify-downloads button span { min-width:0; overflow-wrap:anywhere; text-align:right; }
-    .hiddify-downloads .hiddify-github { grid-column:1/-1; border-color:rgba(136,205,255,.45); background:rgba(9,44,82,.72); }
-    .subscription-install-title { width:100%; margin-top:4px; color:#d9eafa; font-size:11px; font-weight:800; text-align:right; }
+    /* ── کارت تحویل اشتراک: QR، لینک و دانلود هیدیفای ─────────────────── */
+    .subscription-qr-slot { display:block; min-width:0; }
+    .subscription-delivery-card { display:grid; gap:9px; min-width:0; }
+    .delivery-card-heading { display:flex; align-items:center; gap:9px; min-width:0; }
+    .delivery-ready-icon { flex:0 0 auto; width:30px; height:30px; border-radius:10px; display:grid; place-items:center;
+      color:#03152f; font-weight:900; background:linear-gradient(145deg,#a9ecff,#3aa4ea); }
+    .delivery-card-heading strong { display:block; color:#f2f9ff; font-size:12px; }
+    .delivery-card-heading small { display:block; color:var(--cv-muted); font-size:9px;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .subscription-qr-frame { display:grid; place-items:center; padding:9px; border-radius:14px;
+      border:1px solid rgba(126,196,255,.22); background:#f7fbff; }
+    .subscription-qr-image { display:block; width:100%; max-width:190px; height:auto; margin:0 auto; object-fit:contain; border-radius:6px; }
+    .qr-unavailable { display:grid; gap:3px; padding:16px 8px; text-align:center; color:#0b2a4d; font-size:10px; }
+    .qr-unavailable small { color:#3f6187; font-size:9px; }
+    .subscription-link-heading { color:#cfe6fb; font-size:9.5px; font-weight:750; }
+    .subscription-copy { margin:0; }
+    .subscription-copy code { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9.5px; }
+    .subscription-actions { display:flex; flex-wrap:wrap; gap:7px; }
+    .subscription-actions button { flex:1 1 130px; min-width:0; min-height:34px; border-radius:10px;
+      font:inherit; font-size:10px; font-weight:750; cursor:pointer; }
+    .hiddify-downloads { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; margin:0; }
+    .hiddify-downloads button { display:flex; align-items:center; justify-content:center; gap:6px;
+      min-width:0; min-height:36px; padding:6px 8px; border-radius:10px; cursor:pointer;
+      font:inherit; font-size:10px; font-weight:750; color:var(--cv-ink);
+      border:1px solid rgba(127,183,244,.26); background:linear-gradient(150deg,rgba(15,62,116,.9),rgba(8,36,70,.92)); }
+    .hiddify-downloads button svg { width:15px; height:15px; flex:0 0 15px; stroke:currentColor; fill:none;
+      stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+    .hiddify-downloads button span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .hiddify-downloads .hiddify-github { grid-column:1/-1; border-color:rgba(136,205,255,.42); background:rgba(9,44,82,.7); }
+    .subscription-install-title { margin:2px 0 0; color:#d9eafa; font-size:9.5px; font-weight:800; text-align:right; }
+    .subscription-qr-help { margin:0; color:var(--cv-muted); font-size:8.5px; line-height:1.9; }
 
-    @media (min-width:720px) {
-      .customer-kpis { grid-template-columns:repeat(4,minmax(0,1fr)); }
-      .customer-quick { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    /* ── جزئیات حساب/اشتراک: نسخهٔ فشرده در نمای مشتری ────────────────── */
+    .customer-mode .customer-detail-grid { gap:7px; }
+    .customer-mode .customer-detail-kpi { padding:9px 10px; border-radius:11px; }
+    .customer-mode .customer-detail-kpi small { font-size:8.5px; }
+    .customer-mode .customer-detail-kpi strong { margin-top:2px; font-size:12px; }
+    .customer-mode .customer-detail-section { margin-top:9px; padding:10px; border-radius:12px; }
+    .customer-mode .customer-detail-section > h4 { margin-bottom:6px; font-size:11px; }
+    .customer-mode .customer-detail-list { gap:6px; }
+    .customer-mode .customer-detail-row { padding:7px 9px; border-radius:9px; }
+    .customer-mode .customer-detail-row strong { font-size:10px; }
+    .customer-mode .customer-detail-row small { font-size:8.5px; }
+    .customer-mode .customer-detail-row .amount { font-size:10px; }
+    .customer-mode .customer-detail-section details > summary { font-size:9.5px; }
+
+    /* ── کارت‌های عمومی پنل (سفارش‌ها، تاریخچه، دعوت) در نمای مشتری ──────── */
+    .customer-mode .panel {
+      border:1px solid var(--cv-line); border-radius:var(--cv-radius);
+      background:linear-gradient(158deg,rgba(16,55,106,.72),rgba(6,23,49,.88));
+      box-shadow:0 10px 24px rgba(0,8,26,.32), inset 0 1px rgba(255,255,255,.05);
     }
-    @media (max-width:430px) {
-      .customer-hero { padding:15px; gap:11px; }
-      .customer-hero-copy h2 { font-size:17px; }
-      .customer-avatar { width:46px; height:46px; flex-basis:46px; border-radius:16px; }
-      .customer-kpi strong { font-size:18px; }
-      .customer-quick-tile { padding:11px; gap:9px; }
-      .customer-quick-icon { width:36px; height:36px; flex-basis:36px; border-radius:12px; }
-      .customer-mode .customer-tabs [role="tab"] { font-size:10px; min-height:52px; }
-      .customer-mode .customer-tabs [role="tab"]::before { width:19px; height:19px; -webkit-mask-size:19px 19px; mask-size:19px 19px; }
-      .customer-mode .wallet-card .stat-value { font-size:24px; }
+    .customer-mode .panel-head h3 { font-size:12px; color:var(--cv-ink); }
+    .customer-mode .panel-head p { font-size:9.5px; color:var(--cv-muted); }
+    .customer-mode .mini-note { color:var(--cv-dim); font-size:8.5px; line-height:1.9; }
+    .customer-mode .customer-history-table table { font-size:10px; }
+    .customer-mode .customer-history-table th { font-size:8.5px; color:#9dbcd9; }
+    .customer-mode .customer-history-table td { font-size:9.5px; }
+
+    /* ── دعوت دوستان ───────────────────────────────────────────────────── */
+    .customer-mode .referral-link-box { display:grid; gap:7px; min-width:0; margin-top:8px; padding:10px; border-radius:12px;
+      border:1px solid rgba(126,196,255,.16); background:rgba(4,21,45,.5); }
+    .customer-mode .referral-label { color:var(--cv-dim); font-size:8.5px; }
+    .customer-mode .referral-link-box code { display:block; min-width:0; padding:8px 9px; border-radius:8px;
+      background:rgba(2,14,32,.55); color:#eaf5ff; font-size:9px;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:ltr; text-align:left; }
+    .customer-mode .referral-share-actions { display:flex; flex-wrap:wrap; align-items:center; gap:7px; margin-top:8px; }
+    .customer-mode .referral-share-actions button { flex:1 1 auto; min-width:0; min-height:34px; border-radius:10px;
+      font:inherit; font-size:10px; font-weight:750; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .customer-mode .referral-share-actions .mini-note { flex:1 1 140px; min-width:0; margin:0; }
+    .customer-mode .referral-stats-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+    .customer-mode .referral-stat { display:grid; gap:3px; padding:11px 12px; min-width:0; }
+    .customer-mode .referral-stat span { color:var(--cv-dim); font-size:8.5px;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .customer-mode .referral-stat strong { color:var(--cv-ink); font-size:16px; font-weight:850; line-height:1.3; }
+    .customer-mode .referral-stat small { color:#8fb0d4; font-size:8px; line-height:1.6; }
+    .customer-mode .referral-progress-track { height:6px; margin-top:8px; border-radius:99px; background:rgba(126,196,255,.16); overflow:hidden; }
+    .customer-mode .referral-progress-track i { display:block; height:100%; border-radius:99px;
+      background:linear-gradient(90deg,#5ad8ff,#2f86e8); }
+    .customer-mode .referral-progress-copy { margin:7px 0 0; color:var(--cv-muted); font-size:9px; line-height:1.9; }
+    .customer-mode .referral-conversion-box { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:9px; }
+    .customer-mode .referral-conversion-box > div { min-width:0; padding:9px 10px; border-radius:10px;
+      border:1px solid rgba(126,196,255,.14); background:rgba(4,21,45,.42); }
+    .customer-mode .referral-conversion-box span { display:block; color:var(--cv-dim); font-size:8px; line-height:1.6; }
+    .customer-mode .referral-conversion-box strong { display:block; margin-top:2px; color:var(--cv-ink); font-size:11px; font-weight:800;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    @media (min-width:620px) {
+      .customer-mode .referral-stats-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    }
+
+    /* ── بزرگ‌تر از موبایل ─────────────────────────────────────────────── */
+    @media (min-width:720px) {
+      .cv-plan { padding:13px; }
+      .cv-wallet { padding:14px 16px; }
+      .cv-wallet-label strong { font-size:23px; }
+      .cv-hero { padding:13px 16px; }
+      .cv-avatar { width:44px; height:44px; border-radius:15px; font-size:17px; }
+      .cv-hero-copy h2 { font-size:16px; }
+      .cv-stat strong { font-size:16px; }
+    }
+
+    /* افکت‌های اشاره‌گر فقط روی دستگاه‌های ماوس‌دار؛ روی لمسی حالت :hover
+       پس از لمس باقی می‌ماند و چیدمان را نامتقارن نشان می‌دهد. */
+    @media (hover:hover) and (pointer:fine) {
+      .cv-quick-tile:hover { border-color:var(--cv-line-strong); background:linear-gradient(158deg,rgba(24,74,140,.8),rgba(7,30,64,.9)); }
+      .cv-sub:hover { border-color:rgba(146,214,255,.4); background:rgba(7,34,68,.6); }
+      .cv-wallet-actions button:hover { filter:brightness(1.08); }
+      .cv-buy:hover { filter:brightness(1.06); }
+      .cv-refresh:hover { background:rgba(9,42,84,.8); border-color:var(--cv-line-strong); }
+      .cv-plan:hover { border-color:rgba(146,214,255,.45); }
     }
   </style>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -1619,82 +1578,118 @@
 
     <section class="page hidden" id="storePage">
       <section class="customer-tab-panel" id="customerTabBuy" role="tabpanel" aria-labelledby="customerTabButtonBuy">
-      <div class="customer-top">
-        <section class="customer-hero" aria-label="خوش‌آمدگویی">
-          <div class="customer-hero-main">
-            <span class="customer-avatar" id="customerHeroAvatar" aria-hidden="true">؟</span>
-            <div class="customer-hero-copy"><small>خوش آمدید</small><h2>سلام، <span id="customerGreeting">دوست عزیز</span> 👋</h2><p>سرویس، کیف پول و سفارش‌هایت در یک نگاه</p></div>
+        <div class="cv-shell">
+
+          <section class="cv-card cv-hero" aria-label="خوش‌آمدگویی">
+            <span class="cv-avatar" id="customerHeroAvatar" aria-hidden="true">؟</span>
+            <div class="cv-hero-copy">
+              <small>خوش آمدید</small>
+              <h2>سلام، <span id="customerGreeting">دوست عزیز</span> 👋</h2>
+              <p>سرویس، کیف پول و سفارش‌ها در یک نگاه</p>
+            </div>
+            <button class="cv-refresh" id="customerRefresh" type="button" aria-label="به‌روزرسانی اطلاعات"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg></button>
+          </section>
+
+          <article class="cv-card cv-wallet" id="customerWalletCard">
+            <div class="cv-wallet-top">
+              <div class="cv-wallet-label"><span>موجودی کیف پول</span><strong id="customerBalance">—<small>تومان</small></strong></div>
+              <div class="cv-wallet-spent">مجموع خریدها<b id="customerSpent">—</b></div>
+            </div>
+            <div class="cv-wallet-actions">
+              <button class="cv-wallet-charge" id="customerWalletCharge" type="button">شارژ کیف پول</button>
+              <button class="cv-wallet-history" id="customerWalletHistory" type="button">تاریخچه تراکنش‌ها</button>
+            </div>
+          </article>
+
+          <div class="cv-stats" id="customerKpis" aria-live="polite">
+            <div class="cv-stat"><small>اشتراک فعال</small><strong>—</strong></div>
+            <div class="cv-stat"><small>نزدیک‌ترین انقضا</small><strong>—</strong></div>
+            <div class="cv-stat"><small>حجم باقی‌مانده</small><strong>—</strong></div>
           </div>
-          <button class="customer-refresh" id="customerRefresh" type="button" aria-label="به‌روزرسانی اطلاعات"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg></button>
-        </section>
-        <div class="pending-orders" id="customerPendingOrders"></div>
-        <article class="panel wallet-card" id="customerWalletCard">
-          <div class="panel-head"><div><h3>موجودی کیف پول</h3><p>قابل استفاده برای پرداخت سریع</p></div><span class="stat-icon" aria-hidden="true">◈</span></div>
-          <strong class="stat-value" id="customerBalance">—<span class="stat-unit">تومان</span></strong>
-          <div class="stat-foot"><span>مجموع خریدهای ثبت‌شده</span><span id="customerSpent">—</span></div>
-          <div class="customer-wallet-actions"><button class="customer-wallet-charge" id="customerWalletCharge" type="button">شارژ کیف پول</button><button class="customer-wallet-history" id="customerWalletHistory" type="button">تاریخچه تراکنش‌ها</button></div>
-        </article>
-        <div class="customer-kpis" id="customerKpis" aria-live="polite">
-          <article class="customer-kpi"><span class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12h4l2.5-7 3 14 2.5-7h6"/></svg></span><span>اشتراک فعال</span><strong>—<small>سرویس</small></strong></article>
-          <article class="customer-kpi"><span class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span><span>نزدیک‌ترین انقضا</span><strong>—<small>روز</small></strong></article>
-          <article class="customer-kpi"><span class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg></span><span>حجم باقی‌مانده</span><strong>—<small>گیگ</small></strong></article>
-          <article class="customer-kpi"><span class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H18v3"/><rect x="3" y="8" width="18" height="11" rx="3"/><path d="M16 13.5h2"/></svg></span><span>موجودی کیف پول</span><strong>—<small>تومان</small></strong></article>
+
+          <div class="cv-quick">
+            <button class="cv-quick-tile" type="button" data-customer-quick="plans"><span class="cv-quick-icon"><svg viewBox="0 0 24 24"><path d="M4 9.5h16l-1.3-5H5.3L4 9.5ZM5 9.5v9A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5v-9"/></svg></span><strong>خرید سرویس</strong></button>
+            <button class="cv-quick-tile" type="button" data-customer-quick="mysubs"><span class="cv-quick-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 10h8M8 14h5"/></svg></span><strong>سرویس‌های من</strong></button>
+            <button class="cv-quick-tile" type="button" data-customer-quick="wallet"><span class="cv-quick-icon"><svg viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H18v3"/><rect x="3" y="8" width="18" height="11" rx="3"/><path d="M16 13.5h2"/></svg></span><strong>کیف پول</strong></button>
+            <button class="cv-quick-tile" type="button" data-customer-quick="support"><span class="cv-quick-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/></svg></span><strong>پشتیبانی</strong></button>
+          </div>
+
+          <div class="cv-pending-list" id="customerPendingOrders"></div>
+
+          <article class="cv-card cv-free" id="customerFreeCard" aria-labelledby="customerFreeTitle">
+            <div class="cv-card-head">
+              <div><h3 id="customerFreeTitle">اشتراک رایگان</h3><p id="customerFreeDescription">در صورت فعال‌بودن، یک اشتراک رایگان از سرور انتخاب‌شده دریافت کنید.</p></div>
+              <span class="status pending" id="customerFreeBadge">در حال بررسی</span>
+            </div>
+            <div class="cv-free-foot">
+              <div class="mini-note" id="customerFreeStatus" role="status" aria-live="polite">وضعیت دریافت بررسی می‌شود.</div>
+              <button class="btn-primary" id="customerFreeClaim" type="button" disabled>دریافت اشتراک رایگان</button>
+            </div>
+          </article>
+
+          <div class="cv-sec-title" id="storePlans">
+            <h2>پلن مناسب خودت را انتخاب کن</h2>
+            <p id="customerPlansCaption">قیمت نهایی به تومان</p>
+          </div>
+          <div class="cv-plans" id="customerPlansGrid"><article class="cv-card cv-plan"><div class="cv-plan-top"><h3>در حال بارگذاری</h3></div><p class="cv-empty">برای مشاهدهٔ پلن‌ها، مینی‌اپ را از داخل تلگرام باز کنید.</p></article></div>
+
+          <article class="cv-card cv-subs">
+            <div class="cv-card-head">
+              <div><h3>اشتراک‌های من</h3><p id="customerSubCaption">وضعیت زندهٔ اشتراک‌های شما</p></div>
+              <span class="status paid" id="customerSubCount">۰ اشتراک</span>
+            </div>
+            <div class="cv-sub-list" id="customerSubsList"><div class="cv-empty">برای نمایش اشتراک‌ها، مینی‌اپ را از داخل ربات باز کنید.</div></div>
+          </article>
+
+          <div class="cv-notice" id="customerNotice">🔒 پرداخت بانکی با مبلغ تومان و معادل ریالی روشن انجام می‌شود؛ رسید دستی برای تأیید ادمین همین‌جا ثبت می‌شود.</div>
         </div>
-        <div class="customer-quick">
-          <button class="customer-quick-tile" type="button" data-customer-quick="plans"><span class="customer-quick-icon"><svg viewBox="0 0 24 24"><path d="M4 9.5h16l-1.3-5H5.3L4 9.5ZM5 9.5v9A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5v-9"/></svg></span><span><strong>خرید سرویس</strong><small>انتخاب پلن و پرداخت</small></span></button>
-          <button class="customer-quick-tile" type="button" data-customer-quick="mysubs"><span class="customer-quick-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 10h8M8 14h5"/></svg></span><span><strong>سرویس‌های من</strong><small>وضعیت و مصرف اشتراک</small></span></button>
-          <button class="customer-quick-tile" type="button" data-customer-quick="wallet"><span class="customer-quick-icon"><svg viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H18v3"/><rect x="3" y="8" width="18" height="11" rx="3"/><path d="M16 13.5h2"/></svg></span><span><strong>کیف پول</strong><small>شارژ و تراکنش‌ها</small></span></button>
-          <button class="customer-quick-tile" type="button" data-customer-quick="support"><span class="customer-quick-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/></svg></span><span><strong>پشتیبانی ۲۴</strong><small>گفت‌وگو با تیم تیزنت</small></span></button>
-        </div>
-      </div>
-        <article class="panel free-claim-card" id="customerFreeCard" aria-labelledby="customerFreeTitle">
-          <div class="panel-head"><div><h3 id="customerFreeTitle">اشتراک رایگان</h3><p id="customerFreeDescription">در صورت فعال‌بودن، یک اشتراک رایگان از سرور انتخاب‌شده دریافت کنید.</p></div><span class="status pending" id="customerFreeBadge">در حال بررسی</span></div>
-          <div class="free-claim-footer"><div class="mini-note" id="customerFreeStatus" role="status" aria-live="polite">وضعیت دریافت بررسی می‌شود.</div><button class="btn-primary" id="customerFreeClaim" type="button" disabled>دریافت اشتراک رایگان</button></div>
-        </article>
-      <div class="section-title" id="storePlans"><div><h2>پلن مناسب خودت را انتخاب کن</h2><p id="customerPlansCaption">قیمت نهایی به تومان؛ پرداخت و پیگیری سفارش داخل همین Mini App.</p></div></div>
-      <div class="plans-grid" id="customerPlansGrid"><article class="store-plan"><p>برای مشاهدهٔ پلن‌ها، مینی‌اپ را از داخل تلگرام باز کنید.</p></article></div>
-      <div class="customer-summary">
-        <article class="panel"><div class="panel-head"><div><h3>اشتراک‌های من</h3><p id="customerSubCaption">وضعیت زندهٔ اشتراک‌های شما</p></div><span class="status paid" id="customerSubCount">۰ اشتراک</span></div><div class="customer-sub-list" id="customerSubsList"><div class="empty-state">برای نمایش اشتراک‌ها، مینی‌اپ را از داخل ربات باز کنید.</div></div></article>
-      </div>
-      <div class="customer-notice" id="customerNotice">🔒 پرداخت بانکی با مبلغ تومان و معادل ریالی روشن انجام می‌شود؛ رسید دستی برای تأیید ادمین همین‌جا ثبت می‌شود.</div>
       </section>
+
       <section class="customer-tab-panel" id="customerTabOrders" role="tabpanel" aria-labelledby="customerTabButtonOrders" hidden>
-      <article class="panel customer-history-panel">
-        <div class="panel-head"><div><h3>سابقه و پیگیری سفارش‌ها</h3><p>خرید و تمدید؛ وضعیت سفارش‌های باز را از همین‌جا ببینید.</p></div><span class="status pending">۵۰ مورد اخیر</span></div>
-        <div class="table-wrap customer-history-table"><table><thead><tr><th>شناسه</th><th>نوع</th><th>پلن / سرور</th><th>مبلغ</th><th>روش</th><th>تاریخ</th><th>وضعیت</th><th>پیگیری</th></tr></thead><tbody id="customerOrdersBody"><tr><td colspan="8" style="text-align:center;color:#8798b2;padding:24px">برای نمایش سابقه، مینی‌اپ را از داخل تلگرام باز کنید.</td></tr></tbody></table></div>
-        <div class="mini-note" id="customerOrdersNote">وضعیت سفارش‌های در انتظار تأیید در همین صفحه قابل پیگیری است.</div>
-      </article>
-      </section>
-      <section class="customer-tab-panel" id="customerTabHistory" role="tabpanel" aria-labelledby="customerTabButtonHistory" hidden>
-      <article class="panel customer-history-panel">
-        <div class="panel-head"><div><h3>تراکنش‌های کیف پول</h3><p>خرید، تمدید، شارژ، تبدیل امتیاز و اصلاح موجودی؛ همگام با ربات.</p></div><span class="status pending" id="customerTransactionCount">۰ مورد</span></div>
-        <div class="customer-transactions" id="customerTransactionsList"><div class="empty-state">برای نمایش تراکنش‌ها، Mini App را از داخل تلگرام باز کنید.</div></div>
-        <div class="mini-note" id="customerTransactionsNote">مبالغ و وضعیت‌ها از سابقهٔ مشترک Worker خوانده می‌شوند.</div>
-      </article>
-      </section>
-      <section class="customer-tab-panel" id="customerTabReferrals" role="tabpanel" aria-labelledby="customerTabButtonReferrals" hidden>
-        <article class="panel referral-link-card">
-          <div class="panel-head"><div><h3>دعوت دوستان به TiznetVPN</h3><p>برای هر عضو جدید و یکتایی که با لینک شما وارد شود، ۵ امتیاز می‌گیرید.</p></div><span class="status paid" id="referralStatusBadge">عضوگیری</span></div>
-          <div class="referral-link-box"><span class="referral-label">لینک اختصاصی دعوت</span><code id="referralInviteLink" dir="ltr">لینک پس از اتصال به تلگرام نمایش داده می‌شود</code><div class="referral-share-actions"><button class="btn-primary" id="referralCopyLink" type="button" disabled>کپی لینک</button><button class="outline-btn" id="referralShareLink" type="button" disabled>اشتراک‌گذاری</button></div></div>
-        </article>
-        <div class="referral-stats-grid">
-          <article class="panel referral-stat"><span>اعضای جذب‌شده</span><strong id="referralJoinedCount">—</strong><small>کاربران جدید و یکتا</small></article>
-          <article class="panel referral-stat"><span>امتیاز قابل‌تبدیل</span><strong id="referralPointsBalance">—</strong><small id="referralPointsRule">هر ۱۰۰ امتیاز = ۲۰۰٬۰۰۰ تومان</small></article>
-          <article class="panel referral-stat"><span>خریدهای موفق زیرمجموعه</span><strong id="referralPurchaseCount">—</strong><small>هر خرید، تمدید یا ارتقای موفق: ۱۰ امتیاز</small></article>
-          <article class="panel referral-stat"><span>هدیه‌های آماده</span><strong id="referralRewardsAvailable">—</strong><small>هر ۳ عضو جدید: اشتراک ۳ گیگ / ۳ روز</small></article>
+        <div class="cv-shell">
+          <article class="panel customer-history-panel">
+            <div class="panel-head"><div><h3>سابقه و پیگیری سفارش‌ها</h3><p>خرید و تمدید؛ وضعیت سفارش‌های باز را از همین‌جا ببینید.</p></div><span class="status pending">۵۰ مورد اخیر</span></div>
+            <div class="table-wrap customer-history-table"><table><thead><tr><th>شناسه</th><th>نوع</th><th>پلن / سرور</th><th>مبلغ</th><th>روش</th><th>تاریخ</th><th>وضعیت</th><th>پیگیری</th></tr></thead><tbody id="customerOrdersBody"><tr><td colspan="8" style="text-align:center;color:#8798b2;padding:24px">برای نمایش سابقه، مینی‌اپ را از داخل تلگرام باز کنید.</td></tr></tbody></table></div>
+            <div class="mini-note" id="customerOrdersNote">وضعیت سفارش‌های در انتظار تأیید در همین صفحه قابل پیگیری است.</div>
+          </article>
         </div>
-        <article class="panel referral-progress-card">
-          <div class="panel-head"><div><h3>پیشرفت هدیهٔ تکرارشونده</h3><p>برای هر سه عضو جدید، یک اشتراک ۳ گیگابایت و ۳ روزه صادر می‌شود.</p></div><span class="status pending" id="referralProgressBadge">۰ از ۳</span></div>
-          <div class="referral-progress-track" aria-hidden="true"><i id="referralProgressFill" style="width:0%"></i></div>
-          <p class="referral-progress-copy" id="referralProgressText" aria-live="polite">پس از سه عضو جدید، هدیهٔ شما به‌صورت خودکار صادر می‌شود.</p>
-          <div class="referral-share-actions"><button class="btn-primary" id="referralClaimReward" type="button" disabled>دریافت هدیهٔ دعوت</button><span class="mini-note" id="referralRewardStatus" role="status" aria-live="polite">هدیه در صورت آماده‌شدن، خودکار صادر می‌شود.</span></div>
-        </article>
-        <article class="panel referral-points-card">
-          <div class="panel-head"><div><h3>تبدیل دستی امتیاز به کیف پول</h3><p>۵ امتیاز برای عضو جدید و ۱۰ امتیاز برای خرید موفق زیرمجموعه.</p></div><span class="stat-icon">⭐</span></div>
-          <div class="referral-conversion-box"><div><span>مبلغ قابل‌تبدیل با امتیاز فعلی</span><strong id="referralRedeemableAmount">۰ تومان</strong></div><div><span>امتیاز مصرف‌شده در تبدیل بعدی</span><strong id="referralRedeemablePoints">۰ امتیاز</strong></div></div>
-          <p class="mini-note" id="referralRedeemHint">هر ۱۰۰ امتیاز به ۲۰۰٬۰۰۰ تومان تبدیل می‌شود؛ امتیاز کمتر از ۱۰۰ برای تبدیل بعدی حفظ می‌شود.</p>
-          <div class="referral-share-actions"><button class="btn-primary" id="referralRedeemButton" type="button" disabled>تبدیل امتیاز به کیف پول</button><span class="mini-note" id="referralRedeemStatus" role="status" aria-live="polite">تبدیل فقط با فشردن دکمه انجام می‌شود.</span></div>
-        </article>
+      </section>
+
+      <section class="customer-tab-panel" id="customerTabHistory" role="tabpanel" aria-labelledby="customerTabButtonHistory" hidden>
+        <div class="cv-shell">
+          <article class="panel customer-history-panel">
+            <div class="panel-head"><div><h3>تراکنش‌های کیف پول</h3><p>خرید، تمدید، شارژ، تبدیل امتیاز و اصلاح موجودی؛ همگام با ربات.</p></div><span class="status pending" id="customerTransactionCount">۰ مورد</span></div>
+            <div class="cv-tx-list" id="customerTransactionsList"><div class="cv-empty">برای نمایش تراکنش‌ها، Mini App را از داخل تلگرام باز کنید.</div></div>
+            <div class="mini-note" id="customerTransactionsNote">مبالغ و وضعیت‌ها از سابقهٔ مشترک Worker خوانده می‌شوند.</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="customer-tab-panel" id="customerTabReferrals" role="tabpanel" aria-labelledby="customerTabButtonReferrals" hidden>
+        <div class="cv-shell">
+          <article class="panel referral-link-card">
+            <div class="panel-head"><div><h3>دعوت دوستان به TiznetVPN</h3><p>برای هر عضو جدید و یکتایی که با لینک شما وارد شود، ۵ امتیاز می‌گیرید.</p></div><span class="status paid" id="referralStatusBadge">عضوگیری</span></div>
+            <div class="referral-link-box"><span class="referral-label">لینک اختصاصی دعوت</span><code id="referralInviteLink" dir="ltr">لینک پس از اتصال به تلگرام نمایش داده می‌شود</code><div class="referral-share-actions"><button class="btn-primary" id="referralCopyLink" type="button" disabled>کپی لینک</button><button class="outline-btn" id="referralShareLink" type="button" disabled>اشتراک‌گذاری</button></div></div>
+          </article>
+          <div class="referral-stats-grid">
+            <article class="panel referral-stat"><span>اعضای جذب‌شده</span><strong id="referralJoinedCount">—</strong><small>کاربران جدید و یکتا</small></article>
+            <article class="panel referral-stat"><span>امتیاز قابل‌تبدیل</span><strong id="referralPointsBalance">—</strong><small id="referralPointsRule">هر ۱۰۰ امتیاز = ۲۰۰٬۰۰۰ تومان</small></article>
+            <article class="panel referral-stat"><span>خریدهای موفق زیرمجموعه</span><strong id="referralPurchaseCount">—</strong><small>هر خرید، تمدید یا ارتقای موفق: ۱۰ امتیاز</small></article>
+            <article class="panel referral-stat"><span>هدیه‌های آماده</span><strong id="referralRewardsAvailable">—</strong><small>هر ۳ عضو جدید: اشتراک ۳ گیگ / ۳ روز</small></article>
+          </div>
+          <article class="panel referral-progress-card">
+            <div class="panel-head"><div><h3>پیشرفت هدیهٔ تکرارشونده</h3><p>برای هر سه عضو جدید، یک اشتراک ۳ گیگابایت و ۳ روزه صادر می‌شود.</p></div><span class="status pending" id="referralProgressBadge">۰ از ۳</span></div>
+            <div class="referral-progress-track" aria-hidden="true"><i id="referralProgressFill" style="width:0%"></i></div>
+            <p class="referral-progress-copy" id="referralProgressText" aria-live="polite">پس از سه عضو جدید، هدیهٔ شما به‌صورت خودکار صادر می‌شود.</p>
+            <div class="referral-share-actions"><button class="btn-primary" id="referralClaimReward" type="button" disabled>دریافت هدیهٔ دعوت</button><span class="mini-note" id="referralRewardStatus" role="status" aria-live="polite">هدیه در صورت آماده‌شدن، خودکار صادر می‌شود.</span></div>
+          </article>
+          <article class="panel referral-points-card">
+            <div class="panel-head"><div><h3>تبدیل دستی امتیاز به کیف پول</h3><p>۵ امتیاز برای عضو جدید و ۱۰ امتیاز برای خرید موفق زیرمجموعه.</p></div><span class="stat-icon">⭐</span></div>
+            <div class="referral-conversion-box"><div><span>مبلغ قابل‌تبدیل با امتیاز فعلی</span><strong id="referralRedeemableAmount">۰ تومان</strong></div><div><span>امتیاز مصرف‌شده در تبدیل بعدی</span><strong id="referralRedeemablePoints">۰ امتیاز</strong></div></div>
+            <p class="mini-note" id="referralRedeemHint">هر ۱۰۰ امتیاز به ۲۰۰٬۰۰۰ تومان تبدیل می‌شود؛ امتیاز کمتر از ۱۰۰ برای تبدیل بعدی حفظ می‌شود.</p>
+            <div class="referral-share-actions"><button class="btn-primary" id="referralRedeemButton" type="button" disabled>تبدیل امتیاز به کیف پول</button><span class="mini-note" id="referralRedeemStatus" role="status" aria-live="polite">تبدیل فقط با فشردن دکمه انجام می‌شود.</span></div>
+          </article>
+        </div>
       </section>
     </section>
 
@@ -2507,20 +2502,13 @@
       const nearest=days.length?Math.min(...days):null;
       const remaining=active.map(s=>Number(s.usage_remaining)).filter(v=>Number.isFinite(v)&&v>=0);
       const totalRemaining=remaining.length?remaining.reduce((a,b)=>a+b,0):null;
-      const kpiIcons={
-        active:'<path d="M3 12h4l2.5-7 3 14 2.5-7h6"/>',
-        days:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
-        volume:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>',
-        wallet:'<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H18v3"/><rect x="3" y="8" width="18" height="11" rx="3"/><path d="M16 13.5h2"/>'
-      };
       const kpis=[
-        {icon:kpiIcons.active,label:'اشتراک فعال',value:fmt(active.length),unit:'سرویس'},
-        {icon:kpiIcons.days,label:'نزدیک‌ترین انقضا',value:nearest==null?'—':fmt(nearest),unit:nearest==null?'':'روز'},
-        {icon:kpiIcons.volume,label:'حجم باقی‌مانده',value:totalRemaining==null?'—':fmtDec(totalRemaining),unit:totalRemaining==null?'':'گیگ'},
-        {icon:kpiIcons.wallet,label:'موجودی کیف پول',value:fmt(c.balance||0),unit:'تومان'}
+        {label:'اشتراک فعال',value:fmt(active.length),unit:'سرویس'},
+        {label:'نزدیک‌ترین انقضا',value:nearest==null?'—':fmt(nearest),unit:nearest==null?'':'روز'},
+        {label:'حجم باقی‌مانده',value:totalRemaining==null?'—':fmtDec(totalRemaining),unit:totalRemaining==null?'':'گیگ'}
       ];
       const box=document.getElementById('customerKpis');
-      if(box)box.innerHTML=kpis.map(item=>`<article class="customer-kpi"><span class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24">${item.icon}</svg></span><span>${esc(item.label)}</span><strong>${esc(item.value)}${item.unit?`<small>${esc(item.unit)}</small>`:''}</strong></article>`).join('');
+      if(box)box.innerHTML=kpis.map(item=>`<div class="cv-stat"><small>${esc(item.label)}</small><strong>${esc(item.value)}${item.unit?`<em>${esc(item.unit)}</em>`:''}</strong></div>`).join('');
       if(isPreview)document.body.classList.add('preview-data');else document.body.classList.remove('preview-data');
     }
     function renderCustomerOrders(orders, partial) {
@@ -2544,7 +2532,7 @@
         const sign=incoming?'+':'−';
         const amountClass=incoming?'in':'out';
         const details=[t.method,t.status_label,fmtDate(t.created_at)].filter(Boolean).join(' · ');
-        return `<article class="customer-transaction"><div class="customer-transaction-main"><strong>${esc(t.label||'تراکنش')}</strong><small>${esc(t.description||'')}${details?' · '+esc(details):''}</small></div><div class="customer-transaction-amount ${amountClass}">${sign}${fmt(t.amount||0)} <small>تومان</small></div></article>`;
+        return `<article class="cv-tx"><div class="cv-tx-main"><strong>${esc(t.label||'تراکنش')}</strong><small>${esc(t.description||'')}${details?' · '+esc(details):''}</small></div><div class="cv-tx-amount ${amountClass}">${sign}${fmt(t.amount||0)} <small>تومان</small></div></article>`;
       }).join('')||'<div class="empty-state">تراکنشی برای نمایش پیدا نشد.</div>';
       const note=document.getElementById('customerTransactionsNote');if(note)note.textContent=(partial?'فهرست به سقف نمایش رسیده؛ ':'')+'این گزارش از خرید، تمدید، شارژ و برداشت مشترک بین Mini App و ربات ساخته می‌شود.';
     }
@@ -2554,7 +2542,7 @@
       if(!box)return;
       box.innerHTML=rows.map(o=>{
         const exact=o.pay_amount!=null?money(o.pay_amount):money(o.amount||0);
-        return `<article class="pending-order"><div class="pending-order-head"><span class="pending-order-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></svg></span><div><strong>سفارش در انتظار پرداخت · ${esc(o.plan||typeText(o))}</strong><small>#${esc(o.id)} · ${esc(exact)} · ${esc(o.method||'در انتظار پرداخت')}</small></div></div><button class="outline-btn" data-track-order="${esc(o.id)}">پیگیری سفارش</button></article>`;
+        return `<article class="cv-pending"><div class="cv-pending-head"><span class="cv-pending-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></svg></span><div><strong>در انتظار پرداخت · ${esc(o.plan||typeText(o))}</strong><small>#${esc(o.id)} · ${esc(exact)} · ${esc(o.method||'در انتظار پرداخت')}</small></div></div><button class="outline-btn" type="button" data-track-order="${esc(o.id)}">پیگیری</button></article>`;
       }).join('');
     }
     function customerFreeErrorText(code) {
@@ -2710,16 +2698,16 @@
         const link=s.link?`<button class="outline-btn" data-web-url="${esc(s.link)}">لینک اشتراک</button>`:'';
         const manage=!isPreview&&s.sid?`<button class="btn-secondary" data-subscription-detail="${esc(s.sid)}">مدیریت اشتراک</button>`:'<button class="btn-secondary" data-demo-action>جزئیات اشتراک</button>';
         const qrButton=!isPreview&&s.sid?`<button class="outline-btn" data-subscription-qr="${esc(s.sid)}">QR و کپی لینک</button>`:'';
-        return `<article class="customer-sub-card" tabindex="0" data-subscription-detail="${esc(s.sid||'')}" aria-label="جزئیات اشتراک ${esc(s.plan_name||'')}"><div class="customer-sub-top"><div><strong>${esc(s.plan_name||'اشتراک')} · ${esc(s.panel_name||'سرور')}</strong><small>${esc(s.status_label||'وضعیت نامشخص')}${esc(remain)}${s.expires_at?' · انقضا '+esc(fmtDate(s.expires_at)):''}</small></div><span class="status ${s.status==='active'?'paid':s.status==='unknown'?'pending':'failed'}">${esc(s.status_label||'نامشخص')}</span></div><div class="usage"><div class="usage-label"><span>مصرف</span><b>${esc(usageText)}</b></div><span class="bar-track"><i class="bar-fill" style="width:${percent}%"></i></span></div><div class="customer-sub-actions">${qrButton}${link}${manage}</div></article>`;
+        return `<article class="cv-sub" tabindex="0" data-subscription-detail="${esc(s.sid||'')}" aria-label="جزئیات اشتراک ${esc(s.plan_name||'')}"><div class="cv-sub-head"><div><strong>${esc(s.plan_name||'اشتراک')} · ${esc(s.panel_name||'سرور')}</strong><small>${esc(s.status_label||'وضعیت نامشخص')}${esc(remain)}${s.expires_at?' · انقضا '+esc(fmtDate(s.expires_at)):''}</small></div><span class="status ${s.status==='active'?'paid':s.status==='unknown'?'pending':'failed'}">${esc(s.status_label||'نامشخص')}</span></div><div class="cv-usage"><div class="cv-usage-label"><span>مصرف</span><b>${esc(usageText)}</b></div><span class="cv-bar"><i style="width:${percent}%"></i></span></div><div class="cv-sub-actions">${qrButton}${link}${manage}</div></article>`;
       }).join('') || '<div class="empty-state">هنوز اشتراکی ثبت نشده است. از پلن‌های فروشگاه خرید کنید و وضعیت آن را همین‌جا دنبال کنید.</div>';
       const plans=Array.isArray(data.plans)?data.plans:[];
       const plansGrid=document.getElementById('customerPlansGrid');
       if(plansGrid)plansGrid.innerHTML=plans.map(p=>{
         const unlimited=Number(p.gb)===0||Number(p.gb)>=100000;
         const size=unlimited?'نامحدود':fmt(p.gb)+' گیگ';
-        const buy=!isPreview&&p.panel_id&&p.plan_id?`<button class="btn-primary plan-buy" data-buy-panel="${esc(p.panel_id)}" data-buy-plan="${esc(p.plan_id)}"><span>انتخاب و خرید پلن</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>`:'<button class="btn-primary plan-buy" data-demo-action><span>مشاهدهٔ پلن</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>';
-        return `<article class="store-plan"><div class="plan-card-orbit" aria-hidden="true"></div><div class="store-plan-header"><span class="plan-server">${esc(p.panel_name||'سرور')}</span><span class="plan-card-brand">TIZNET · VPN</span></div><div class="plan-card-title"><div><h3>${esc(p.title||'پلن')}</h3><p>اشتراک امن · تحویل سریع</p></div><span class="plan-card-emblem" aria-hidden="true">✦</span></div><div class="plan-specs"><div class="plan-spec"><small><span aria-hidden="true">◈</span> حجم</small><strong>${esc(size)}</strong></div><div class="plan-spec"><small><span aria-hidden="true">◷</span> مدت</small><strong>${fmt(p.days||0)} روز</strong></div></div><div class="store-plan-price-row"><div><small class="store-plan-price-label">قیمت این دوره</small><div class="store-price">${fmt(p.price||0)} <small>تومان</small></div></div><span class="plan-billing-chip">بدون هزینهٔ پنهان</span></div><p class="plan-summary">اتصال آسان با Hiddify و دسترسی به وضعیت اشتراک در همین Mini App.</p>${buy}<div class="plan-card-foot"><span>پرداخت دستی یا کیف پول</span><span>پشتیبانی تلگرام</span></div></article>`;
-      }).join('') || '<article class="store-plan empty-plan"><h3>فعلاً پلن فعالی وجود ندارد</h3><p>برای راهنمایی با پشتیبانی فروشگاه تماس بگیرید.</p></article>';
+        const buy=!isPreview&&p.panel_id&&p.plan_id?`<button class="cv-buy" type="button" data-buy-panel="${esc(p.panel_id)}" data-buy-plan="${esc(p.plan_id)}"><span>خرید</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>`:'<button class="cv-buy" type="button" data-demo-action><span>مشاهده</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>';
+        return `<article class="cv-card cv-plan"><div class="cv-plan-top"><h3>${esc(p.title||'پلن')}</h3><span class="cv-chip">${esc(p.panel_name||'سرور')}</span></div><div class="cv-specs"><div class="cv-spec"><small>حجم</small><strong>${esc(size)}</strong></div><div class="cv-spec"><small>مدت</small><strong>${fmt(p.days||0)} روز</strong></div></div><div class="cv-plan-foot"><div class="cv-price">${fmt(p.price||0)} <small>تومان</small></div>${buy}</div></article>`;
+      }).join('') || '<article class="cv-card cv-plan"><div class="cv-plan-top"><h3>فعلاً پلن فعالی وجود ندارد</h3></div><p class="cv-empty">برای راهنمایی با پشتیبانی فروشگاه تماس بگیرید.</p></article>';
       const caption=document.getElementById('customerPlansCaption');if(caption)caption.textContent=isPreview?'پیش‌نمایش طراحی؛ نام پلن‌ها و مبالغ نمونه‌ای هستند.':'مبلغ‌ها به تومان هستند؛ معادل ریالی و مبلغ یکتای انتقال پیش از پرداخت نمایش داده می‌شود.';
       const notice=document.getElementById('customerNotice');if(notice)notice.textContent=isPreview?'پیش‌نمایش طراحی است؛ خرید واقعی در حساب Telegram انجام می‌شود.':'پرداخت و ارسال رسید داخل همین صفحه است. رسید دستی برای تأیید ادمین ارسال می‌شود؛ پرداخت خودکار از مسیر فعال فروشگاه استفاده می‌کند.';
     }
@@ -3492,7 +3480,7 @@
       const upgradePlan=e.target.closest('[data-upgrade-plan]');if(upgradePlan){openPlanCheckout(upgradePlan.dataset.panelId,upgradePlan.dataset.upgradePlan,upgradePlan.dataset.upgradeSubId,'upgrade');return;}
       const subQr=e.target.closest('[data-subscription-qr]');if(subQr){openCustomerSubscriptionQr(subQr.dataset.subscriptionQr);return;}
       const subManage=e.target.closest('button[data-subscription-detail]');if(subManage){openCustomerSubscriptionDetail(subManage.dataset.subscriptionDetail);return;}
-      const subCard=e.target.closest('.customer-sub-card[data-subscription-detail]');if(subCard&&!e.target.closest('button')){openCustomerSubscriptionDetail(subCard.dataset.subscriptionDetail);return;}
+      const subCard=e.target.closest('.cv-sub[data-subscription-detail]');if(subCard&&!e.target.closest('button')){openCustomerSubscriptionDetail(subCard.dataset.subscriptionDetail);return;}
       const recheckOrder=e.target.closest('[data-order-recheck]');if(recheckOrder){openAdminOrder(recheckOrder.dataset.orderRecheck);return;}
       const manageOrder=e.target.closest('[data-order-admin]');if(manageOrder){openAdminOrder(manageOrder.dataset.orderAdmin);return;}
       const customerRow=e.target.closest('[data-customer-open]');if(customerRow&&!e.target.closest('button,a,input,select,textarea')){openCustomerManager(customerRow.dataset.customerOpen);return;}
@@ -3526,7 +3514,7 @@
     document.addEventListener('keydown',e=>{
       if(e.key!=='Enter'&&e.key!==' ')return;
       if(e.target.closest('button,a,input,select,textarea'))return;
-      const target=e.target.closest('[data-dashboard-drill],[data-drill-method],[data-drill-plan],[data-drill-panel],[data-drill-label],[data-drill-order],.customer-sub-card[data-subscription-detail]');
+      const target=e.target.closest('[data-dashboard-drill],[data-drill-method],[data-drill-plan],[data-drill-panel],[data-drill-label],[data-drill-order],.cv-sub[data-subscription-detail]');
       if(target){e.preventDefault();target.click();}
     });
     document.addEventListener('submit',e=>{
