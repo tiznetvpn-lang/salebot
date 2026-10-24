@@ -7020,13 +7020,23 @@ async function miniAppAdminSummary(env, days) {
   const latestUsers = userIndex.items.filter((u) => Number(u.joined_at || 0) >= from && Number(u.joined_at || 0) <= now).length;
   const recentResult = await miniAppOrderRows(env, { limit: 8, index_limit: 40, days: 0 });
   const pending = [];
+  const pendingSeen = new Set();
   for (const id of (pendingIds || []).slice(-8).reverse()) {
     const o = await getOrder(env, id);
-    if (o && o.status === 'pending') pending.push(o);
+    if (!o || o.status !== 'pending') continue;
+    // pend ممکن است یک شناسه را تکراری داشته باشد؛ ردیف تکراری در داشبورد نباید بسازد.
+    if (pendingSeen.has(String(o.id))) continue;
+    pendingSeen.add(String(o.id));
+    pending.push(o);
   }
   // سفارش‌های معلق را در ردیف‌های اخیر هم نشان بده؛ دادهٔ رسید/شماره کارت هیچ‌وقت به API نمی‌رود.
   const recentOrders = recentResult.items.slice(0, 8);
+  // همین سفارش از ایندکس order_idx هم در recentResult می‌آید؛ بدون این مجموعه، یک سفارش
+  // در انتظار دو بار پشت سر هم در «آخرین سفارش‌ها» دیده می‌شد.
+  const recentIds = new Set(recentOrders.map((o) => String(o.id)));
   for (const o of pending) {
+    if (recentIds.has(String(o.id))) continue;
+    recentIds.add(String(o.id));
     recentOrders.unshift({
       id: String(o.id), tg_id: String(o.tg_id), name: String(o.first_name || o.username || ('کاربر ' + o.tg_id)),
       username: String(o.username || ''), tg: o.username ? '@' + o.username : String(o.tg_id),

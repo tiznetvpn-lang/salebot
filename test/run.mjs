@@ -1244,6 +1244,13 @@ const topupManualSecond = await miniApi('/api/miniapp/wallet/topup', user4Init, 
 assert(topupManualRepeat.status === 200 && topupManualRepeat.json.order.id === topupManualOrder.id
   && topupManualSecond.status === 200 && topupManualSecond.json.order.id === topupManualOrder.id && topupManualSecond.json.reused === true,
   'شارژ تکراری (حتی با request_id تازه) سفارش دوم نمی‌سازد و همان سفارش باز را برمی‌گرداند');
+// سفارشِ در انتظار نباید هم از ایندکس سفارش‌ها و هم از فهرست pend در «آخرین سفارش‌ها» تکرار شود.
+const summaryWithPending = await miniApi('/api/miniapp/admin/summary?days=30', adminInit);
+const summaryRecentIds = (summaryWithPending.json.recent_orders || []).map((o) => String(o.id));
+assert(summaryWithPending.status === 200
+  && summaryRecentIds.filter((id) => id === String(topupManualOrder.id)).length === 1
+  && new Set(summaryRecentIds).size === summaryRecentIds.length,
+  'سفارش در انتظار در بخش «آخرین سفارش‌ها»ی نمای مدیر فقط یک بار نمایش داده می‌شود');
 const topupAutoEnabledCfg = Object.assign({}, await kvJson('cfg'), { card_auto_enabled: true, card_manual_enabled: true });
 await kv.put('cfg', topupAutoEnabledCfg);
 const balanceBeforeTopup = Number((await kvJson('u:' + U4)).balance || 0);
