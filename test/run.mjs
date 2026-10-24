@@ -699,11 +699,48 @@ assert(String(eventLogMsg.params.text).includes('رویدادهای اخیر ب�
 
 await press(ADMIN, 'a_shapp');
 const appGuide = lastMsgTo(ADMIN, 'editMessageText');
+const appGuideButtons = lookupButtons(appGuide);
+const secretCopy = appGuideButtons.find((b) => b.copy_text);
 assert(String(appGuide.params.text).includes('اتصال اپ Shetab Verification')
   && String(appGuide.params.text).includes('/wp-json/webdide-cv/v1/confirm')
-  && String(appGuide.params.text).includes('SHETAB_API_SECRET')
-  && lookupButtons(appGuide).some((b) => b.callback_data === 'a_shtest'),
-  'صفحهٔ اتصال اپ، آدرس دقیق سرور و دستور خواندن Secret را نشان می‌دهد');
+  && !!secretCopy && secretCopy.copy_text.text === 'shetab-test-secret'
+  && appGuideButtons.some((b) => b.copy_text && b.copy_text.text === 'https://t.test/wp-json/webdide-cv/v1/confirm')
+  && appGuideButtons.some((b) => b.callback_data === 'a_shtest'),
+  'صفحهٔ اتصال اپ آدرس دقیق سرور و دکمهٔ کپی Secret را بدون نمایش خودِ Secret نشان می‌دهد');
+
+// Secret ممکن است با فاصله/کوتیشن در env ذخیره شده باشد؛ نباید احراز هویت را بشکند.
+const quotedSecret = '"  shetab-test-secret  "';
+env.SHETAB_API_SECRET = quotedSecret;
+const quotedAuth = await shetabPost({ amount: 987654, recipeId: 'QUOTED-SECRET' }, 'shetab-test-secret');
+assert(quotedAuth.status === 404 && !String(await quotedAuth.text()).includes('Unauthorized'),
+  'Secret دارای فاصله یا کوتیشن در env هنگام تطبیق نادیده گرفته می‌شود');
+env.SHETAB_API_SECRET = 'shetab-test-secret';
+
+// اگر Secret هیچ‌جا نباشد، ادمین با یک دکمه در خود ربات می‌سازد و اپ با همان کار می‌کند.
+const savedEnvSecret = env.SHETAB_API_SECRET;
+const cfgBeforeGen = await kvJson('cfg') || {};
+await kv.put('cfg', Object.assign({}, cfgBeforeGen, { shetab_secret: '', shetab_secret_created_at: 0 }));
+delete env.SHETAB_API_SECRET;
+await press(ADMIN, 'a_shapp');
+const appGuideNoSecret = lastMsgTo(ADMIN, 'editMessageText');
+assert(String(appGuideNoSecret.params.text).includes('هنوز ساخته نشده')
+  && lookupButtons(appGuideNoSecret).some((b) => b.callback_data === 'a_shgen'),
+  'بدون Secret، صفحهٔ اتصال اپ دکمهٔ ساخت را نشان می‌دهد');
+await press(ADMIN, 'a_shgen');
+const appGuideGenerated = lastMsgTo(ADMIN, 'editMessageText');
+const cfgAfterGen = await kvJson('cfg');
+const generatedSecret = String(cfgAfterGen.shetab_secret || '');
+const generatedCopy = lookupButtons(appGuideGenerated).find((b) => b.copy_text);
+assert(/^[0-9a-f]{64}$/.test(generatedSecret) && cfgAfterGen.shetab_secret_created_at > 0
+  && !!generatedCopy && generatedCopy.copy_text.text === generatedSecret
+  && String(appGuideGenerated.params.text).includes('کاراکتر'),
+  'ربات Secret امن ۶۴ کاراکتری می‌سازد و دکمهٔ کپی همان مقدار را نشان می‌دهد');
+const generatedAuthProbe = await shetabPost({ amount: 123457, recipeId: 'BOT-MADE-SECRET' }, generatedSecret);
+assert(generatedAuthProbe.status === 404 && !String(await generatedAuthProbe.text()).includes('Unauthorized'),
+  'Secret ساخته‌شده در ربات همان چیزی است که اپ برای احراز هویت استفاده می‌کند');
+const wrongAfterGenerated = await shetabPost({ amount: 123457, recipeId: 'BOT-MADE-SECRET' }, 'shetab-test-secret');
+assert(wrongAfterGenerated.status === 401, 'Secret قدیمی env وقتی مقدار معتبری در ربات ثبت شده دیگر پذیرفته نمی‌شود');
+env.SHETAB_API_SECRET = savedEnvSecret;
 
 // آزمون پرداخت: در تست آدرس عمومی وجود ندارد، پس مسیر داخلی باید سالم باشد
 const hBeforeSelfTest = hUsers.size;

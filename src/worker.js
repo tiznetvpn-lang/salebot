@@ -2671,7 +2671,9 @@ const DEFAULT_SETTINGS = {
   free_subscription_gb: 1,
   free_subscription_days: 1,
   free_subscription_panel_id: '',
-  free_subscription_claim_policy: ''
+  free_subscription_claim_policy: '',
+  shetab_secret: '',        // Secret پرداخت خودکار؛ اگر در env نبود، از همین‌جا ساخته می‌شود
+  shetab_secret_created_at: 0
 };
 
 async function getCfg(env) {
@@ -3973,7 +3975,7 @@ async function showPlanDetail(env, chatId, messageId, u, pid, plid, sid) {
   const rows = [];
   rows.push([BTN(canWallet ? '💰 پرداخت با کیف پول (تحویل فوری ⚡)' : '💰 موجودی کیف پول کافی نیست', canWallet ? pre + 'payw:' + idp + ':' + plid : 'noop')]);
   const cfg = await getCfg(env);
-  if (cfg.card_auto_enabled === true && cfg.card_number && env.SHETAB_API_SECRET) {
+  if (cfg.card_auto_enabled === true && cfg.card_number && await resolveShetabSecret(env)) {
     rows.push([BTN('⚡ کارت‌به‌کارت خودکار (تحویل فوری)', pre + 'payx:' + idp + ':' + plid)]);
   }
   if (cfg.card_manual_enabled !== false && cfg.card_number) {
@@ -4054,7 +4056,7 @@ async function autoCardPayStart(env, chatId, u, kind, a, b) {
     await msg(env, chatId, '❌ کارت‌به‌کارت خودکار توسط ادمین غیرفعال است.', KB([[BTN('◀️ برگشت', 'home')]]));
     return;
   }
-  if (!env.SHETAB_API_SECRET) {
+  if (!await resolveShetabSecret(env)) {
     await msg(env, chatId, '❌ پرداخت خودکار پیکربندی نشده است؛ Secret اتصال Shetab را بررسی کنید.', KB([[BTN('◀️ برگشت', 'home')]]));
     return;
   }
@@ -4982,7 +4984,8 @@ async function adminSettings(env, chatId, messageId) {
   const cfg = await getCfg(env);
   const manualOn = cfg.card_manual_enabled !== false;
   const autoOn = cfg.card_auto_enabled === true;
-  const hasSecret = !!env.SHETAB_API_SECRET;
+  const secret = await resolveShetabSecret(env);
+  const hasSecret = !!secret;
   const hasCard = !!cfg.card_number;
   const autoReady = hasSecret && hasCard;
   const autoStatus = autoOn ? (autoReady ? 'روشن ✅' : 'روشن، ولی نیازمند کارت/Secret ⚠️') : 'خاموش ⛔';
@@ -5456,6 +5459,22 @@ async function onCallback(env, q, origin) {
     await adminSettings(env, chatId, messageId);
     return;
   }
+  if (data === 'a_shgen') {
+    if (!await needAdmin()) return;
+    const cfgGen = await getCfg(env);
+    if (await resolveShetabSecret(env)) {
+      await ansCb(env, q.id, 'Secret از قبل ساخته شده است.');
+      await adminShetabApp(env, chatId, messageId, origin);
+      return;
+    }
+    const fresh = generateShetabSecret();
+    cfgGen.shetab_secret = fresh;
+    cfgGen.shetab_secret_created_at = Date.now();
+    await saveCfg(env, cfgGen);
+    await ansCb(env, q.id, 'Secret ساخته شد ✅');
+    await adminShetabApp(env, chatId, messageId, origin);
+    return;
+  }
   if (data === 'a_shapp') {
     if (!await needAdmin()) return;
     await ansCb(env, q.id);
@@ -5603,7 +5622,7 @@ async function onCallback(env, q, origin) {
   if (data === 's_pay_auto') {
     if (!await needAdmin()) return;
     const cfg = await getCfg(env);
-    if (cfg.card_auto_enabled !== true && !env.SHETAB_API_SECRET) {
+    if (cfg.card_auto_enabled !== true && !await resolveShetabSecret(env)) {
       await ansCb(env, q.id, 'Secret سرور هنوز ساخته نشده است؛ راهنمای اتصال را ببینید.', true);
       await adminShetabApp(env, chatId, messageId, origin);
       return;
@@ -6209,25 +6228,34 @@ function shetabEndpointUrl(env, origin) {
 async function adminShetabApp(env, chatId, messageId, origin) {
   const cfg = await getCfg(env);
   const url = shetabEndpointUrl(env, origin);
-  const hasSecret = !!env.SHETAB_API_SECRET;
+  const secret = await resolveShetabSecret(env);
+  const hasSecret = !!secret;
   const hasCard = !!cfg.card_number;
   const t = '📲 <b>اتصال اپ Shetab Verification</b>\n\n' +
     'این دو مقدار را <b>داخل خودِ اپ روی گوشی</b> وارد می‌کنید (تنظیمات اپ → Server/API):\n\n' +
     '🌐 <b>Server URL</b>\n<code>' + esc(url || '— آدرس عمومی تنظیم نشده —') + '</code>\n\n' +
     '🔑 <b>API Secret</b>\n' +
     (hasSecret
-      ? 'روی سرور ساخته شده است. برای خواندنش در ترمینال سرور:\n<code>sudo grep SHETAB_API_SECRET /etc/tiznetvpn/tiznetvpn.env</code>\n<i>(مقدار بعد از علامت = را کامل کپی کنید؛ این ربات برای امنیت آن را نمایش نمی‌دهد.)</i>'
-      : '❌ <b>هنوز روی سرور ساخته نشده.</b> در ترمینال سرور اجرا کنید:\n<code>sudo bash /opt/tiznetvpn/update.sh --yes</code>\n<i>اسکریپت خودش Secret را می‌سازد و چاپ می‌کند.</i>') +
+      ? '<code>' + esc(secret.slice(0, 6)) + '…</code> (' + faNum(secret.length) + ' کاراکتر — فقط برای تطبیق)\n' +
+        '<i>مقدار کامل نمایش داده نمی‌شود؛ روی دکمهٔ «📋 کپی Secret» بزنید و همان را در اپ جای‌گذاری کنید.</i>'
+      : '❌ <b>هنوز ساخته نشده.</b> روی دکمهٔ «🔑 ساخت Secret همین‌جا» بزنید؛ ربات یک کلید امن می‌سازد و همین صفحه دکمهٔ کپی آن را نشان می‌دهد. (نیازی به دستور ترمینال نیست.)') +
     '\n\n━━━━━━━━━━━━━━\n' +
     '✅ کارت بانکی: ' + (hasCard ? 'ثبت شده' : '❌ ثبت نشده — از «💳 کارت» شماره کارت را وارد کنید') + '\n' +
-    '✅ Secret سرور: ' + (hasSecret ? 'موجود' : '❌ موجود نیست') + '\n\n' +
+    '🔑 Secret: ' + (hasSecret ? 'آماده' : '❌ ساخته نشده') + '\n' +
+    '⚡ روشن‌بودن پرداخت خودکار: ' + (cfg.card_auto_enabled === true ? 'روشن ✅' : 'خاموش ⛔ — از «⚙️ تنظیمات» روشن کنید') + '\n' +
+    (hasCard && hasSecret && cfg.card_auto_enabled !== true
+      ? '<i>همهٔ پیش‌نیازها آماده است؛ فقط سوییچ «⚡ کارت‌به‌کارت خودکار» در تنظیمات را روشن کنید.</i>\n'
+      : '') +
+    '\n' +
     '⚠️ <b>مهم:</b> شمارهٔ کارتی که در ربات ثبت می‌کنید باید <b>همان کارتی</b> باشد که اپ روی گوشی پیامک‌هایش را می‌خواند؛ اپ شمارهٔ کارت مقصد را نمی‌فرستد و فقط مبلغ و کد پیگیری را گزارش می‌کند.\n\n' +
     'پس از واردکردن URL و Secret در اپ، دکمهٔ «🧪 آزمون پرداخت خودکار» را بزنید. اگر سبز شد، اتصال کامل است.';
-  const rows = [
-    [BTN('🧪 آزمون پرداخت خودکار', 'a_shtest')],
-    [BTN('💳 شماره کارت', 'a_cards'), BTN('📜 رویدادهای بانکی', 'a_shlog')],
-    [BTN('◀️ تنظیمات', 'a_set')]
-  ];
+  const rows = [];
+  if (hasSecret) rows.push([COPYBTN('📋 کپی Secret', secret)]);
+  else rows.push([BTN('🔑 ساخت Secret همین‌جا', 'a_shgen')]);
+  if (url) rows.push([COPYBTN('📋 کپی آدرس سرور', url)]);
+  rows.push([BTN('🧪 آزمون پرداخت خودکار', 'a_shtest')]);
+  rows.push([BTN('💳 شماره کارت', 'a_cards'), BTN('📜 رویدادهای بانکی', 'a_shlog')]);
+  rows.push([BTN('◀️ تنظیمات', 'a_set')]);
   if (messageId) await editMsg(env, chatId, messageId, t, KB(rows));
   else await msg(env, chatId, t, KB(rows));
 }
@@ -6280,11 +6308,12 @@ async function shetabDropTestOrder(env, test) {
 
 async function shetabSelfTest(env) {
   const base = String(env.PUBLIC_BASE_URL || env.MINIAPP_URL || '').trim().replace(/\/+$/, '');
-  if (!env.SHETAB_API_SECRET) return { ok: false, error: 'SHETAB_API_SECRET در فایل env تنظیم نشده است.' };
+  const secret = await resolveShetabSecret(env);
+  if (!secret) return { ok: false, error: 'Secret پرداخت خودکار ساخته نشده است؛ از «📲 اتصال اپ شتاب» بسازید.' };
   const cfg = await getCfg(env);
   if (!cfg.card_number) return { ok: false, error: 'شماره کارت فروشگاه هنوز ثبت نشده است.' };
   const path = '/wp-json/webdide-cv/v1/confirm';
-  const headers = { 'Content-Type': 'application/json', Authorization: env.SHETAB_API_SECRET };
+  const headers = { 'Content-Type': 'application/json', Authorization: secret };
 
   // مرحلهٔ ۱ — مسیر عمومی (DNS + SSL + nginx + worker): همان کاری که اپ روی گوشی می‌کند.
   let publicTest = null;
@@ -7124,7 +7153,7 @@ async function miniAppCustomerData(env, user) {
     support: String(cfg.support || ''),
     payment_options: {
       manual: cfg.card_manual_enabled !== false && !!cfg.card_number,
-      automatic: cfg.card_auto_enabled === true && !!env.SHETAB_API_SECRET && !!cfg.card_number
+      automatic: cfg.card_auto_enabled === true && !!await resolveShetabSecret(env) && !!cfg.card_number
     }
   };
 }
@@ -7378,7 +7407,7 @@ async function miniAppCreateCheckout(env, user, body) {
   }
 
   if (method === 'manual' && (cfg.card_manual_enabled === false || !cfg.card_number)) return { data: { ok: false, error: 'manual_payment_disabled' }, status: 403 };
-  if (method === 'shetab' && (cfg.card_auto_enabled !== true || !env.SHETAB_API_SECRET || !cfg.card_number)) return { data: { ok: false, error: 'automatic_payment_disabled' }, status: 403 };
+  if (method === 'shetab' && (cfg.card_auto_enabled !== true || !await resolveShetabSecret(env) || !cfg.card_number)) return { data: { ok: false, error: 'automatic_payment_disabled' }, status: 403 };
 
   if (method === 'wallet') {
     const fresh = await getUser(env, user.tg_id) || user;
@@ -7451,7 +7480,7 @@ async function miniAppCreateCheckout(env, user, body) {
 }
 
 
-function miniAppAdminSettingsView(cfg, env) {
+function miniAppAdminSettingsView(cfg, env, secretReady) {
   return {
     ok: true,
     settings: {
@@ -7461,7 +7490,7 @@ function miniAppAdminSettingsView(cfg, env) {
       min_withdraw: Number(cfg.min_withdraw || 0),
       card_manual_enabled: cfg.card_manual_enabled !== false,
       card_auto_enabled: cfg.card_auto_enabled === true,
-      automatic_ready: !!env.SHETAB_API_SECRET && !!cfg.card_number,
+      automatic_ready: !!secretReady && !!cfg.card_number,
       shetab_endpoint: shetabEndpointUrl(env, ''),
       free_subscription_enabled: cfg.free_subscription_enabled === true,
       free_subscription_gb: Number.isFinite(Number(cfg.free_subscription_gb)) ? Number(cfg.free_subscription_gb) : 1,
@@ -7517,7 +7546,7 @@ async function miniAppAdminUpdateSettings(env, body) {
     if (has(key) && typeof data[key] !== 'boolean') return { data: { ok: false, error: 'invalid_' + key }, status: 400 };
     if (has(key)) cfg[key] = data[key];
   }
-  if (has('card_auto_enabled') && cfg.card_auto_enabled === true && !autoWasEnabled && (!env.SHETAB_API_SECRET || !cfg.card_number)) {
+  if (has('card_auto_enabled') && cfg.card_auto_enabled === true && !autoWasEnabled && (!await resolveShetabSecret(env) || !cfg.card_number)) {
     return { data: { ok: false, error: 'automatic_payment_not_configured' }, status: 409 };
   }
   if (has('free_subscription_enabled')) {
@@ -7559,7 +7588,7 @@ async function miniAppAdminUpdateSettings(env, body) {
   }
   if (has('card_number') && !cfg.card_number) cfg.card_auto_enabled = false;
   await saveCfg(env, cfg);
-  return { data: miniAppAdminSettingsView(cfg, env), status: 200 };
+  return { data: miniAppAdminSettingsView(cfg, env, !!(await resolveShetabSecret(env))), status: 200 };
 }
 
 function miniAppAdminPanelView(panel, fallbackId) {
@@ -8554,7 +8583,7 @@ async function miniAppApi(request, env, url) {
     }
     if (path === '/api/miniapp/admin/settings') {
       if (request.method === 'GET') {
-        const view = miniAppAdminSettingsView(await getCfg(env), env);
+        const view = miniAppAdminSettingsView(await getCfg(env), env, !!(await resolveShetabSecret(env)));
         const panels = await getPanels(env);
         view.panels = Object.entries(panels || {}).map(([id, panel]) => ({ id: String(panel.id || id), name: String(panel.name || ''), enabled: isRecordEnabled(panel) })).sort((a,b) => a.name.localeCompare(b.name, 'fa'));
         return miniAppJson(view, 200);
@@ -8652,6 +8681,36 @@ function shetabClientKey(request) {
   const raw = request.headers.get('cf-connecting-ip') || request.headers.get('x-real-ip')
     || (request.headers.get('x-forwarded-for') || '').split(',')[0] || '';
   return cleanText(raw).trim().slice(0, 60) || 'unknown';
+}
+
+// مقدار Secret ممکن است با فاصله، کوتیشن یا کاراکتر نامرئی در فایل env ذخیره شده باشد؛
+// این تابع همان چیزی را می‌دهد که کاربر در اپ تایپ می‌کند تا احراز هویت بی‌دلیل رد نشود.
+function normalizeShetabSecret(value) {
+  let text = String(value == null ? '' : value);
+  text = text.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+  if (text.length >= 2 && text[0] === text[text.length - 1] && (text[0] === '"' || text[0] === "'")) {
+    text = text.slice(1, -1).trim();
+  }
+  return text;
+}
+
+// ترتیب اولویت: مقدار env (اگر ادمین روی سرور گذاشته) بعد Secret ساخته‌شده در خود ربات.
+// این کار باعث می‌شود راه‌اندازی دیگر به دستور ترمینال وابسته نباشد.
+async function resolveShetabSecret(env) {
+  const fromEnv = normalizeShetabSecret(env && env.SHETAB_API_SECRET);
+  if (fromEnv) return fromEnv;
+  try {
+    const cfg = await getCfg(env);
+    return normalizeShetabSecret(cfg && cfg.shetab_secret);
+  } catch (e) {
+    return '';
+  }
+}
+
+function generateShetabSecret() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 // هر درخواست معتبر اپ در KV ثبت می‌شود؛ هیچ واریزی بی‌رد نمی‌ماند.
@@ -8799,10 +8858,11 @@ async function shetabFulfill(env, order) {
 
 async function shetabConfirm(request, env, successMessage) {
   if (request.method !== 'POST') return shetabJson({ success: false, message: 'POST required' }, 405);
-  if (!env.SHETAB_API_SECRET) return shetabJson({ success: false, message: 'Endpoint is not configured' }, 503);
+  const secret = await resolveShetabSecret(env);
+  if (!secret) return shetabJson({ success: false, message: 'Endpoint is not configured' }, 503);
   const auth = request.headers.get('authorization') || request.headers.get('x-api-key') || '';
   const token = auth.replace(/^\s*Bearer\s+/i, '').trim();
-  if (!constantTimeEqual(token, env.SHETAB_API_SECRET)) {
+  if (!constantTimeEqual(token, secret)) {
     const attempts = await shetabNoteAuthFailure(request, env);
     if (attempts > SHETAB_RATE_LIMIT) return shetabJson({ success: false, message: 'Too many failed attempts; retry later' }, 429);
     return shetabJson({ success: false, message: 'Unauthorized' }, 401);
@@ -8980,13 +9040,14 @@ async function fetchHandler(request, env) {
   if (shetabPath === '/wp-json/webdide-cv/v1/confirm' || shetabPath === '/api/shetab-verify') {
     // GET یک health-check بدون اثر مالی است؛ تأیید واقعی واریز فقط با POST انجام می‌شود.
     if (request.method === 'GET') {
-      if (!env.SHETAB_API_SECRET) return shetabJson({ success: false, message: 'Endpoint is not configured' }, 503);
+      const secret = await resolveShetabSecret(env);
+      if (!secret) return shetabJson({ success: false, message: 'Endpoint is not configured' }, 503);
       const authorization = request.headers.get('authorization');
       const apiKey = request.headers.get('x-api-key');
       const hasCredential = authorization !== null || apiKey !== null;
       const auth = authorization || apiKey || '';
       const token = auth.replace(/^\s*Bearer\s+/i, '').trim();
-      if (hasCredential && !constantTimeEqual(token, env.SHETAB_API_SECRET)) return shetabJson({ success: false, message: 'Unauthorized' }, 401);
+      if (hasCredential && !constantTimeEqual(token, secret)) return shetabJson({ success: false, message: 'Unauthorized' }, 401);
       return shetabJson({ success: true, message: 'Shetab endpoint is online', version: VERSION }, 200);
     }
     if (request.method !== 'POST') return shetabJson({ success: false, message: 'POST required' }, 405);

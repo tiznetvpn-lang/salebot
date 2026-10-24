@@ -231,22 +231,45 @@ if (( ! ASSUME_YES )); then
   [[ "${ANSWER,,}" == 'y' || "${ANSWER,,}" == 'yes' ]] || { say 'لغو شد.'; exit 0; }
 fi
 
-# Secret پرداخت خودکار: اگر کلید وجود ندارد یا خالی است، یک مقدار امن ساخته می‌شود
-# تا فعال‌سازی «کارت‌به‌کارت خودکار» فقط با چند کلیک در ربات ممکن باشد.
-if ! grep -qE '^SHETAB_API_SECRET=.+$' "$ENV_FILE" 2>/dev/null; then
+# ---------------------------------------------------------------------------
+# Secret پرداخت خودکار شتاب
+# ---------------------------------------------------------------------------
+# مقدارهای خالی، کوتیشن‌دار یا دارای فاصله هم «خالی» حساب می‌شوند؛ چون در آن حالت
+# احراز هویت اپ شکست می‌خورد و ادمین فکر می‌کند پرداخت خودکار خراب است.
+current_secret=$(grep -E '^[[:space:]]*(export[[:space:]]+)?SHETAB_API_SECRET=' "$ENV_FILE" 2>/dev/null \
+  | tail -n1 | cut -d= -f2- || true)
+current_secret="${current_secret%$'\r'}"
+current_secret="${current_secret#\"}"; current_secret="${current_secret%\"}"
+current_secret="${current_secret#\'}"; current_secret="${current_secret%\'}"
+current_secret="$(printf '%s' "$current_secret" | tr -d '[:space:]')"
+
+if [[ ${#current_secret} -lt 32 ]]; then
+  SHETAB_NEW_SECRET=''
   if command -v openssl >/dev/null 2>&1; then
-    SHETAB_NEW_SECRET=$(openssl rand -hex 32)
-    if grep -qE '^SHETAB_API_SECRET=' "$ENV_FILE" 2>/dev/null; then
-      sed -i "s|^SHETAB_API_SECRET=.*$|SHETAB_API_SECRET=${SHETAB_NEW_SECRET}|" "$ENV_FILE"
-    else
-      printf '\nSHETAB_API_SECRET=%s\n' "$SHETAB_NEW_SECRET" >> "$ENV_FILE"
-    fi
+    SHETAB_NEW_SECRET=$(openssl rand -hex 32 2>/dev/null || true)
+  fi
+  if [[ ${#SHETAB_NEW_SECRET} -lt 32 ]] && command -v node >/dev/null 2>&1; then
+    SHETAB_NEW_SECRET=$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))" 2>/dev/null || true)
+  fi
+  if [[ ${#SHETAB_NEW_SECRET} -ge 32 ]]; then
+    # هر خط قبلی (خالی، کوتیشن‌دار یا تکراری) حذف و یک خط تمیز نوشته می‌شود.
+    TMP_ENV=$(mktemp)
+    grep -vE '^[[:space:]]*(export[[:space:]]+)?SHETAB_API_SECRET=' "$ENV_FILE" > "$TMP_ENV" 2>/dev/null || true
+    printf 'SHETAB_API_SECRET=%s\n' "$SHETAB_NEW_SECRET" >> "$TMP_ENV"
+    cat "$TMP_ENV" > "$ENV_FILE"
+    rm -f "$TMP_ENV"
+    chown root:"$SERVICE_GROUP" "$ENV_FILE" 2>/dev/null || true
+    chmod 0640 "$ENV_FILE" 2>/dev/null || true
     say 'Secret پرداخت خودکار (SHETAB_API_SECRET) ساخته شد.'
-    printf '         برای اتصال اپ: sudo grep SHETAB_API_SECRET %s\n' "$ENV_FILE"
+    printf '         در ربات: تنظیمات → 📲 اتصال اپ شتاب → «📋 کپی Secret»\n'
+    printf '         در ترمینال: sudo grep SHETAB_API_SECRET %s\n' "$ENV_FILE"
     unset SHETAB_NEW_SECRET
   else
-    warn 'openssl پیدا نشد؛ SHETAB_API_SECRET را دستی در فایل env تنظیم کنید تا پرداخت خودکار کار کند.'
+    warn 'ساخت Secret پرداخت خودکار ناموفق بود (openssl و node در دسترس نبودند).'
+    warn "دستی اضافه کنید: SHETAB_API_SECRET=<۶۴ کاراکتر تصادفی> در $ENV_FILE"
   fi
+else
+  say 'Secret پرداخت خودکار از قبل موجود است.'
 fi
 
 # ---------------------------------------------------------------------------
