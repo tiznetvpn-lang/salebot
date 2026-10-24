@@ -1182,7 +1182,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #08080a') && miniAppSource.includes('--brand-blue:#8f2234') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت یاقوتی روی مشکی متالیک در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.26-ubuntu26.28';"), 'شمارهٔ نسخهٔ سرور 1.8.26-ubuntu26.28 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.27-ubuntu26.29';"), 'شمارهٔ نسخهٔ سرور 1.8.27-ubuntu26.29 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم «آبی زنده»') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #cc5c6b, #c62840 52%, #8c0b28)'), 'تم زندهٔ یاقوتی روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ آبی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #9b3049;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها یاقوتی و متالیک‌اند');
@@ -2076,6 +2076,37 @@ const domainDownJson = await domainDown.json();
 assert(domainDownJson.probe && domainDownJson.probe.ok === false && domainDownJson.probe.status === 0 && domainDownJson.probe.error, 'اگر دامنه پاسخ ندهد، خطا به‌صورت پیام قابل‌نمایش برمی‌گردد');
 delete env.PUBLIC_BASE_URL;
 delete env.MINIAPP_URL;
+
+// ---------- بکاپ خودکار در چت ----------
+const backupStatusDenied = await miniApi('/api/miniapp/admin/backup-status', userInit);
+assert(backupStatusDenied.status === 403, 'وضعیت بکاپ خودکار فقط برای مدیر است');
+await kv.delete('system:kv_backup_last_at');
+const backupStatusBefore = await miniApi('/api/miniapp/admin/backup-status', adminInit);
+assert(backupStatusBefore.status === 200 && backupStatusBefore.json.ok && backupStatusBefore.json.every_hours === 3
+  && backupStatusBefore.json.cron === '0 */3 * * *' && backupStatusBefore.json.last_at === 0 && backupStatusBefore.json.admins >= 1,
+  'وضعیت بکاپ بازهٔ ۳ ساعته، کرون و گیرندگان را برمی‌گرداند');
+const manualSendStart = TG.length;
+const backupSend = await miniApi('/api/miniapp/admin/backup-send', adminInit, { method: 'POST' });
+const manualSendDoc = TG.slice(manualSendStart).find((x) => x.method === 'sendDocument' && String(x.params.chat_id) === String(ADMIN));
+assert(backupSend.status === 200 && backupSend.json.ok && manualSendDoc
+  && String(manualSendDoc.params.document_name || '').endsWith('.json.gz') && backupSend.json.last_at > 0,
+  'دکمهٔ «بکاپ و ارسال فوری» فایل gzip را همین حالا به مدیر می‌فرستد');
+const backupSendAgain = await miniApi('/api/miniapp/admin/backup-send', adminInit, { method: 'POST' });
+assert(backupSendAgain.status === 409 && backupSendAgain.json.error === 'already_sent' && backupSendAgain.json.last_at > 0,
+  'ارسال فوری پشت‌سرهم تا یک دقیقه مسدود می‌شود تا فایل تکراری نرود');
+await sendText(ADMIN, '/backup');
+const backupCmdMsg = lastMsgTo(ADMIN);
+assert(String(backupCmdMsg.params.text || '').includes('یک دقیقه صبر کنید') && String(backupCmdMsg.params.text || '').includes('هر ۳ ساعت'),
+  'دستور /backup در چت زمان آخرین بکاپ و بازهٔ خودکار را گزارش می‌دهد');
+await sendText(U2, '/backup');
+const backupCmdDenied = lastMsgTo(U2);
+assert(String(backupCmdDenied.params.text || '').includes('فقط برای مدیران'), 'دستور /backup برای کاربر عادی اجرا نمی‌شود');
+const updateSourceTimers = fs.readFileSync(path.join(here, '..', 'update.sh'), 'utf8');
+assert(updateSourceTimers.includes('tiznetvpn-backup.timer') && updateSourceTimers.includes('TIMERS_ENABLED')
+  && updateSourceTimers.includes('systemctl start tiznetvpn-backup.service'),
+  'update.sh همهٔ تایمرها (از جمله بکاپ ۳ساعته) را فعال می‌کند و یک بکاپ فوری می‌فرستد');
+assert(miniAppSource.includes('kvBackupSend') && miniAppSource.includes('backup-status') && miniAppSource.includes('backup-send'),
+  'تب «پشتیبان» مینی‌اپ وضعیت بکاپ خودکار و دکمهٔ ارسال فوری را نشان می‌دهد');
 
 // ---------- نسخهٔ وب در مرورگر واقعی + ابزار دامنه ----------
 const isTelegramBlock = miniAppSource.slice(miniAppSource.indexOf('const tgPlatform'), miniAppSource.indexOf('const isTelegram ='));
