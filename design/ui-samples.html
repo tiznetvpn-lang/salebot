@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#05101f">
+<title>آزمایشگاه طراحی مینی‌اپ | تیزنت</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #050e1c;
+    --panel: #0a1c33;
+    --line: rgba(122, 180, 240, .16);
+    --ink: #eef7ff;
+    --muted: #8fabcc;
+    --accent: #6ee0ff;
+    --accent-2: #2f86e8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--ink);
+    font-family: "Vazirmatn", "Yekan", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+    background:
+      radial-gradient(760px 480px at 92% -10%, rgba(47, 134, 232, .28), transparent 62%),
+      radial-gradient(620px 420px at 2% 4%, rgba(0, 80, 170, .22), transparent 64%),
+      var(--bg);
+  }
+  a { color: var(--accent); }
+  .wrap { max-width: 1680px; margin: 0 auto; padding: 26px 22px 60px; }
+
+  header.top {
+    display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+    gap: 18px; padding-bottom: 20px; border-bottom: 1px solid var(--line); margin-bottom: 22px;
+  }
+  .brandline { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 14px rgba(110, 224, 255, .9); }
+  .kicker { color: #7f9dbf; font-size: 12px; letter-spacing: 1.4px; }
+  h1 { margin: 0; font-size: clamp(20px, 2.2vw, 28px); font-weight: 850; letter-spacing: -.3px; }
+  .lede { margin: 10px 0 0; max-width: 720px; color: var(--muted); font-size: 13.5px; line-height: 2; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .seg {
+    display: inline-flex; padding: 4px; gap: 4px; border-radius: 14px;
+    border: 1px solid var(--line); background: rgba(9, 30, 56, .68);
+  }
+  .seg button {
+    border: 0; background: transparent; color: #9db8d6; cursor: pointer;
+    padding: 8px 13px; border-radius: 11px; font: inherit; font-size: 12px; font-weight: 700;
+    transition: background .18s, color .18s;
+  }
+  .seg button.on { color: #04182f; background: linear-gradient(120deg, #9df0ff, #4cb8f4); box-shadow: 0 10px 20px -14px rgba(90, 210, 255, .9); }
+  .seg-label { color: #6f8cae; font-size: 11px; letter-spacing: .6px; padding: 0 4px; }
+
+  .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 372px), 1fr)); align-items: start; }
+
+  .vcard {
+    min-width: 0; border: 1px solid var(--line); border-radius: 22px; padding: 16px 16px 18px;
+    background: linear-gradient(160deg, rgba(14, 42, 78, .78), rgba(5, 18, 38, .9));
+    box-shadow: 0 30px 60px -46px rgba(0, 8, 26, 1), inset 0 1px 0 rgba(255, 255, 255, .06);
+    transition: border-color .25s, box-shadow .25s, transform .25s;
+  }
+  .vcard.picked { border-color: rgba(120, 226, 255, .6); box-shadow: 0 0 0 1px rgba(120, 226, 255, .35), 0 34px 70px -44px rgba(60, 190, 255, .8); }
+  .vhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .vname { display: flex; align-items: center; gap: 9px; min-width: 0; }
+  .badge {
+    flex: 0 0 auto; width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center;
+    font-weight: 900; font-size: 13px; color: #04182f;
+    background: linear-gradient(145deg, #a9ecff, #43a9ef);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6);
+  }
+  .vname h2 { margin: 0; font-size: 15.5px; font-weight: 850; }
+  .vname small { display: block; margin-top: 3px; color: #7f9dbf; font-size: 11px; font-weight: 600; }
+  .pick {
+    border: 1px solid rgba(122, 190, 250, .3); background: rgba(30, 110, 200, .14); color: #d7ecff;
+    padding: 8px 12px; border-radius: 11px; cursor: pointer; font: inherit; font-size: 11.5px; font-weight: 800;
+    white-space: nowrap; transition: background .18s, border-color .18s;
+  }
+  .pick:hover { background: rgba(50, 140, 240, .24); border-color: rgba(120, 210, 255, .55); }
+  .vcard.picked .pick { color: #04182f; background: linear-gradient(120deg, #9df0ff, #4cb8f4); border-color: transparent; }
+  .vdesc { margin: 12px 2px 0; color: #a7c3e0; font-size: 12.5px; line-height: 1.95; }
+  .vtags { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 12px 2px 14px; }
+  .vtags li {
+    padding: 4px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 700; color: #bcd8f2;
+    border: 1px solid rgba(122, 180, 240, .2); background: rgba(24, 74, 132, .3);
+  }
+  .stage { position: relative; border-radius: 18px; overflow: hidden; background: #000; border: 1px solid rgba(122, 180, 240, .16); }
+  .stage iframe { display: block; border: 0; background: #04101f; }
+  .stage::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: 18px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06);
+  }
+  .loading { position: absolute; inset: 0; display: grid; place-items: center; color: #7f9dbf; font-size: 12px; }
+
+  footer.tip {
+    margin-top: 26px; padding: 16px 18px; border-radius: 16px;
+    border: 1px dashed rgba(122, 190, 250, .26); background: rgba(9, 30, 56, .4);
+    color: #a7c3e0; font-size: 12.5px; line-height: 2;
+  }
+  footer.tip b { color: #eaf7ff; }
+  .note { margin-top: 18px; color: #6f8cae; font-size: 11.5px; line-height: 1.9; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="brandline"><span class="dot"></span><span class="kicker">TIZNETVPN · DESIGN LAB</span></div>
+      <h1>چهار مسیر بصری برای مینیاپ</h1>
+      <p class="lede">
+        هر نمونه همان مینیاپ واقعی است با دادهٔ نمونه؛ فقط یک «لایهٔ تم» رویش نشسته. محتوا، چیدمان و
+        تک‌خطی‌بودن متن‌ها در هر چهار نمونه یکی است — تفاوت در حس و حال است. یکی را انتخاب کن.
+      </p>
+    </div>
+    <div class="controls">
+      <span class="seg-label">نما</span>
+      <div class="seg" id="roleSeg">
+        <button type="button" data-role="admin" class="on">مدیر</button>
+        <button type="button" data-role="customer">مشتری</button>
+      </div>
+      <span class="seg-label">عرض</span>
+      <div class="seg" id="widthSeg">
+        <button type="button" data-width="390" class="on">گوشی</button>
+        <button type="button" data-width="430">گوشی بزرگ</button>
+        <button type="button" data-width="768">تبلت</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="grid" id="grid"></main>
+
+  <footer class="tip">
+    <b>چطور انتخاب کنی؟</b> روی «انتخاب این» بزن تا علامت بخورد، بعد فقط بنویس «<b>B</b>» (یا هر حرفی که پسندیدی).
+    اگر ترکیبی می‌خواهی هم بگو، مثلاً: «رنگ و حس D، ولی کارت‌های B». هر انتخابی بزنی، همان را روی نسخهٔ اصلی پیاده می‌کنم.
+  </footer>
+  <p class="note">
+    نکته: این صفحه فقط برای بازبینی طراحی است و به تلگرام یا سرور وصل نیست. برای دیدن صفحه‌های دیگر
+    (سفارش‌ها، مشتری‌ها، پلن‌ها) داخل قاب هر نمونه روی نوار یا منو بزن؛ داده‌ها نمونه‌اند.
+  </p>
+</div>
+
+<script>
+const VARIANTS = [
+  {
+    id: 'a', letter: 'A', name: 'آبی زنده', sub: 'همین نسخهٔ فعلی',
+    desc: 'همان چیزی که الان روی سرور است: گرادیان‌های نرم، شیشهٔ ملایم، درخشش‌های کم و یک قهرمان تیره. نقطهٔ تعادل بین «زنده» و «آرام».',
+    tags: ['فعلی', 'متعادل', 'گرادیان نرم'], css: '/variants/a.css'
+  },
+  {
+    id: 'b', letter: 'B', name: 'مینیمال آرام', sub: 'کم‌شلوغ‌ترین',
+    desc: 'بدون هیچ درخشش، سایه یا گرادیان. فقط زمینهٔ تیرهٔ یک‌دست، خط‌های مویی و یک رنگ آبی روی دکمه و عدد. اگر «شلوغ» برایت یعنی همین افکت‌ها، این بهترین انتخاب است.',
+    tags: ['ساده', 'بدون افکت', 'تمرکز روی عدد'], css: '/variants/b.css'
+  },
+  {
+    id: 'c', letter: 'C', name: 'شیشهٔ نور', sub: 'لوکس و شفاف',
+    desc: 'کارت‌ها شیشه‌ای‌اند و نور آبیِ پس‌زمینه از پشتشان رد می‌شود؛ لبهٔ روشن، گوشه‌های نرم‌تر و دکمه‌های صدفی. زنده اما بدون شلوغی نئون.',
+    tags: ['شیشه‌ای', 'نور پس‌زمینه', 'مدرن'], css: '/variants/c.css'
+  },
+  {
+    id: 'd', letter: 'D', name: 'نئون', sub: 'پرانرژی‌ترین',
+    desc: 'زمینهٔ سیاه‌آبی با شبکهٔ محو، لبه‌های نئون فیروزه‌ای و عددهای گرادیانی درخشان. بیشترین «زنده‌بودن»؛ برای کسی که می‌خواهد اپ چشم را بگیرد.',
+    tags: ['پرانرژی', 'نئون', 'کنتراست بالا'], css: '/variants/d.css'
+  },
+];
+
+const state = { role: 'admin', width: 390, picked: null };
+const grid = document.getElementById('grid');
+
+function build() {
+  grid.innerHTML = '';
+  for (const v of VARIANTS) {
+    const card = document.createElement('article');
+    card.className = 'vcard' + (state.picked === v.id ? ' picked' : '');
+    card.dataset.variant = v.id;
+    card.innerHTML = `
+      <div class="vhead">
+        <div class="vname">
+          <span class="badge">${v.letter}</span>
+          <div><h2>${v.name}</h2><small>${v.sub}</small></div>
+        </div>
+        <button class="pick" type="button">${state.picked === v.id ? '✓ انتخاب شد' : 'انتخاب این'}</button>
+      </div>
+      <p class="vdesc">${v.desc}</p>
+      <ul class="vtags">${v.tags.map((t) => `<li>${t}</li>`).join('')}</ul>
+      <div class="stage"><div class="loading">در حال بارگذاری…</div></div>`;
+
+    card.querySelector('.pick').addEventListener('click', () => {
+      state.picked = state.picked === v.id ? null : v.id;
+      document.querySelectorAll('.vcard').forEach((c) => {
+        const on = c.dataset.variant === state.picked;
+        c.classList.toggle('picked', on);
+        c.querySelector('.pick').textContent = on ? '✓ انتخاب شد' : 'انتخاب این';
+      });
+    });
+
+    const stage = card.querySelector('.stage');
+    const iframe = document.createElement('iframe');
+    iframe.title = `نمونهٔ ${v.letter} — ${v.name}`;
+    iframe.setAttribute('loading', 'lazy');
+    iframe.src = '/miniapp.html?lab=' + v.id;
+    iframe.addEventListener('load', () => {
+      card.querySelector('.loading')?.remove();
+      injectVariant(iframe, v);
+      sizeFrames();
+    });
+    stage.appendChild(iframe);
+    card._iframe = iframe;
+    grid.appendChild(card);
+  }
+  sizeFrames();
+}
+
+async function injectVariant(iframe, v) {
+  try {
+    const doc = iframe.contentDocument;
+    const css = await fetch(v.css, { cache: 'no-store' }).then((r) => r.text());
+    const style = doc.createElement('style');
+    style.dataset.variant = v.id;
+    style.textContent = css;
+    doc.head.appendChild(style);
+    applyRole(iframe);
+  } catch (e) {
+    console.warn('variant inject failed', v.id, e);
+  }
+}
+
+function applyRole(iframe) {
+  const doc = iframe.contentDocument;
+  if (!doc) return;
+  const isCustomer = doc.body.classList.contains('customer-mode');
+  const wantCustomer = state.role === 'customer';
+  if (isCustomer !== wantCustomer) doc.getElementById('roleToggle')?.click();
+}
+
+const FRAME_HEIGHT = 812;
+function sizeFrames() {
+  const w = state.width;
+  document.querySelectorAll('.vcard').forEach((card) => {
+    const stage = card.querySelector('.stage');
+    const iframe = card._iframe;
+    if (!stage || !iframe) return;
+    const avail = stage.clientWidth || card.clientWidth;
+    const scale = Math.min(1, avail / w);
+    iframe.style.width = w + 'px';
+    iframe.style.height = FRAME_HEIGHT + 'px';
+    iframe.style.transformOrigin = 'top right';
+    iframe.style.transform = `scale(${scale})`;
+    stage.style.height = Math.round(FRAME_HEIGHT * scale) + 'px';
+  });
+}
+
+document.getElementById('roleSeg').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-role]');
+  if (!b) return;
+  state.role = b.dataset.role;
+  [...e.currentTarget.children].forEach((x) => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.vcard').forEach((c) => c._iframe && applyRole(c._iframe));
+});
+
+document.getElementById('widthSeg').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-width]');
+  if (!b) return;
+  state.width = Number(b.dataset.width);
+  [...e.currentTarget.children].forEach((x) => x.classList.toggle('on', x === b));
+  sizeFrames();
+});
+
+window.addEventListener('resize', sizeFrames);
+build();
+</script>
+</body>
+</html>

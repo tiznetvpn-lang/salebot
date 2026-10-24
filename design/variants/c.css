@@ -1,0 +1,169 @@
+/* ══════════════════════════════════════════════════════════════════════
+   نمونهٔ C — «شیشهٔ نور»
+   فلسفه: کارت‌ها شفاف‌اند و نور آبیِ پس‌زمینه از پشتشان رد می‌شود.
+   لبهٔ روشن بالا، بلورِ مات (blur)، گوشه‌های نرم‌تر. لوکس و آرام.
+   ══════════════════════════════════════════════════════════════════════ */
+body {
+  background:
+    radial-gradient(900px 620px at 92% -8%, #2f86e8 0%, rgba(47, 134, 232, 0) 56%),
+    radial-gradient(760px 540px at 0% 8%, #0b5bb0 0%, rgba(11, 91, 176, 0) 60%),
+    radial-gradient(900px 640px at 48% 112%, #0a7ea8 0%, rgba(10, 126, 168, 0) 62%),
+    #041429 !important;
+}
+body::before {
+  background:
+    radial-gradient(34% 34% at 78% 12%, rgba(130, 228, 255, .55), transparent 70%),
+    radial-gradient(32% 32% at 12% 34%, rgba(64, 148, 255, .5), transparent 72%),
+    radial-gradient(30% 30% at 60% 88%, rgba(90, 216, 255, .34), transparent 74%) !important;
+  filter: blur(30px) !important;
+  opacity: .95 !important;
+  animation-duration: 20s !important;
+}
+
+/* ── بلور پایه: نوار کنار، کارت‌ها، پنل‌ها، مودال ─────────────────────── */
+.sidebar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .10), rgba(255, 255, 255, .03)) !important;
+  backdrop-filter: blur(28px) saturate(1.5);
+  border-left: 1px solid rgba(255, 255, 255, .14) !important;
+  box-shadow: 18px 0 60px -50px rgba(0, 10, 30, 1) !important;
+}
+.health-card, .stat-card, .panel, .cv-card, .modal {
+  background: linear-gradient(150deg, rgba(255, 255, 255, .115), rgba(255, 255, 255, .035)) !important;
+  border: 1px solid rgba(255, 255, 255, .17) !important;
+  backdrop-filter: blur(26px) saturate(1.5);
+  box-shadow: 0 34px 70px -46px rgba(0, 8, 30, .95), inset 0 1px 0 rgba(255, 255, 255, .30) !important;
+  border-radius: 26px;
+}
+.stat-card:hover, .stat-card:focus-visible, .cv-plan:hover {
+  box-shadow: 0 40px 80px -40px rgba(0, 12, 40, 1), inset 0 1px 0 rgba(255, 255, 255, .42), 0 0 0 1px rgba(180, 235, 255, .35) !important;
+  border-color: rgba(200, 240, 255, .34) !important;
+}
+.stat-card::after { opacity: .3 !important; filter: blur(34px) !important; }
+.stat-icon {
+  background: rgba(255, 255, 255, .13) !important;
+  border: 1px solid rgba(255, 255, 255, .24) !important;
+  color: #ecfaff !important;
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35) !important;
+}
+.stat-value { font-weight: 800; text-shadow: 0 10px 30px rgba(0, 20, 60, .55); }
+.stat-top { color: #cfe6f8 !important; }
+
+/* ── نوار بالا و لوگو ─────────────────────────────────────────────── */
+.brand-mark { background: linear-gradient(150deg, rgba(255, 255, 255, .28), rgba(120, 205, 255, .12)) !important; border-color: rgba(255, 255, 255, .3) !important; }
+.period-switch, .preview-tag, .icon-btn, .menu-toggle, .cv-refresh {
+  background: rgba(255, 255, 255, .09) !important;
+  border-color: rgba(255, 255, 255, .18) !important;
+  backdrop-filter: blur(18px);
+}
+.period-btn.active { color: #06223d !important; background: linear-gradient(120deg, #e2faff, #8fdcff) !important; box-shadow: 0 12px 24px -14px rgba(150, 230, 255, .95) !important; }
+.avatar { background: linear-gradient(145deg, #f2fdff, #9adcff) !important; color: #062a4d !important; }
+.outline-btn { background: rgba(6, 26, 52, .46) !important; border-color: rgba(255, 255, 255, .24) !important; color: #eaf7ff !important; backdrop-filter: blur(16px); }
+.outline-btn:hover { background: rgba(255, 255, 255, .14) !important; border-color: rgba(255, 255, 255, .34) !important; }
+.link-button { color: #a6e6ff !important; }
+
+/* ── قهرمان ────────────────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(140deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .04) 62%) !important;
+  border: 1px solid rgba(255, 255, 255, .22) !important;
+  border-radius: 30px;
+  backdrop-filter: blur(28px) saturate(1.5);
+  box-shadow: 0 46px 90px -60px rgba(0, 10, 40, 1), inset 0 1px 0 rgba(255, 255, 255, .38) !important;
+}
+.hero::after { border-color: rgba(255, 255, 255, .26) !important; box-shadow: 0 0 0 30px rgba(255, 255, 255, .05), 0 0 0 64px rgba(255, 255, 255, .03) !important; }
+.eyebrow { background: rgba(255, 255, 255, .13) !important; border-color: rgba(255, 255, 255, .26) !important; color: #e8fbff !important; }
+.hero h1 { color: #fff !important; text-shadow: 0 18px 46px rgba(0, 20, 60, .5); }
+.hero p { color: #d3e9fb !important; }
+.hero-pill { background: rgba(255, 255, 255, .12) !important; border-color: rgba(255, 255, 255, .24) !important; border-radius: 18px; backdrop-filter: blur(16px); }
+.hero-pill svg { stroke: #c9f4ff !important; }
+
+/* ── پنل‌ها، نمودار، نوارها ────────────────────────────────────────── */
+.panel-head h3::before, .section-title h2::before { background: linear-gradient(180deg, #ffffff, #7fd8ff) !important; box-shadow: 0 0 16px rgba(160, 235, 255, .8) !important; }
+.panel-select { background: rgba(255, 255, 255, .09) !important; border-color: rgba(255, 255, 255, .18) !important; color: #f2fbff !important; }
+.chart-line { stroke: #a8f0ff !important; filter: drop-shadow(0 6px 16px rgba(150, 235, 255, .6)) !important; }
+.chart-line-2 { stroke: #63b4ff !important; }
+.chart-point { fill: #082744 !important; stroke: #baf4ff !important; }
+.chart-legend, .chart-bottom, .legend-row { color: #cfe8fa !important; }
+.legend-dot { box-shadow: 0 0 14px rgba(180, 240, 255, .9) !important; }
+.donut { background: conic-gradient(#a8f0ff 0 52%, #4fa6ff 52% 80%, #8ef0c8 80% 100%) !important; box-shadow: 0 30px 60px -34px rgba(140, 230, 255, .95), inset 0 0 0 1px rgba(255, 255, 255, .3) !important; }
+.donut::before { background: rgba(6, 32, 62, .92) !important; }
+.bar-track { background: rgba(255, 255, 255, .12) !important; border-color: rgba(255, 255, 255, .12) !important; }
+.bar-fill { background: linear-gradient(90deg, #7fd8ff, #ffffff) !important; box-shadow: 0 0 22px rgba(180, 240, 255, .85) !important; }
+.mini-note { border-top-color: rgba(255, 255, 255, .14) !important; color: #bcd8ee !important; }
+
+/* ── دکمه‌ها ───────────────────────────────────────────────────────── */
+.btn-primary {
+  background: linear-gradient(115deg, #b7eeff, #63c6f8 52%, #2f8fe0) !important;
+  color: #04223c !important;
+  box-shadow: 0 26px 46px -26px rgba(140, 225, 255, .95), inset 0 1px 0 rgba(255, 255, 255, .8) !important;
+}
+.btn-secondary, .table-action, .order-follow {
+  background: rgba(255, 255, 255, .09) !important;
+  border-color: rgba(255, 255, 255, .2) !important;
+  color: #e6f6ff !important;
+}
+.search, .filter-control, .panel-select {
+  background-color: rgba(5, 24, 48, .62) !important;
+  border-color: rgba(255, 255, 255, .26) !important;
+  color: #f4fcff !important;
+  backdrop-filter: blur(14px);
+}
+td { color: #d8eafc !important; }
+th { color: #b9d9f2 !important; }
+.order-id { color: #a8f0ff !important; }
+.mini-avatar { background: rgba(255, 255, 255, .16) !important; border-color: rgba(255, 255, 255, .24) !important; color: #f2feff !important; }
+
+/* ── نوارهای پایین ─────────────────────────────────────────────────── */
+.mobile-nav, .customer-mode .customer-tabs {
+  background: rgba(5, 22, 44, .66) !important;
+  backdrop-filter: blur(30px) saturate(1.6);
+  border-top-color: rgba(255, 255, 255, .16) !important;
+  box-shadow: 0 -30px 60px -34px rgba(0, 6, 20, .95) !important;
+}
+.mobile-nav button { color: #bcd7ee !important; }
+.mobile-nav button.active { color: #ffffff !important; }
+.mobile-nav button.active::before { background: rgba(255, 255, 255, .16) !important; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .3), 0 12px 26px -18px rgba(160, 235, 255, .95) !important; }
+.customer-mode .customer-tabs [role="tab"] { color: #b6d3ec !important; }
+.customer-mode .customer-tabs [role="tab"][aria-selected="true"] {
+  color: #fff !important;
+  background: rgba(255, 255, 255, .16) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .3) !important;
+}
+
+/* ── نمای مشتری ────────────────────────────────────────────────────── */
+.cv-hero { background: linear-gradient(150deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .05)) !important; }
+.cv-wallet {
+  background: linear-gradient(140deg, rgba(255, 255, 255, .22), rgba(120, 205, 255, .16) 58%, rgba(24, 92, 170, .24)) !important;
+  border-color: rgba(255, 255, 255, .3) !important;
+  backdrop-filter: blur(28px) saturate(1.6);
+  box-shadow: 0 42px 84px -52px rgba(0, 20, 70, 1), inset 0 1px 0 rgba(255, 255, 255, .45) !important;
+}
+.cv-wallet::before { border-color: rgba(255, 255, 255, .3) !important; }
+.cv-quick-tile, .cv-stat, .cv-sub, .cv-spec, .cv-chip {
+  background: rgba(6, 26, 52, .48) !important;
+  border-color: rgba(255, 255, 255, .2) !important;
+  backdrop-filter: blur(14px);
+}
+.cv-quick-icon { background: rgba(255, 255, 255, .16) !important; border-color: rgba(255, 255, 255, .24) !important; color: #f0fdff !important; }
+.cv-buy, .cv-wallet-charge {
+  background: linear-gradient(115deg, #b7eeff, #63c6f8 52%, #2f8fe0) !important;
+  color: #04223c !important;
+  box-shadow: 0 22px 40px -22px rgba(140, 225, 255, .95), inset 0 1px 0 rgba(255, 255, 255, .8) !important;
+}
+.cv-wallet-history { background: rgba(255, 255, 255, .08) !important; border-color: rgba(255, 255, 255, .26) !important; }
+.cv-chip { background: rgba(255, 255, 255, .14) !important; border-color: rgba(255, 255, 255, .26) !important; }
+.cv-price { color: #ffffff !important; }
+.cv-bar { background: rgba(255, 255, 255, .16) !important; }
+.cv-bar i { background: linear-gradient(90deg, #ffffff, #7fd8ff) !important; box-shadow: 0 0 14px rgba(180, 240, 255, .9) !important; }
+
+/* ── فلش منوهای کشویی حفظ شود (تم‌های بالا background را بازنویسی می‌کنند) ── */
+select, .panel-select, .filter-control {
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%) !important;
+  background-position: calc(0% + 14px) calc(50% + 1px), calc(0% + 19px) calc(50% + 1px) !important;
+  background-size: 5px 5px, 5px 5px !important;
+  background-repeat: no-repeat, no-repeat !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}

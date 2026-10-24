@@ -93,6 +93,16 @@ if (!cellRule || !/text-overflow\s*:\s*ellipsis/.test(cellRule.decls)) problems.
 if (!/#overviewPage,\s*#overviewPage \*,\s*#storePage,\s*#storePage \*\s*\{\s*white-space\s*:\s*nowrap/.test(css)) {
   problems.push('قاعدهٔ پایهٔ تک‌خطی (#overviewPage/#storePage) پیدا نشد');
 }
+// نمونه‌های طراحی (design/variants/*.css) هم نباید قاعدهٔ تک‌خطی را بشکنند
+const variantsDir = path.join(here, '..', 'design', 'variants');
+if (fs.existsSync(variantsDir)) {
+  for (const name of fs.readdirSync(variantsDir).filter((f) => f.endsWith('.css'))) {
+    const body = fs.readFileSync(path.join(variantsDir, name), 'utf8');
+    if (/white-space\s*:\s*normal/.test(body)) problems.push(`white-space:normal در design/variants/${name}`);
+    if (/(overflow-wrap\s*:\s*(anywhere|break-word)|word-break\s*:\s*(break-all|break-word))/.test(body)) problems.push(`شکستن کلمه در design/variants/${name}`);
+  }
+}
+
 if (problems.length) {
   console.error('❌ متنِ نمای کلی/مشتری یا جداول دوباره شکسته می‌شود:');
   for (const p of problems) console.error('   • ' + p);
