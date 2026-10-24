@@ -2648,6 +2648,39 @@
     .kpi-value, .stat-value, .balance-amount, .cv-wallet-balance { color: #ffc9d1 !important; }
     .hiddify-downloads .hiddify-github { border-color: rgba(200, 16, 46, .45) !important; background: rgba(26, 14, 18, .85) !important; }
 
+    /* ── سلامت دامنه (تب «دامنه» در تنظیمات) ───────────────────────────── */
+    .domain-panel .domain-grid { display: grid; gap: 9px; margin: 14px 0 4px; }
+    .domain-row {
+      display: flex; align-items: center; gap: 10px; min-width: 0;
+      padding: 11px 13px; border: 1px solid rgba(255, 255, 255, .085); border-radius: 14px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .015));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+    }
+    .domain-row .domain-label { flex: none; color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+    .domain-row .domain-value {
+      flex: 1 1 auto; min-width: 0; color: var(--text); font-size: 12.5px;
+      direction: ltr; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .domain-row .domain-value.fa { direction: rtl; text-align: right; }
+    .domain-row .domain-badge {
+      flex: none; font-size: 11px; padding: 3px 9px; border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, .14); color: var(--muted);
+    }
+    .domain-badge.good { color: #6ee7b7; border-color: rgba(110, 231, 183, .34); background: rgba(110, 231, 183, .1); }
+    .domain-badge.bad { color: #ff9d8c; border-color: rgba(255, 157, 140, .34); background: rgba(255, 157, 140, .1); }
+    .domain-badge.warn { color: #fbbf24; border-color: rgba(251, 191, 36, .34); background: rgba(251, 191, 36, .1); }
+    .domain-panel .domain-fix { direction: ltr; text-align: left; unicode-bidi: plaintext; }
+    .web-login-card .web-login-bot {
+      display: block; margin: 4px 0 6px; padding: 11px 16px; border-radius: 13px;
+      border: 1px solid rgba(255, 255, 255, .16); background: rgba(255, 255, 255, .06);
+      color: var(--text); text-decoration: none; font-size: 13px;
+    }
+    .web-login-card .web-login-bot:hover { background: rgba(255, 255, 255, .1); }
+    @media (max-width: 560px) {
+      .domain-row { flex-wrap: wrap; }
+      .domain-row .domain-value { flex-basis: 100%; order: 3; }
+    }
+
     /* ── ورود نسخهٔ وب (خارج از تلگرام) ───────────────────────────────── */
     .web-login { position:fixed; inset:0; z-index:1200; display:grid; place-items:center; padding:22px;
       background:radial-gradient(720px 420px at 50% -10%, rgba(211, 43, 68, .26), transparent 62%), #08080a; }
@@ -2877,6 +2910,7 @@
         <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="free">اشتراک رایگان</button>
         <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="look">دکمه‌ها</button>
         <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="backup">پشتیبان</button>
+        <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="domain">دامنه</button>
       </div>
       <article class="panel settings-editor" id="settingsEditorPanel" style="margin-top:14px">
         <div class="panel-head"><div><h3>فروشگاه</h3></div><span class="status paid" id="settingsConnectionStatus">آماده</span></div>
@@ -2947,6 +2981,15 @@
         </div>
         <div class="customer-notice kv-backup-warning">این فایل <strong>بدون رمزگذاری</strong> است و همهٔ داده‌های KV، از جمله اطلاعات حساس ذخیره‌شده در KV را در بر می‌گیرد؛ Secretهای محیط Cloudflare داخل آن نیستند. ریستور، کل KV فعلی را جایگزین می‌کند. قبل از اجرا، Worker یک بکاپ از وضعیت فعلی برای مدیران می‌فرستد و تأیید نهایی می‌گیرد.</div>
         <div id="kvBackupStatus" class="form-message" role="status" aria-live="polite"></div>
+      </article>
+      <article class="panel domain-panel" id="domainPanel" data-sgroup="domain" style="margin-top:14px">
+        <div class="panel-head"><div><h3>سلامت دامنه و HTTPS</h3><p>همان دامنه‌ای که سایت، نسخهٔ وب و وبهوک تلگرام روی آن کار می‌کنند.</p></div><span class="status" id="domainVerdict">—</span></div>
+        <div class="domain-grid" id="domainGrid"><div class="empty-state">برای بررسی، دکمهٔ «بررسی دوباره» را بزنید.</div></div>
+        <div class="form-actions">
+          <button class="btn-primary" id="domainCheck" type="button"><svg class="bi bi-save" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h11L19.5 8v11.5h-15z"/><path d="M8 4.5v5h7v-5"/><path d="M8 19.5v-6h8v6"/></svg><span>بررسی دوباره</span></button>
+          <span id="domainMessage" class="form-message" role="status" aria-live="polite"></span>
+        </div>
+        <div class="mini-note">اگر دامنه بالا نیامده، روی سرور همین یک خط را اجرا کنید؛ خودش Nginx، گواهی و env را اصلاح می‌کند:<br><code class="domain-fix">sudo bash /opt/tiznetvpn/scripts/fix-domain.sh</code></div>
       </article>
     </section>
 
@@ -3150,8 +3193,11 @@
       try { const d=(typeof ms==='number'||/^\d+(?:\.\d+)?$/.test(String(ms)))?new Date(Number(ms)):new Date(String(ms)); if(Number.isNaN(d.getTime()))return '—'; return new Intl.DateTimeFormat('fa-IR',{dateStyle:'short',timeStyle:'short',timeZone:'Asia/Tehran'}).format(d); }
       catch (_) { return '—'; }
     };
-    const isTelegram = !!tg;
+    // SDK رسمی تلگرام در هر مرورگری window.Telegram.WebApp را می‌سازد؛ پس «بودن SDK» نشانهٔ
+    // باز شدن داخل تلگرام نیست و نباید نسخهٔ وب را به صفحهٔ خطا ببرد.
+    const tgPlatform = String((tg && tg.platform) || 'unknown').toLowerCase();
     const hasInitData = !!(tg && tg.initData);
+    const isTelegram = !!(hasInitData || (tgPlatform && tgPlatform !== 'unknown') || /tgWebApp/i.test(location.hash) || typeof window.TelegramWebviewProxy !== 'undefined');
     let liveMode = false;
     let adminRole = false;
     let agentRole = false;
@@ -5186,6 +5232,8 @@
     const phoneInputEl=document.getElementById('customerPhoneInput');
     if(phoneInputEl)phoneInputEl.addEventListener('keydown',(ev)=>{if(ev.key==='Enter'){ev.preventDefault();savePhoneFromCard();}});
     renderButtonLook(null);
+    const domainCheckBtn=document.getElementById('domainCheck');
+    if(domainCheckBtn)domainCheckBtn.addEventListener('click',()=>loadDomainStatus(true));
     const btnLookSaveEl=document.getElementById('btnLookSave');
     if(btnLookSaveEl)btnLookSaveEl.addEventListener('click',()=>saveButtonLook());
     // مینی‌اپ نمی‌تواند شناسهٔ ایموجی پریمیومی را بخواند؛ با یک لمس ادمین به حالت گرفتن در چت می‌رود.
@@ -5202,6 +5250,66 @@
         tab.classList.toggle('active',on);
         tab.setAttribute('aria-selected',on?'true':'false');
       });
+      if(name==='domain'&&!domainStatusLoaded){domainStatusLoaded=true;loadDomainStatus(false).catch(()=>{});}
+    }
+    let domainStatusLoaded=false;
+    function domainRow(label,value,cls,fa){
+      const badge=cls?`<span class="domain-badge ${cls}">${esc(badgeText(cls))}</span>`:'';
+      return `<div class="domain-row"><span class="domain-label">${esc(label)}</span><span class="domain-value${fa?' fa':''}" title="${esc(value)}">${esc(value)}</span>${badge}</div>`;
+    }
+    function badgeText(cls){return cls==='good'?'سالم':cls==='bad'?'خطا':'هشدار';}
+    function domainErrorText(code){
+      if(!code)return '';
+      if(code==='timeout')return 'زمان پاسخ تمام شد';
+      if(code==='connection_failed')return 'اتصال برقرار نشد (DNS/TLS/فایروال)';
+      if(code==='telegram_unreachable')return 'دسترسی سرور به api.telegram.org نیست';
+      if(code==='public_base_url_missing')return 'PUBLIC_BASE_URL تنظیم نشده';
+      if(code==='bot_token_missing')return 'BOT_TOKEN در env نیست';
+      return code;
+    }
+    function domainRows(model){
+      const rows=[];
+      const base=model.public_base_url||'';
+      rows.push(domainRow('آدرس عمومی',base||'تنظیم نشده',base?'good':'bad'));
+      rows.push(domainRow('هاست درخواست',model.request_origin||'—',model.host_match?'good':'warn'));
+      if(model.probe){
+        const p=model.probe;
+        const text=p.ok?('پاسخ '+(p.status||0)+' در '+fmt(p.ms||0)+' میلی‌ثانیه'+(p.version?' • نسخهٔ '+p.version:'')):('دسترسی ندارد'+(p.error?' • '+domainErrorText(p.error):''));
+        rows.push(domainRow('آزمون HTTPS',text,p.ok?'good':'bad'));
+      }
+      if(model.webhook){
+        const w=model.webhook;
+        if(w.ok){
+          rows.push(domainRow('وبهوک تلگرام',w.url||'تنظیم نشده',w.match?'good':'bad'));
+          if(w.pending)rows.push(domainRow('آپدیت در انتظار',fmt(w.pending)+' مورد','warn'));
+          if(w.last_error)rows.push(domainRow('آخرین خطای تلگرام',w.last_error,'bad'));
+        }else{
+          rows.push(domainRow('وبهوک تلگرام','بررسی نشد'+(w.error?' • '+domainErrorText(w.error):''),'warn'));
+        }
+      }
+      if(model.web_url)rows.push(domainRow('نسخهٔ وب',model.web_url,model.https?'good':'warn'));
+      if(model.shetab_endpoint)rows.push(domainRow('آدرس اپ شتاب',model.shetab_endpoint,''));
+      return rows.join('');
+    }
+    async function loadDomainStatus(probe){
+      const grid=document.getElementById('domainGrid');
+      const message=document.getElementById('domainMessage');
+      const verdict=document.getElementById('domainVerdict');
+      if(!grid)return;
+      grid.innerHTML='<div class="empty-state">در حال بررسی دامنه…</div>';
+      if(message)message.textContent='';
+      if(verdict){verdict.textContent='در حال بررسی';verdict.className='status pending';}
+      try{
+        const model=await api('/api/miniapp/admin/domain'+(probe?'?probe=1':''));
+        grid.innerHTML=domainRows(model);
+        const healthy=model.host_match&&(!model.probe||model.probe.ok)&&(!model.webhook||!model.webhook.ok||model.webhook.match);
+        if(verdict){verdict.textContent=healthy?'سالم':'نیاز به بررسی';verdict.className='status '+(healthy?'paid':'failed');}
+        if(message)message.textContent=healthy?'دامنه در دسترس است.':'یک یا چند مورد ✗ دارد؛ راهنمای پایین را ببینید.';
+      }catch(error){
+        grid.innerHTML='<div class="empty-state">دریافت وضعیت دامنه ناموفق بود.</div>';
+        if(verdict){verdict.textContent='ناموفق';verdict.className='status failed';}
+        if(message)message.textContent=(error&&error.message)?error.message:'خطای شبکه';
+      }
     }
     document.querySelectorAll('#settingsPage .settings-tab').forEach((tab)=>{
       tab.addEventListener('click',()=>showSettingsGroup(tab.getAttribute('data-stab')||'shop'));
@@ -5462,13 +5570,18 @@
         })
         .then((r)=>{ if(save)save.disabled=false; return r; });
     }
-    function showWebLogin(message) {
+    function showWebLogin(message, botUsername) {
       const wrap=document.createElement('div');
       wrap.className='web-login';
+      const bot=String(botUsername||'').trim().replace(/^@/,'');
+      const botLink=bot
+        ? '<a class="web-login-bot" href="https://t.me/'+esc(bot)+'?start=web_login" target="_blank" rel="noopener">دریافت کد در تلگرام</a>'
+        : '';
       wrap.innerHTML='<form class="web-login-card" id="webLoginForm">'
         +'<div class="web-login-brand">TiznetVPN</div>'
         +'<h2>ورود به نسخهٔ وب</h2>'
         +'<p>در ربات دستور <code>/login</code> را بزنید؛ کد یک‌بارمصرف برایتان می‌آید.</p>'
+        +botLink
         +'<input id="webLoginCode" dir="ltr" inputmode="text" autocomplete="one-time-code" maxlength="14" placeholder="کد ۸ رقمی" aria-label="کد ورود">'
         +'<button class="btn-primary" type="submit">ورود</button>'
         +'<small id="webLoginMsg" role="status"></small>'
@@ -5576,7 +5689,12 @@
     } else {
       // مرورگر: اگر نشست وب معتبر باشد، همان اپ کامل اجرا می‌شود؛ وگرنه صفحهٔ ورود.
       fetch('/api/web/session',{headers:{'Accept':'application/json'},cache:'no-store'})
-        .then((r)=>{ if(r.ok) startTelegramApp(); else showWebLogin(); })
+        .then(async (r)=>{
+          if(r.ok){startTelegramApp();return;}
+          let bot='';
+          try{const data=await r.json();bot=(data&&data.bot_username)||'';}catch(_){}
+          showWebLogin('',bot);
+        })
         .catch(()=>showWebLogin('ارتباط با سرور برقرار نشد.'));
     }
   })();
