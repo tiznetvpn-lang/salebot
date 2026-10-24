@@ -1182,7 +1182,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #08080a') && miniAppSource.includes('--brand-blue:#8f2234') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت یاقوتی روی مشکی متالیک در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.27-ubuntu26.29';"), 'شمارهٔ نسخهٔ سرور 1.8.27-ubuntu26.29 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.28-ubuntu26.30';"), 'شمارهٔ نسخهٔ سرور 1.8.28-ubuntu26.30 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم «آبی زنده»') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #cc5c6b, #c62840 52%, #8c0b28)'), 'تم زندهٔ یاقوتی روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ آبی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #9b3049;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها یاقوتی و متالیک‌اند');
@@ -2134,8 +2134,74 @@ assert(updateSource.includes("--domain)") && updateSource.includes('FIX_DOMAIN_S
   && updateSource.includes('scripts/fix-domain.sh'),
   'update.sh دامنه را با --domain می‌گیرد و در --dry-run فقط بررسی می‌کند');
 
+// ---------- مدیران: فقط مدیر اصلی ----------
+console.log('\n— مدیران —');
+const managersDenied = await miniApi('/api/miniapp/admin/managers', userInit);
+assert(managersDenied.status === 403, 'کاربر عادی به فهرست مدیران دسترسی ندارد');
+const managersInitial = await miniApi('/api/miniapp/admin/managers', adminInit);
+assert(managersInitial.status === 200 && managersInitial.json.ok && String(managersInitial.json.owner) === String(ADMIN)
+  && managersInitial.json.env_admins.includes(String(ADMIN)) && Array.isArray(managersInitial.json.extra_admins),
+  'مدیر اصلی فهرست مدیران دائمی و اضافه‌شده را می‌بیند');
+const addAdminId = 777001;
+const addAdminRes = await miniApi('/api/miniapp/admin/managers', adminInit, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'add', id: addAdminId })
+});
+assert(addAdminRes.status === 200 && addAdminRes.json.ok && addAdminRes.json.extra_admins.some((x) => x.id === String(addAdminId)),
+  'مدیر اصلی می‌تواند مدیر جدید اضافه کند');
+const secondAdminInit = await signedInitData(addAdminId, { first_name: 'Second', username: 'second_admin' });
+const secondAdminSummary = await miniApi('/api/miniapp/admin/summary?days=30', secondAdminInit);
+assert(secondAdminSummary.status === 200, 'مدیر تازه بلافاصله به پنل دسترسی کامل دارد');
+const secondAdminManagers = await miniApi('/api/miniapp/admin/managers', secondAdminInit);
+assert(secondAdminManagers.status === 403 && secondAdminManagers.json.error === 'owner_required', 'مدیر غیراصلی بخش «مدیران» را نمی‌بیند');
+const removeAdminRes = await miniApi('/api/miniapp/admin/managers', adminInit, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'remove', id: addAdminId })
+});
+assert(removeAdminRes.status === 200 && !removeAdminRes.json.extra_admins.some((x) => x.id === String(addAdminId)),
+  'مدیر اصلی می‌تواند مدیر اضافه‌شده را حذف کند');
+const secondAdminAfter = await miniApi('/api/miniapp/admin/summary?days=30', secondAdminInit);
+assert(secondAdminAfter.status === 403, 'بعد از حذف، دسترسی مدیر قطع می‌شود');
+const permanentRemove = await miniApi('/api/miniapp/admin/managers', adminInit, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'remove', id: ADMIN })
+});
+assert(permanentRemove.status === 409 && permanentRemove.json.error === 'permanent_admin', 'مدیر دائمی (ADMIN_IDS) از پنل حذف نمی‌شود');
+
+// همان کار از داخل چت
+await press(ADMIN, 'a_admins');
+const chatManagersMsg = lastMsgTo(ADMIN, 'editMessageText') || lastMsgTo(ADMIN);
+assert(String(chatManagersMsg.params.text || '').includes('مدیران ربات') && String(chatManagersMsg.params.text || '').includes(String(ADMIN)),
+  'پنل چت فهرست مدیران را نشان می‌دهد');
+await press(ADMIN, 'a_addm');
+await sendText(ADMIN, '777002');
+const afterChatAdd = await miniApi('/api/miniapp/admin/managers', adminInit);
+assert(afterChatAdd.json.extra_admins.some((x) => x.id === '777002'), 'افزودن مدیر از داخل چت کار می‌کند');
+await press(ADMIN, 'a_delmgo:777002');
+const afterChatRemove = await miniApi('/api/miniapp/admin/managers', adminInit);
+assert(!afterChatRemove.json.extra_admins.some((x) => x.id === '777002'), 'حذف مدیر از داخل چت کار می‌کند');
+
+// «انصراف» باید حالت انتظار شناسه را پاک کند تا پیام بعدی به‌اشتباه مدیر نسازد
+await press(ADMIN, 'a_addm');
+await press(ADMIN, 'a_admins');
+await sendText(ADMIN, '777004');
+const afterChatCancel = await miniApi('/api/miniapp/admin/managers', adminInit);
+assert(!afterChatCancel.json.extra_admins.some((x) => x.id === '777004'), 'انصراف از افزودن مدیر، حالت انتظار شناسه را پاک می‌کند');
+
+// مدیر غیراصلی دکمهٔ «مدیران» را در پنل نمی‌بیند
+const savedAdminIds = env.ADMIN_IDS;
+env.ADMIN_IDS = savedAdminIds + ',777003';
+await sendText(777003, '/start');
+await sendText(777003, '/admin');
+const secondAdminButtons = lookupButtons(lastMsgTo(777003)).map((b) => b.callback_data);
+await sendText(ADMIN, '/start');
+await sendText(ADMIN, '/admin');
+const ownerButtons = lookupButtons(lastMsgTo(ADMIN)).map((b) => b.callback_data);
+assert(!secondAdminButtons.includes('a_admins') && ownerButtons.includes('a_admins'),
+  'دکمهٔ «مدیران» فقط در پنل مدیر اصلی دیده می‌شود');
+env.ADMIN_IDS = savedAdminIds;
+assert(miniAppSource.includes('id="managersTab"') && miniAppSource.includes('data-manager-remove') && miniAppSource.includes("api('/api/miniapp/admin/managers'"),
+  'تب «مدیران» در تنظیمات مینی‌اپ با افزودن و حذف فقط برای مدیر اصلی ساخته شده است');
+
 // ---------- هیچ دکمهٔ شیشه‌ای در چت مشتری ----------
-const adminChatIds = new Set(['999']);
+const adminChatIds = new Set(['999', '777003']); // 777003 فقط در تست «مدیران» موقتاً ادمین می‌شود
 const customerInline = TG.filter((x) => ['sendMessage', 'editMessageText', 'editMessageCaption', 'sendPhoto'].includes(x.method)
   && !adminChatIds.has(String(x.params.chat_id))
   && x.params.reply_markup && Array.isArray(x.params.reply_markup.inline_keyboard) && x.params.reply_markup.inline_keyboard.length);

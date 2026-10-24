@@ -2911,6 +2911,7 @@
         <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="look">دکمه‌ها</button>
         <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="backup">پشتیبان</button>
         <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="domain">دامنه</button>
+        <button class="settings-tab hidden" id="managersTab" type="button" role="tab" aria-selected="false" data-stab="managers">مدیران</button>
       </div>
       <article class="panel settings-editor" id="settingsEditorPanel" style="margin-top:14px">
         <div class="panel-head"><div><h3>فروشگاه</h3></div><span class="status paid" id="settingsConnectionStatus">آماده</span></div>
@@ -2992,6 +2993,18 @@
           <span id="domainMessage" class="form-message" role="status" aria-live="polite"></span>
         </div>
         <div class="mini-note">اگر دامنه بالا نیامده، روی سرور همین یک خط را اجرا کنید؛ خودش Nginx، گواهی و env را اصلاح می‌کند:<br><code class="domain-fix">sudo bash /opt/tiznetvpn/scripts/fix-domain.sh</code></div>
+      </article>
+      <article class="panel hidden" id="managersPanel" data-sgroup="managers" style="margin-top:14px">
+        <div class="panel-head"><div><h3>مدیران ربات</h3><p>فقط مدیر اصلی می‌تواند مدیر اضافه یا حذف کند؛ مدیران دیگر این بخش را نمی‌بینند.</p></div></div>
+        <div class="domain-grid" id="managersList"><div class="empty-state">در حال بارگذاری…</div></div>
+        <div class="settings-grid">
+          <label>شناسهٔ عددی تلگرام مدیر جدید<input id="managerNewId" type="text" dir="ltr" inputmode="numeric" maxlength="15" placeholder="123456789" autocomplete="off"></label>
+        </div>
+        <div class="form-actions">
+          <button class="btn-primary" id="managerAdd" type="button"><span>افزودن مدیر</span></button>
+          <span id="managerMessage" class="form-message" role="status" aria-live="polite"></span>
+        </div>
+        <div class="mini-note">مدیر تازه همان دسترسی کامل پنل را دارد (سفارش‌ها، پلن‌ها، تنظیمات، پیام همگانی و بکاپ KV). مدیران دائمی از <code>ADMIN_IDS</code> می‌آیند و از اینجا حذف نمی‌شوند.</div>
       </article>
     </section>
 
@@ -5234,6 +5247,60 @@
     const phoneInputEl=document.getElementById('customerPhoneInput');
     if(phoneInputEl)phoneInputEl.addEventListener('keydown',(ev)=>{if(ev.key==='Enter'){ev.preventDefault();savePhoneFromCard();}});
     renderButtonLook(null);
+    let ownerRole=false;
+    function renderManagers(model){
+      const grid=document.getElementById('managersList');
+      if(!grid)return;
+      const rows=[];
+      (model.env_admins||[]).forEach((id,i)=>{
+        rows.push('<div class="domain-row"><span class="domain-label">'+(i===0?'👑 مدیر اصلی':'🛡 مدیر دائمی')+'</span><span class="domain-value" dir="ltr">'+esc(id)+'</span><span class="domain-badge'+(i===0?' good':'')+'">'+(i===0?'مالک':'ADMIN_IDS')+'</span></div>');
+      });
+      (model.extra_admins||[]).forEach((x)=>{
+        rows.push('<div class="domain-row"><span class="domain-label">👤 مدیر</span><span class="domain-value" dir="ltr">'+esc(x.id)+'</span><button class="table-action danger" type="button" data-manager-remove="'+esc(x.id)+'">حذف</button></div>');
+      });
+      if(!rows.length)rows.push('<div class="empty-state">هنوز مدیر اضافه‌ای ساخته نشده است.</div>');
+      grid.innerHTML=rows.join('');
+      grid.querySelectorAll('[data-manager-remove]').forEach((btn)=>btn.addEventListener('click',()=>removeManager(btn.getAttribute('data-manager-remove'),btn)));
+    }
+    async function loadManagers(){
+      if(!ownerRole)return;
+      const grid=document.getElementById('managersList');
+      if(!grid)return;
+      try{renderManagers(await api('/api/miniapp/admin/managers'));}
+      catch(error){grid.innerHTML='<div class="empty-state">دریافت فهرست مدیران ناموفق بود.</div>';}
+    }
+    async function addManager(){
+      const input=document.getElementById('managerNewId');
+      const msg=document.getElementById('managerMessage');
+      const id=String(input&&input.value||'').replace(/\D/g,'');
+      if(!/^\d{5,15}$/.test(id)){if(msg)msg.textContent='شناسهٔ عددی معتبر نیست.';return;}
+      if(msg)msg.textContent='در حال افزودن…';
+      try{
+        const data=await api('/api/miniapp/admin/managers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'add',id:id})});
+        renderManagers(data);
+        if(input)input.value='';
+        if(msg)msg.textContent=data.warning==='unverified_id'?'✅ اضافه شد، اما تلگرام این شناسه را نشان نداد؛ مطمئن شوید درست است.':'✅ مدیر '+id+' اضافه شد.';
+      }catch(error){
+        if(msg)msg.textContent=error.message==='already_admin'?'این حساب از قبل مدیر است.':error.message==='owner_required'?'فقط مدیر اصلی مجاز است.':'افزودن ناموفق بود: '+(error.message||'خطا');
+      }
+    }
+    async function removeManager(id,btn){
+      const msg=document.getElementById('managerMessage');
+      if(btn)btn.disabled=true;
+      if(msg)msg.textContent='در حال حذف '+id+'…';
+      try{
+        const data=await api('/api/miniapp/admin/managers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'remove',id:id})});
+        renderManagers(data);
+        if(msg)msg.textContent='✅ مدیر '+id+' حذف شد.';
+      }catch(error){
+        if(msg)msg.textContent=error.message==='permanent_admin'?'مدیر دائمی (ADMIN_IDS) از اینجا حذف نمی‌شود.':error.message==='not_found'?'این شناسه در فهرست مدیران نیست.':'حذف ناموفق بود: '+(error.message||'خطا');
+        if(btn)btn.disabled=false;
+      }
+    }
+    function applyOwnerUi(){
+      const tab=document.getElementById('managersTab');
+      if(tab)tab.classList.toggle('hidden',!ownerRole);
+    }
     async function loadBackupStatus(){
       const grid=document.getElementById('kvBackupMeta');
       if(!grid)return;
@@ -5266,6 +5333,8 @@
     }
     const domainCheckBtn=document.getElementById('domainCheck');
     if(domainCheckBtn)domainCheckBtn.addEventListener('click',()=>loadDomainStatus(true));
+    const managerAddBtn=document.getElementById('managerAdd');
+    if(managerAddBtn)managerAddBtn.addEventListener('click',addManager);
     const kvBackupSendBtn=document.getElementById('kvBackupSend');
     if(kvBackupSendBtn)kvBackupSendBtn.addEventListener('click',()=>sendBackupNow(kvBackupSendBtn));
     const btnLookSaveEl=document.getElementById('btnLookSave');
@@ -5286,6 +5355,7 @@
       });
       if(name==='domain'&&!domainStatusLoaded){domainStatusLoaded=true;loadDomainStatus(false).catch(()=>{});}
       if(name==='backup'){loadBackupStatus().catch(()=>{});}
+      if(name==='managers'){loadManagers().catch(()=>{});}
     }
     let domainStatusLoaded=false;
     function domainRow(label,value,cls,fa){
@@ -5670,6 +5740,7 @@
           return;
         }
         botUsername=String(boot.bot_username||'');supportUsername=String(boot.support||'').replace(/^@/,'');
+        ownerRole=boot.owner===true;applyOwnerUi();
         setNavForRole();
         const toggle=document.getElementById('roleToggle');
         if(toggle){toggle.style.display=adminRole?'':'none';toggle.textContent='نمای مشتری';}
