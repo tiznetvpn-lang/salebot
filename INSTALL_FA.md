@@ -314,6 +314,10 @@ sudo journalctl -u tiznetvpn-dbbackup.service -n 50 --no-pager
 - **Server URL**: `https://<domain>/wp-json/webdide-cv/v1/confirm`
 - **API Secret**: همان مقداری که با «📋 کپی Secret» کپی کردید (یا مقدار `SHETAB_API_SECRET` در env)
 
+> اپ پیش از قبول آدرس، ساختار REST وردپرس را می‌سنجد. از نسخهٔ **1.8.12** سرور `GET /wp-json/` را با ایندکس استاندارد وردپرس (`namespaces: ["webdide-cv/v1"]`) پاسخ می‌دهد و `GET` روی مسیر `confirm` را مثل وردپرس واقعی با `404 rest_no_route` رد می‌کند؛ همین دو رفتار است که «تست اتصال» اپ را پاس می‌کند. اگر اپ پیام «آدرس API اشتباه است. باید مسیر confirm افزونه باشد» داد، یعنی سرور نسخهٔ قدیمی دارد: `sudo bash /opt/tiznetvpn/update.sh --yes`.
+>
+> آدرس را **دستی تایپ کنید**، نه پیست از تلگرام؛ پیست گاهی فاصله یا کاراکتر نامرئی می‌آورد و اپ فوراً رد می‌کند.
+
 4. در ربات، «⚙️ تنظیمات → 💳 کارت» شمارهٔ کارت و نام صاحب کارت را ثبت کنید؛ سپس «⚡ روشن‌کردن کارت‌به‌کارت خودکار» را بزنید. تا وقتی `SHETAB_API_SECRET` و شمارهٔ کارت هر دو ثبت نشده باشند، این روش در فروشگاه نمایش داده نمی‌شود و تنظیمات دقیقاً می‌گوید کدام‌یک کم است.
 
 5. «🧪 آزمون پرداخت خودکار» را بزنید. این دکمه یک سفارش آزمایشی می‌سازد، همان مسیر HTTPS را صدا می‌زند، نتیجه را نشان می‌دهد و سفارش آزمایشی را پاک می‌کند؛ هیچ سرویس واقعی ساخته نمی‌شود.
@@ -332,6 +336,19 @@ sudo bash /opt/tiznetvpn/scripts/check-shetab.sh
 curl -s -H "Authorization: $(sudo grep -oP '(?<=^SHETAB_API_SECRET=).*' /etc/tiznetvpn/tiznetvpn.env)" \
   "https://<domain>/api/shetab-verify"
 # → {"success":true,"message":"Shetab endpoint is online", ...}
+```
+
+و دو بررسی که اپ انجام می‌دهد (از نسخهٔ 1.8.12):
+
+```bash
+curl -s "https://<domain>/wp-json/" | head -c 200
+# → {"name":"TiznetVPN", ..., "namespaces":["webdide-cv/v1"], "routes":{...}}
+
+curl -s -o /dev/null -w '%{http_code}\n' "https://<domain>/wp-json/webdide-cv/v1/confirm"
+# → 404   (وردپرس واقعی هم برای GET روی route فقط-POST همین را می‌دهد)
+
+curl -s "https://<domain>/wp-json/webdide-cv/v1/health"
+# → {"success":true,"secret_set":true,"wordpress_compat":true, ...}
 ```
 
 ### اگر پاسخ `{"success":false,…}` بود

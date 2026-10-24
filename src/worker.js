@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.11-ubuntu26.13';
+const VERSION = '1.8.12-ubuntu26.14';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -6277,6 +6277,7 @@ async function adminShetabCheck(env, chatId, messageId, origin) {
     '🔑 Secret: ' + (secret ? '<code>' + esc(secret.slice(0, 6)) + '…</code> · ' + faNum(secret.length) + ' کاراکتر ✅' : '❌ ساخته نشده') + '\n' +
     '💳 کارت: ' + (cfg.card_number ? '<code>•••• ' + esc(String(cfg.card_number).slice(-4)) + '</code> به‌نام ' + esc(cfg.card_holder || '—') : '❌ ثبت نشده') + '\n' +
     '⚡ سوییچ خودکار: ' + (cfg.card_auto_enabled === true ? 'روشن ✅' : 'خاموش ⛔') + '\n' +
+    '🧩 سازگاری با اپ (REST وردپرس): فعال ✅ — /wp-json/ ایندکس دارد\n' +
     '📱 آخرین خبر از اپ: ' + (lastEvent && lastEvent.at ? fmtDate(lastEvent.at) : 'هنوز هیچ‌وقت') + '\n' +
     '🚫 تلاش ناموفق اخیر: ' + (failed ? faNum(failed) + ' مورد (آخرین: ' + fmtDate(lastFailedAt) + ')' : 'ندارد ✅') + '\n' +
     '🛒 سفارش خودکار در انتظار: ' + faNum(waiting) + '\n\n' +
@@ -6304,7 +6305,9 @@ async function adminShetabApp(env, chatId, messageId, origin) {
   const t = '📲 <b>اتصال اپ Shetab Verification</b>\n\n' +
     (ensured.created ? '🔑 <b>Secret همین حالا ساخته شد</b> — با دکمهٔ «📋 کپی Secret» بردارید.\n\n' : '') +
     'این دو مقدار را <b>داخل خودِ اپ روی گوشی</b> وارد می‌کنید (تنظیمات اپ → Server/API):\n\n' +
-    '🌐 <b>Server URL</b>\n<code>' + esc(url || '— آدرس عمومی تنظیم نشده —') + '</code>\n\n' +
+    '🌐 <b>Server URL</b>\n<code>' + esc(url || '— آدرس عمومی تنظیم نشده —') + '</code>\n' +
+    '<i>همین آدرس را دستی در اپ تایپ کنید (پیست از تلگرام گاهی فاصلهٔ نامرئی می‌آورد).</i>\n' +
+    '🧩 سازگاری REST وردپرس: فعال ✅\n\n' +
     '🔑 <b>API Secret</b>\n' +
     (hasSecret
       ? '<code>' + esc(secret.slice(0, 6)) + '…</code> (' + faNum(secret.length) + ' کاراکتر — فقط برای تطبیق)\n' +
@@ -6500,10 +6503,183 @@ async function adminShetabEvents(env, chatId, messageId) {
 /* ====================== درگاه پیامک Shetab Verification ====================== */
 
 function shetabJson(data, status) {
-  return new Response(JSON.stringify(data), {
+  const body = Object.assign({}, data);
+  // پاسخ‌های خطا را هم‌زمان «وردپرسی» هم می‌کنیم: اپ افزونه به فیلد code و data.status
+  // نگاه می‌کند، ربات ما به reason و hint. هر دو در یک بدنه می‌آیند تا هیچ‌کدام نشکند.
+  if (Number(status) >= 400 && !body.code) {
+    body.code = body.reason || 'error';
+    if (!body.data) body.data = { status: Number(status) };
+  }
+  return new Response(JSON.stringify(body), {
     status: status,
     headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }
   });
+}
+
+/* ============ لایهٔ سازگاری REST وردپرس (افزونهٔ WebDide Shetab) ============ */
+// اپ «تأیید خودکار کارت به کارت» برای افزونهٔ وردپرس نوشته شده است. تست اتصال آن
+// فقط رشتهٔ آدرس را نمی‌سنجد؛ ساختار REST وردپرس را هم بررسی می‌کند. بدون این لایه،
+// آدرس کاملاً درست هم با پیام «آدرس API اشتباه است؛ باید مسیر confirm افزونه باشد»
+// رد می‌شود، چون /wp-json/ روی این سرور ۴۰۴ بود.
+
+const WP_REST_NAMESPACE = 'webdide-cv/v1';
+const WP_REST_CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, HEAD, OPTIONS',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Api-Key, X-WP-Nonce'
+};
+
+function wpRestJson(data, status) {
+  return new Response(JSON.stringify(data), {
+    status: status || 200,
+    headers: Object.assign({
+      'Content-Type': 'application/json; charset=UTF-8',
+      'Cache-Control': 'no-store',
+      'X-Robots-Tag': 'noindex',
+      'X-Content-Type-Options': 'nosniff'
+    }, WP_REST_CORS)
+  });
+}
+
+// شکل دقیق خطای وردپرس: {code, message, data:{status}} — عیناً همان چیزی که rest_route
+// واقعی برمی‌گرداند، تا اپ مطمئن شود به یک سایت وردپرسی وصل شده است.
+function wpRestError(code, message, status) {
+  return wpRestJson({ code: code, message: message, data: { status: Number(status) || 500 } }, status);
+}
+
+function wpRestNoRoute() {
+  return wpRestError('rest_no_route', 'No route was found matching the URL and request method.', 404);
+}
+
+function wpRestRouteDef(pathname, methods, origin) {
+  const base = String(origin || '').replace(/\/+$/, '');
+  return {
+    namespace: WP_REST_NAMESPACE,
+    methods: methods,
+    endpoints: [{ methods: methods, args: {} }],
+    _links: { self: [{ href: base + '/wp-json' + pathname }] }
+  };
+}
+
+// در ایندکس ریشهٔ وردپرس کلید مسیرها با /wp-json شروع می‌شود؛ در ایندکس namespace نه.
+function wpRestRoutes(origin, prefix) {
+  const p = prefix || '';
+  return {
+    [p + '/webdide-cv/v1/confirm']: wpRestRouteDef('/webdide-cv/v1/confirm', ['POST'], origin),
+    [p + '/webdide-cv/v1/status']: wpRestRouteDef('/webdide-cv/v1/status', ['GET'], origin),
+    [p + '/webdide-cv/v1/health']: wpRestRouteDef('/webdide-cv/v1/health', ['GET'], origin)
+  };
+}
+
+function wpRestSiteBase(env, origin) {
+  return String(shopBaseUrl(env, origin) || '').replace(/\/+$/, '');
+}
+
+function shetabRestIndexUrl(env, origin) {
+  const base = wpRestSiteBase(env, origin);
+  return base ? base + '/wp-json/' : '';
+}
+
+function wpRestIndex(env, origin) {
+  const base = wpRestSiteBase(env, origin);
+  return {
+    name: 'TiznetVPN',
+    description: 'فروشگاه اشتراک تیزنت — نقطهٔ اتصال افزونهٔ WebDide Card-to-Card',
+    url: base,
+    home: base,
+    gmt_offset: 3.5,
+    timezone_string: 'Asia/Tehran',
+    // wp/v2 هم فهرست می‌شود: اکثر اپ‌ها «وجود wp/v2» را نشانهٔ وردپرس بودن می‌دانند.
+    namespaces: ['wp/v2', WP_REST_NAMESPACE],
+    authentication: [],
+    routes: Object.assign({
+      '/wp-json/wp/v2': {
+        namespace: 'wp/v2',
+        methods: ['GET'],
+        endpoints: [{ methods: ['GET'], args: {} }],
+        _links: { self: [{ href: base + '/wp-json/wp/v2' }] }
+      },
+      '/wp-json/wp/v2/types': {
+        namespace: 'wp/v2',
+        methods: ['GET'],
+        endpoints: [{ methods: ['GET'], args: {} }],
+        _links: { self: [{ href: base + '/wp-json/wp/v2/types' }] }
+      }
+    }, wpRestRoutes(base, '/wp-json'))
+  };
+}
+
+function wpRestNamespaceIndex(env, origin) {
+  return { namespace: WP_REST_NAMESPACE, routes: wpRestRoutes(wpRestSiteBase(env, origin), '') };
+}
+
+// مسیر درخواست را به route داخلی نگاشت می‌کند: /wp-json/... و حالت ?rest_route=...
+// برای سایت‌هایی که پیوندهای ساده (Plain) دارند. برای مسیرهای غیر وردپرسی null می‌دهد.
+function resolveWpRestRoute(url) {
+  const path = String(url.pathname || '').replace(/\/+$/, '');
+  if (path === '/wp-json') return '/';
+  if (path.startsWith('/wp-json/')) return path.slice('/wp-json'.length) || '/';
+  const restRoute = url.searchParams.get('rest_route');
+  if (restRoute !== null && (path === '' || path === '/index.php')) {
+    const normalized = String(restRoute).replace(/\/+$/, '');
+    if (!normalized) return '/';
+    return normalized.startsWith('/') ? normalized : '/' + normalized;
+  }
+  return null;
+}
+
+// GET /wp-json/webdide-cv/v1/health — همان تست سلامت، ولی بیرون از مسیر confirm.
+async function shetabHealthResponse(request, env, url) {
+  const secret = await resolveShetabSecret(env);
+  const healthBase = {
+    version: VERSION,
+    endpoint: shetabEndpointUrl(env, url.origin),
+    rest_index: shetabRestIndexUrl(env, url.origin)
+  };
+  if (!secret) return shetabJson(Object.assign({
+    success: false, message: 'Endpoint is not configured', reason: 'secret_missing',
+    hint: 'در ربات: تنظیمات → 📲 اتصال اپ شتاب'
+  }, healthBase), 503);
+  const authorization = request.headers.get('authorization');
+  const apiKey = request.headers.get('x-api-key');
+  const hasCredential = authorization !== null || apiKey !== null;
+  const token = shetabToken(authorization || apiKey || '');
+  if (hasCredential && !constantTimeEqual(token, secret)) return shetabJson(Object.assign({
+    success: false, message: 'Unauthorized', reason: 'secret_mismatch',
+    hint: 'Secret اپ با سرور یکی نیست؛ مقدار را از ربات دوباره کپی کنید'
+  }, healthBase), 401);
+  return shetabJson(Object.assign({
+    success: true, message: 'Shetab endpoint is online',
+    secret_set: true, auth_required: true, wordpress_compat: true
+  }, healthBase), 200);
+}
+
+// شناسهٔ سفارش در این فروشگاه رشته‌ای است (مثل 4XYABD)؛ افزونه عدد می‌فرستد.
+// هر کدام که بود، همان را دست‌نخورده برمی‌گردانیم تا تطبیق سمت اپ نشکند.
+function shetabOrderIdValue(value) {
+  const text = String(value == null ? '' : value).trim();
+  const numeric = Number(text);
+  return text && Number.isSafeInteger(numeric) && numeric > 0 ? numeric : text;
+}
+
+// GET /wp-json/webdide-cv/v1/status?order_id= — همان قرارداد افزونه.
+// unique_amount در افزونه «پسوند یکتای مبلغ» است؛ این فروشگاه پسوند جدا ندارد و
+// مبلغ نهایی خودش یکتاست، پس صفر برمی‌گردد و مبلغ کامل در amount می‌آید.
+async function shetabStatusRoute(env, url) {
+  const orderId = String(url.searchParams.get('order_id') || '').trim();
+  if (!orderId) return wpRestError('missing_order_id', 'order_id is required', 400);
+  const order = await getOrder(env, orderId);
+  if (!order) return wpRestJson({ order_id: shetabOrderIdValue(orderId), status: 'not_found' }, 200);
+  const paid = order.payment_status === 'paid';
+  const status = paid ? 'confirmed' : (order.status === 'pending' ? 'pending' : String(order.status || 'unknown'));
+  return wpRestJson({
+    order_id: shetabOrderIdValue(order.id == null ? orderId : order.id),
+    status: status,
+    unique_amount: 0,
+    expires_at: null,
+    amount: Number(order.pay_amount == null ? order.amount : order.pay_amount) || 0,
+    payment_method: String(order.payment_method || '')
+  }, 200);
 }
 
 /* ========================== Mini App API ========================== */
@@ -9128,39 +9304,64 @@ async function fetchHandler(request, env) {
   if (url.pathname.startsWith('/api/miniapp/')) {
     return await miniAppApi(request, env, url);
   }
+  // ---- لایهٔ سازگاری وردپرس -------------------------------------------------
+  // اپ شتاب پیش از قبول آدرس، ساختار REST وردپرس را می‌سنجد؛ این بلوک همان چیزی است
+  // که /wp-json/ را از ۴۰۴ به ایندکس واقعی وردپرس تبدیل می‌کند.
+  const wpRoute = resolveWpRestRoute(url);
+  if (wpRoute !== null) {
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: Object.assign({ Allow: 'GET, POST, HEAD, OPTIONS' }, WP_REST_CORS)
+      });
+    }
+    const isRead = request.method === 'GET' || request.method === 'HEAD';
+    if (wpRoute === '/') {
+      if (!isRead) return wpRestNoRoute();
+      return wpRestJson(wpRestIndex(env, url.origin), 200);
+    }
+    if (wpRoute === '/webdide-cv/v1') {
+      if (!isRead) return wpRestNoRoute();
+      return wpRestJson(wpRestNamespaceIndex(env, url.origin), 200);
+    }
+    if (wpRoute === '/webdide-cv/v1/health') {
+      if (!isRead) return wpRestNoRoute();
+      return await shetabHealthResponse(request, env, url);
+    }
+    if (wpRoute === '/wp/v2') {
+      if (!isRead) return wpRestNoRoute();
+      return wpRestJson({ namespace: 'wp/v2', routes: { '/wp/v2/types': { namespace: 'wp/v2', methods: ['GET'], endpoints: [{ methods: ['GET'], args: {} }] } } }, 200);
+    }
+    if (wpRoute === '/wp/v2/types') {
+      // حداقلی و بی‌خطر: اپ فقط برای اطمینان از وردپرس‌بودن سایت این را می‌خواند.
+      if (!isRead) return wpRestNoRoute();
+      return wpRestJson({}, 200);
+    }
+    if (wpRoute === '/webdide-cv/v1/confirm') {
+      // در وردپرس واقعی هم GET روی یک route که فقط POST می‌پذیرد rest_no_route است؛
+      // اپ با همین تفاوت می‌فهمد به سایت وردپرسیِ دارای افزونه وصل شده است.
+      if (request.method !== 'POST') return wpRestNoRoute();
+      return await shetabConfirm(request, env, 'Payment confirmed successfully.');
+    }
+    if (wpRoute === '/webdide-cv/v1/status') {
+      if (!isRead) return wpRestNoRoute();
+      return await shetabStatusRoute(env, url);
+    }
+    return wpRestNoRoute();
+  }
+
   if (request.method === 'GET' && (url.pathname === '/' || url.pathname === '')) {
     return new Response('🤖 TiznetVPN | فروشگاه اشتراک v' + VERSION + ' — OK\n', {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' }
     });
   }
 
-  // API سازگار با Shetab Verification: مسیر قدیمی پلاگین WordPress و مسیر Laravel/PowerPs.
+  // مسیر قدیمی PowerPs/Laravel برای سازگاری با نسخه‌های قبلی (بدون پوستهٔ وردپرس).
   const shetabPath = url.pathname.replace(/\/+$/, '');
-  if (shetabPath === '/wp-json/webdide-cv/v1/confirm' || shetabPath === '/api/shetab-verify') {
-    // GET یک health-check بدون اثر مالی است؛ تأیید واقعی واریز فقط با POST انجام می‌شود.
-    if (request.method === 'GET') {
-      const secret = await resolveShetabSecret(env);
-      const healthBase = { version: VERSION, endpoint: shetabEndpointUrl(env, url.origin) };
-      if (!secret) return shetabJson(Object.assign({
-        success: false, message: 'Endpoint is not configured', reason: 'secret_missing',
-        hint: 'در ربات: تنظیمات → 📲 اتصال اپ شتاب'
-      }, healthBase), 503);
-      const authorization = request.headers.get('authorization');
-      const apiKey = request.headers.get('x-api-key');
-      const hasCredential = authorization !== null || apiKey !== null;
-      const token = shetabToken(authorization || apiKey || '');
-      if (hasCredential && !constantTimeEqual(token, secret)) return shetabJson(Object.assign({
-        success: false, message: 'Unauthorized', reason: 'secret_mismatch',
-        hint: 'Secret اپ با سرور یکی نیست؛ مقدار را از ربات دوباره کپی کنید'
-      }, healthBase), 401);
-      return shetabJson(Object.assign({
-        success: true, message: 'Shetab endpoint is online',
-        secret_set: true, auth_required: true
-      }, healthBase), 200);
-    }
+  if (shetabPath === '/api/shetab-verify') {
+    if (request.method === 'GET') return await shetabHealthResponse(request, env, url);
     if (request.method !== 'POST') return shetabJson({ success: false, message: 'POST required', reason: 'method_not_allowed' }, 405);
-    const successMessage = shetabPath === '/wp-json/webdide-cv/v1/confirm' ? 'Payment confirmed successfully.' : 'Shetab verify is verified';
-    return await shetabConfirm(request, env, successMessage);
+    return await shetabConfirm(request, env, 'Shetab verify is verified');
   }
 
   // وبهوک تلگرام
