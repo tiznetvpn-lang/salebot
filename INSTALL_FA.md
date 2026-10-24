@@ -318,12 +318,38 @@ sudo journalctl -u tiznetvpn-dbbackup.service -n 50 --no-pager
 
 5. «🧪 آزمون پرداخت خودکار» را بزنید. این دکمه یک سفارش آزمایشی می‌سازد، همان مسیر HTTPS را صدا می‌زند، نتیجه را نشان می‌دهد و سفارش آزمایشی را پاک می‌کند؛ هیچ سرویس واقعی ساخته نمی‌شود.
 
-6. بررسی سلامت مسیر از خود سرور:
+6. بررسی سلامت مسیر با یک دستور (خودش Secret و دامنه را از فایل env می‌خواند):
+
+```bash
+sudo bash /opt/tiznetvpn/scripts/check-shetab.sh
+```
+
+خروجی می‌گوید هر مرحله سالم است یا نه: وجود Secret، طول آن، وضعیت سرویس، مسیر محلی و مسیر عمومی. اگر خطا بود، همان‌جا نوشته می‌شود که Secret را از کجا بردارید.
+
+بررسی دستی همان مسیر (اگر ترجیح می‌دهید):
 
 ```bash
 curl -s -H "Authorization: $(sudo grep -oP '(?<=^SHETAB_API_SECRET=).*' /etc/tiznetvpn/tiznetvpn.env)" \
   "https://<domain>/api/shetab-verify"
 # → {"success":true,"message":"Shetab endpoint is online", ...}
+```
+
+### اگر پاسخ `{"success":false,…}` بود
+
+از نسخهٔ 1.8.11 پاسخ‌ها خودشان می‌گویند مشکل کجاست:
+
+| reason | معنی | راه‌حل |
+|---|---|---|
+| `secret_missing` (503) | روی سرور هیچ Secretی تنظیم نشده | در ربات: تنظیمات → 📲 اتصال اپ شتاب (خودش می‌سازد) |
+| `secret_mismatch` (401) | مقداری که در اپ/curl گذاشته‌اید با سرور یکی نیست | «📋 کپی Secret» را بزنید و دوباره در اپ جای‌گذاری کنید |
+| `rate_limited` (429) | ۲۵ تلاش ناموفق در ۱۵ دقیقه | Secret را درست کنید و ۱۵ دقیقه صبر کنید |
+
+> اگر پاسخ **هیچ فیلد `reason` نداشت**، یعنی نسخهٔ روی سرور قدیمی است؛ `sudo bash /opt/tiznetvpn/update.sh --yes` را اجرا کنید.
+
+نام‌های فیلدهای پاسخ:
+
+```json
+{"success":false,"message":"Unauthorized","reason":"secret_mismatch","hint":"...","version":"1.8.11-ubuntu26.13","endpoint":"https://<domain>/wp-json/webdide-cv/v1/confirm"}
 ```
 
 ### قواعدی که باید رعایت شود
