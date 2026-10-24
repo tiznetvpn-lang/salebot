@@ -757,6 +757,14 @@ assert(String(appGuide.params.text).includes('اتصال اپ Shetab Verificatio
   && appGuideButtons.some((b) => b.copy_text && b.copy_text.text === 'https://t.test/wp-json/webdide-cv/v1/confirm')
   && appGuideButtons.some((b) => b.callback_data === 'a_shtest'),
   'صفحهٔ اتصال اپ آدرس دقیق سرور و دکمهٔ کپی Secret را بدون نمایش خودِ Secret نشان می‌دهد');
+const appQrButton = appGuideButtons.find((b) => b.callback_data === 'a_shqr');
+assert(appQrButton && String(appGuide.params.text).includes('ذخیره تنظیمات'),
+  'صفحهٔ اتصال اپ دکمهٔ «QR آدرس» و یادآوری ترتیب «ذخیره تنظیمات → تست اتصال» را دارد');
+await press(ADMIN, 'a_shqr');
+const qrShot = TG.filter((x) => x.method === 'sendPhoto' && String(x.params.chat_id) === String(ADMIN) && x.params.photo_name === 'tiznetvpn-shetab-endpoint-qr.png').at(-1);
+assert(qrShot && qrShot.params.photo_type === 'image/png' && qrShot.params.photo !== '[file:0]'
+  && String(qrShot.params.caption).includes('https://t.test/wp-json/webdide-cv/v1/confirm'),
+  'دکمهٔ «QR آدرس» تصویر PNG همان آدرس confirm را برای اسکن در اپ می‌فرستد');
 
 // Secret ممکن است با فاصله/کوتیشن در env ذخیره شده باشد؛ نباید احراز هویت را بشکند.
 const quotedSecret = '"  shetab-test-secret  "';
