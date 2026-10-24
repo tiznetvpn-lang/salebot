@@ -258,7 +258,7 @@ console.log('— TiznetVPN Shop Bot integration test —');
 const miniAppSource = fs.readFileSync(path.join(here, '..', 'public', 'miniapp.html'), 'utf8');
 assert(miniAppSource.includes('const remain=s.days_remaining') && miniAppSource.includes('${esc(remain)}') && !miniAppSource.includes('${esc(rem)}'), 'قالب اشتراک مشتری متغیر روزهای باقی‌مانده را بدون ReferenceError نشان می‌دهد');
 const yekanLicense = fs.readFileSync(path.join(here, '..', 'public', 'assets', 'Yekan-OFL.txt'), 'utf8');
-assert(miniAppSource.includes('--bg: #08080a') && miniAppSource.includes('--brand-blue:#9f1239') && miniAppSource.includes("font-family:'Yekan',Vazirmatn") && miniAppSource.includes('/assets/Yekan.woff2') && fs.statSync(path.join(here, '..', 'public', 'assets', 'Yekan.woff2')).size > 10000 && yekanLicense.includes('SIL Open Font License, Version 1.1') && miniAppSource.includes('/assets/Vazirmatn-Arabic.woff2') && miniAppSource.includes('/assets/Vazirmatn-Latin.woff2'), 'فونت جایگزین Yekan با فایل و مجوز OFL 1.1 محلی جاسازی شده و Vazirmatn fallback آن است');
+assert(miniAppSource.includes('--bg: #08080a') && miniAppSource.includes('--brand-blue:#8f2234') && miniAppSource.includes("font-family:'Yekan',Vazirmatn") && miniAppSource.includes('/assets/Yekan.woff2') && fs.statSync(path.join(here, '..', 'public', 'assets', 'Yekan.woff2')).size > 10000 && yekanLicense.includes('SIL Open Font License, Version 1.1') && miniAppSource.includes('/assets/Vazirmatn-Arabic.woff2') && miniAppSource.includes('/assets/Vazirmatn-Latin.woff2'), 'فونت جایگزین Yekan با فایل و مجوز OFL 1.1 محلی جاسازی شده و Vazirmatn fallback آن است');
 assert(!miniAppSource.includes('#87182f') && !miniAppSource.includes('#ff343d') && !miniAppSource.includes('--ruby-') && miniAppSource.includes('subscription-delivery-card') && miniAppSource.includes('cv-plan-foot'), 'رنگ‌های برند قدیمی از Mini App پاک شده‌اند؛ پالت آبی و کارت فروش جدید حفظ شده است');
 assert(!miniAppSource.includes('id="menuToggle"') && !miniAppSource.includes('id="notifyBtn"') && miniAppSource.includes('id="mobileNav"') && miniAppSource.includes('id="accountTrigger"'), 'دکمهٔ همبرگری و زنگ حذف شده‌اند؛ ناوبری پایین و جزئیات حساب حفظ شده‌اند');
 assert(miniAppSource.includes('data-dashboard-drill="revenue"') && miniAppSource.includes('data-drill-method') && miniAppSource.includes('data-drill-plan') && miniAppSource.includes('clearDashboardDrill'), 'مدیر می‌تواند از KPIها، روش پرداخت و پلن‌ها به فهرست جزئیات drill-down کند');
@@ -1180,13 +1180,13 @@ assert(miniAppSource.includes('function subscriptionQrMarkup') && miniAppSource.
 assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('function hiddifyDownloadsMarkup') && ['android','ios','windows','github'].every(k => miniAppSource.includes('HIDDIFY_DOWNLOADS.'+k)) && miniAppSource.includes('play.google.com/store/apps/details?id=app.hiddify.com') && miniAppSource.includes('apps.apple.com/us/app/hiddify-proxy-vpn/id6596777532') && miniAppSource.includes('apps.microsoft.com/detail/9pdfnl3qv2s5') && miniAppSource.includes('github.com/hiddify/hiddify-app/releases') && miniAppSource.includes('همهٔ سیستم‌عامل‌ها') && miniAppSource.includes('data-open-url'), 'دکمه‌های دانلود هیدیفای برای اندروید، آیفون، ویندوز و صفحهٔ گیت‌هاب در کارت اشتراک وجود دارد');
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
-assert(miniAppSource.includes('--bg: #08080a') && miniAppSource.includes('--brand-blue:#9f1239') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت یاقوتی روی مشکی متالیک در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.24-ubuntu26.26';"), 'شمارهٔ نسخهٔ سرور 1.8.24-ubuntu26.26 است و در «بررسی اتصال» همین دیده می‌شود');
-assert(miniAppSource.includes('تم «آبی زنده»') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #ff8195, #d21c44 52%, #8c0b28)'), 'تم زندهٔ یاقوتی روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
+assert(miniAppSource.includes('--bg: #08080a') && miniAppSource.includes('--brand-blue:#8f2234') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت یاقوتی روی مشکی متالیک در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
+assert(workerSource.includes("const VERSION = '1.8.25-ubuntu26.27';"), 'شمارهٔ نسخهٔ سرور 1.8.25-ubuntu26.27 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(miniAppSource.includes('تم «آبی زنده»') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #cc5c6b, #c62840 52%, #8c0b28)'), 'تم زندهٔ یاقوتی روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ آبی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
-assert(miniAppSource.includes('--purple: #c284a2;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها یاقوتی و متالیک‌اند');
+assert(miniAppSource.includes('--purple: #9b3049;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها یاقوتی و متالیک‌اند');
 assert(miniAppSource.includes('id="settingsEditorPanel"') && miniAppSource.includes('data-stab="look"') && miniAppSource.includes('function showSettingsGroup') && !miniAppSource.includes('settingCommission') && !miniAppSource.includes('settingMinWithdraw'), 'تنظیمات مینی‌اپ در پنج سربرگ (فروشگاه، پرداخت، اشتراک رایگان، دکمه‌ها، پشتیبان) گروه‌بندی شده و کارت‌های «درصد کمیسیون» و «حداقل برداشت» حذف شده‌اند');
-assert(miniAppSource.includes('تم «یاقوتی براق + مشکی متالیک»') && !miniAppSource.includes('#3497ff') && !miniAppSource.includes('#6ee0ff') && !miniAppSource.includes('#04152e') && miniAppSource.includes('linear-gradient(180deg, #dc4460 0%, #c81c42 26%, #a8123a 68%, #7d0b26 100%)') && miniAppSource.includes('.status.paid, .status.good, .order-state.good {'), 'پالت مینی‌اپ روی چیدمان نسخهٔ A یاقوتی براق و مشکی متالیک شده، هیچ آبی از پالت قدیم نمانده و رنگ سبز «پرداخت‌شده» حفظ شده است');
+assert(miniAppSource.includes('تم «یاقوتی براق + مشکی متالیک»') && !miniAppSource.includes('#3497ff') && !miniAppSource.includes('#6ee0ff') && !miniAppSource.includes('#04152e') && miniAppSource.includes('linear-gradient(180deg, #d92a3f 0%, #c1122f 30%, #97102a 70%, #6d0b1f 100%)') && miniAppSource.includes('.status.paid, .status.good, .order-state.good {'), 'پالت مینی‌اپ روی چیدمان نسخهٔ A یاقوتی براق و مشکی متالیک شده، هیچ آبی از پالت قدیم نمانده و رنگ سبز «پرداخت‌شده» حفظ شده است');
 assert(src.includes('play.google.com/store/apps/details?id=app.hiddify.com') && src.includes('apps.apple.com/us/app/hiddify-proxy-vpn/id6596777532') && src.includes('apps.microsoft.com/detail/9pdfnl3qv2s5') && src.includes('github.com/hiddify/hiddify-app/releases'), 'فهرست دانلود اپ‌ها در چت و مینی‌اپ به‌صورت یکسان به پلی‌استور، اپ‌استور، مایکروسافت‌استور و گیت‌هاب اشاره می‌کند');
 assert(miniAppSource.includes('@media (prefers-reduced-motion: reduce)') && miniAppSource.includes('@keyframes riseIn') && miniAppSource.includes('.stat-card:hover, .stat-card:focus-visible {'), 'حرکت‌ها افزوده شده‌اند و با تنظیم «کاهش حرکت» سیستم خاموش می‌شوند');
 assert(miniAppSource.includes('@media (max-width: 900px) and (min-width: 421px) {\n      .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }'), 'کارت‌های KPI در تبلت و گوشی دو‌به‌دو می‌نشینند تا شلوغ نشوند');
@@ -2010,6 +2010,43 @@ assert(agentsApiSync.status === 200 && agentsApiSync.json.ok && agentsText.inclu
 await press(ADMIN, 'a_store');
 const storeBtns = lookupButtons(panelMsg(ADMIN));
 assert(storeBtns.some(b => b.web_app && String(b.web_app.url).includes('/miniapp')), 'پیش‌نمایش فروشگاه از چت، همان مینی‌اپ را باز می‌کند');
+
+// ================= نسخهٔ وب: ورود با کد یک‌بارمصرف =================
+console.log('\n— نسخهٔ وب —');
+await sendText(U13, '/start');
+await sendText(U13, '/login');
+const loginMsg = lastMsgTo(U13);
+const codeMatch = String(loginMsg && loginMsg.params && loginMsg.params.text || '').match(/<code>([A-Z2-9]{8})<\/code>/);
+assert(!!codeMatch, 'دستور /login یک کد یک‌بارمصرف ۸ نویسه‌ای می‌فرستد');
+const webCodeValue = codeMatch[1];
+const appPage = await APP.fetch(new Request('https://t.test/app'), env, {});
+assert(appPage.status === 200 && (await appPage.text()).includes('TiznetVPN Mini App'), 'مسیر /app همان صفحهٔ اپ را برای مرورگر سرو می‌کند');
+
+const noCookie = await APP.fetch(new Request('https://t.test/api/web/session'), env, {});
+assert(noCookie.status === 401, 'بدون نشست، /api/web/session اجازه نمی‌دهد');
+const badLogin = await APP.fetch(new Request('https://t.test/api/web/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: 'ZZZZZZZZ' }) }), env, {});
+assert(badLogin.status === 401, 'کد نامعتبر پذیرفته نمی‌شود');
+const goodLogin = await APP.fetch(new Request('https://t.test/api/web/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: webCodeValue }) }), env, {});
+const setCookie = goodLogin.headers.get('set-cookie') || '';
+const sessionValue = (setCookie.match(/tzs=([^;]+)/) || [])[1] || '';
+assert(goodLogin.status === 200 && sessionValue && /HttpOnly/.test(setCookie) && /SameSite=Lax/.test(setCookie), 'ورود موفق کوکی HttpOnly/SameSite می‌دهد');
+const reuse = await APP.fetch(new Request('https://t.test/api/web/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: webCodeValue }) }), env, {});
+assert(reuse.status === 401, 'همان کد بار دوم کار نمی‌کند (یک‌بارمصرف)');
+const webBoot = await APP.fetch(new Request('https://t.test/api/miniapp/bootstrap', { headers: { Cookie: 'tzs=' + sessionValue } }), env, {});
+const webBootJson = await webBoot.json();
+assert(webBoot.status === 200 && webBootJson.ok && String(webBootJson.profile.id) === String(U13), 'API مینی‌اپ با کوکی وب همان کاربر را می‌شناسد');
+const tampered = await APP.fetch(new Request('https://t.test/api/miniapp/bootstrap', { headers: { Cookie: 'tzs=' + sessionValue.slice(0, -2) + 'aa' } }), env, {});
+assert(tampered.status === 401, 'کوکی دست‌کاری‌شده رد می‌شود');
+const sess = await APP.fetch(new Request('https://t.test/api/web/session', { headers: { Cookie: 'tzs=' + sessionValue } }), env, {});
+assert(sess.status === 200, '/api/web/session با کوکی معتبر پاسخ می‌دهد');
+const logout = await APP.fetch(new Request('https://t.test/api/web/logout', { method: 'POST', headers: { Cookie: 'tzs=' + sessionValue } }), env, {});
+assert(logout.status === 200 && /Max-Age=0/.test(logout.headers.get('set-cookie') || ''), 'خروج، کوکی نشست را پاک می‌کند');
+let throttled = false;
+for (let i = 0; i < 10; i++) {
+  const r = await APP.fetch(new Request('https://t.test/api/web/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-forwarded-for': '203.0.113.9' }, body: JSON.stringify({ code: 'AAAA' + i }) }), env, {});
+  if (r.status === 429) { throttled = true; break; }
+}
+assert(throttled, 'تلاش‌های پیاپی ورود از یک IP محدود می‌شوند');
 
 console.log('— تمام —');
 if (process.exitCode) console.error('❌ بعضی تست‌ها شکست خوردند');

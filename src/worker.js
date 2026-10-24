@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.24-ubuntu26.26';
+const VERSION = '1.8.25-ubuntu26.27';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -7344,6 +7344,23 @@ async function onMessage(env, m, origin) {
     return;
   }
 
+  // ورود به نسخهٔ وب: کد یکبارمصرف ۱۰ دقیقه‌ای
+  if (text === '/login' || text === '/web' || text === '/app') {
+    await clearState(env, u.tg_id);
+    const code = webCode();
+    const exp = Date.now() + WEB_LOGIN_TTL * 1000;
+    await kvPut(env, 'web:code:' + code, { tg_id: u.tg_id, exp: exp, at: Date.now() }, WEB_LOGIN_TTL + 60);
+    const base = String(env.PUBLIC_BASE_URL || env.MINIAPP_URL || '').trim().replace(/\/+$/, '');
+    const link = base ? base + '/app' : '';
+    await msg(env, chatId,
+      '🌐 <b>ورود به نسخهٔ وب</b>\n\n' +
+      (link ? 'آدرس: <code>' + esc(link) + '</code>\n\n' : '') +
+      'کد یکبارمصرف: <code>' + code + '</code>\n\n' +
+      'کد را در صفحهٔ ورود وارد کنید. اعتبار: ۱۰ دقیقه و فقط یک‌بار.',
+      mainBotReplyMarkup());
+    return;
+  }
+
   if (text === '/admin') {
     if (!isAdmin(env, u.tg_id)) { await msg(env, chatId, '⛔ فقط ادمین!'); return; }
     await clearState(env, u.tg_id);
@@ -8071,16 +8088,184 @@ async function verifyMiniAppInitData(initData, botToken, nowSec) {
   };
 }
 
+/* ── نسخهٔ وب: ورود با کد یکبارمصرف ربات و نشست امضاشده ──────────────── */
+const WEB_SESSION_COOKIE = 'tzs';
+const WEB_SESSION_TTL = 30 * 86400;      // ۳۰ روز
+const WEB_LOGIN_TTL = 600;               // کد ورود ۱۰ دقیقه
+const WEB_LOGIN_MAX_TRIES = 8;           // تلاش مجاز هر IP در هر ۱۰ دقیقه
+const WEB_LOGIN_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function webCode() {
+  const buf = new Uint8Array(8);
+  crypto.getRandomValues(buf);
+  let out = '';
+  for (const b of buf) out += WEB_LOGIN_ALPHABET[b % WEB_LOGIN_ALPHABET.length];
+  return out;
+}
+
+async function webSecretKey(env) {
+  const fixed = String(env.SESSION_SECRET || '').trim();
+  if (fixed) return fixed;
+  let secret = String(await kvGet(env, 'system:web_secret', '') || '');
+  if (!secret) {
+    const buf = new Uint8Array(32);
+    crypto.getRandomValues(buf);
+    secret = bytesToHex(buf);
+    await kvPut(env, 'system:web_secret', secret);
+  }
+  return secret;
+}
+
+function webB64(text) {
+  return btoa(text).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function webUnb64(text) {
+  try { return atob(String(text).replace(/-/g, '+').replace(/_/g, '/')); } catch (e) { return ''; }
+}
+
+async function webSign(env, body) {
+  const sig = await hmacSha256(await webSecretKey(env), body);
+  return bytesToHex(sig);
+}
+
+function webReadCookie(request, name) {
+  const raw = request.headers.get('cookie') || '';
+  for (const part of raw.split(';')) {
+    const i = part.indexOf('=');
+    if (i < 0) continue;
+    if (part.slice(0, i).trim() !== name) continue;
+    try { return decodeURIComponent(part.slice(i + 1).trim()); } catch (e) { return ''; }
+  }
+  return '';
+}
+
+async function webSessionToken(env, tgId, expMs) {
+  const body = String(tgId) + '.' + String(expMs);
+  return webB64(body) + '.' + await webSign(env, body);
+}
+
+async function webSessionVerify(env, token, nowMs) {
+  const text = String(token || '');
+  if (!text || text.length > 400) return null;
+  const dot = text.lastIndexOf('.');
+  if (dot <= 0) return null;
+  const body = webUnb64(text.slice(0, dot));
+  if (!body) return null;
+  const expected = await webSign(env, body);
+  if (!constantTimeEqual(String(text.slice(dot + 1)).toLowerCase(), expected.toLowerCase())) return null;
+  const bits = body.split('.');
+  const id = Number(bits[0]);
+  const exp = Number(bits[1]);
+  if (!Number.isSafeInteger(id) || id <= 0) return null;
+  if (!Number.isFinite(exp) || exp <= Number(nowMs || Date.now())) return null;
+  return { id: id, exp: exp };
+}
+
+function webSessionCookie(token, maxAge, secure) {
+  return WEB_SESSION_COOKIE + '=' + encodeURIComponent(token) + '; Path=/; HttpOnly; SameSite=Lax; Max-Age=' + maxAge + (secure ? '; Secure' : '');
+}
+function webClearedCookie(secure) {
+  return WEB_SESSION_COOKIE + '=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0' + (secure ? '; Secure' : '');
+}
+
+function webJson(data, status, extra) {
+  return new Response(JSON.stringify(data), {
+    status: status || 200,
+    headers: Object.assign({
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store, max-age=0',
+      'X-Content-Type-Options': 'nosniff'
+    }, extra || {})
+  });
+}
+
+function webRequestSecure(request, url) {
+  return url.protocol === 'https:' || String(request.headers.get('x-forwarded-proto') || '').toLowerCase() === 'https';
+}
+function webRequestIp(request) {
+  const raw = request.headers.get('cf-connecting-ip') || String(request.headers.get('x-forwarded-for') || '').split(',')[0] || 'unknown';
+  return String(raw).trim().slice(0, 64) || 'unknown';
+}
+
+// هر IP در هر بازهٔ کد، تعداد محدودی تلاش دارد تا حدس زدن کد عملی نباشد.
+async function webLoginThrottle(env, ip) {
+  const key = 'web:rl:' + ip;
+  const used = Number(await kvGet(env, key, 0) || 0);
+  if (used >= WEB_LOGIN_MAX_TRIES) return false;
+  await kvPut(env, key, used + 1, WEB_LOGIN_TTL);
+  return true;
+}
+
+async function webLoginApi(request, env, url) {
+  if (request.method !== 'POST') return webJson({ ok: false, error: 'method_not_allowed' }, 405);
+  if (!env.DB) return webJson({ ok: false, error: 'database_not_configured' }, 503);
+  if (!(await webLoginThrottle(env, webRequestIp(request)))) return webJson({ ok: false, error: 'too_many_attempts' }, 429);
+  let body = {};
+  try { body = await request.json(); } catch (e) { return webJson({ ok: false, error: 'invalid_json' }, 400); }
+  const code = String((body && body.code) || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 14);
+  if (!code) return webJson({ ok: false, error: 'code_required' }, 400);
+  const key = 'web:code:' + code;
+  const rec = await kvGet(env, key, null);
+  if (!rec || Number(rec.exp || 0) <= Date.now() || !rec.tg_id) return webJson({ ok: false, error: 'invalid_code' }, 401);
+  await kvDel(env, key);   // یکبارمصرف
+  const user = await ensureUser(env, { id: Number(rec.tg_id), username: '', first_name: '', last_name: '' });
+  if (user.banned && !isAdmin(env, user.tg_id)) return webJson({ ok: false, error: 'account_blocked' }, 403);
+  const exp = Date.now() + WEB_SESSION_TTL * 1000;
+  const token = await webSessionToken(env, rec.tg_id, exp);
+  return webJson({
+    ok: true,
+    user: { id: String(user.tg_id), first_name: String(user.first_name || ''), username: String(user.username || '') },
+    expires_at: exp
+  }, 200, { 'Set-Cookie': webSessionCookie(token, WEB_SESSION_TTL, webRequestSecure(request, url)) });
+}
+
+async function webSessionApi(request, env, url) {
+  const session = await webSessionVerify(env, webReadCookie(request, WEB_SESSION_COOKIE), Date.now());
+  if (!session) return webJson({ ok: false, error: 'unauthorized' }, 401);
+  const user = await getUser(env, session.id);
+  if (!user) return webJson({ ok: false, error: 'user_not_found' }, 404);
+  if (user.banned && !isAdmin(env, user.tg_id)) return webJson({ ok: false, error: 'account_blocked' }, 403);
+  return webJson({
+    ok: true,
+    user: { id: String(user.tg_id), first_name: String(user.first_name || ''), username: String(user.username || '') },
+    expires_at: session.exp,
+    secure: webRequestSecure(request, url)
+  });
+}
+
+async function webLogoutApi(request, env, url) {
+  if (request.method !== 'POST') return webJson({ ok: false, error: 'method_not_allowed' }, 405);
+  return webJson({ ok: true }, 200, { 'Set-Cookie': webClearedCookie(webRequestSecure(request, url)) });
+}
+
 async function miniAppIdentity(request, env) {
-  if (!env.BOT_TOKEN) return { error: 'not_configured', status: 503 };
   let initData = request.headers.get('X-Telegram-Init-Data') || '';
   if (!initData) {
     const auth = request.headers.get('Authorization') || '';
     if (/^tma\s+/i.test(auth)) initData = auth.replace(/^tma\s+/i, '');
   }
-  const user = await verifyMiniAppInitData(initData, env.BOT_TOKEN);
-  if (!user) return { error: 'unauthorized', status: 401 };
-  return { user: user };
+  if (initData && env.BOT_TOKEN) {
+    const verified = await verifyMiniAppInitData(initData, env.BOT_TOKEN);
+    if (verified) return { user: verified, via: 'telegram' };
+  }
+  // نسخهٔ وب: هویت از کوکی امضاشدهٔ همین سرور می‌آید (بدون initData تلگرام).
+  const session = await webSessionVerify(env, webReadCookie(request, WEB_SESSION_COOKIE), Date.now());
+  if (session) {
+    const stored = await getUser(env, session.id);
+    if (stored && stored.banned && !isAdmin(env, session.id)) return { error: 'account_blocked', status: 403 };
+    return {
+      user: {
+        id: session.id,
+        username: String((stored && stored.username) || ''),
+        first_name: String((stored && stored.first_name) || ''),
+        last_name: '',
+        language_code: 'fa'
+      },
+      via: 'web'
+    };
+  }
+  if (!env.BOT_TOKEN) return { error: 'not_configured', status: 503 };
+  return { error: 'unauthorized', status: 401 };
 }
 
 function safeBotStartLink(username, payload) {
@@ -10811,9 +10996,12 @@ async function manualBackupDownloadResponse(request, env, url) {
 async function handleRequest(request, env) {
   const url = new URL(request.url);
 
-  if (request.method === 'GET' && (url.pathname === '/miniapp' || url.pathname === '/miniapp/')) {
+  if (request.method === 'GET' && (url.pathname === '/miniapp' || url.pathname === '/miniapp/' || url.pathname === '/app' || url.pathname === '/app/')) {
     return await serveMiniAppAsset(env, request, true);
   }
+  if (url.pathname === '/api/web/login') return await webLoginApi(request, env, url);
+  if (url.pathname === '/api/web/session') return await webSessionApi(request, env, url);
+  if (url.pathname === '/api/web/logout') return await webLogoutApi(request, env, url);
   if (request.method === 'GET' && url.pathname === '/miniapp.html') {
     return await serveMiniAppAsset(env, request, false);
   }
