@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.20-ubuntu26.22';
+const VERSION = '1.8.21-ubuntu26.23';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -3050,6 +3050,17 @@ async function saveBtnIcons(env, icons) {
   await kvPut(env, BTN_UI_CACHE_KEY, clean);
   BTN_UI_CACHE = { at: 0, colors: BTN_UI_CACHE.colors, icons: {} };
   return clean;
+}
+
+// نمای وضعیت برای پنل اپ: حالت رنگ + شناسهٔ هر جایگاه
+async function btnLookView(env) {
+  const ui = await btnUI(env);
+  const icons = Object.assign({}, ui.icons || {});
+  return {
+    colors: ui.colors !== false,
+    icons: icons,
+    slots: BTN_SLOT_LIST.map(([slot, label]) => ({ slot: slot, label: label, icon: icons[slot] || '' }))
+  };
 }
 
 function decorateButton(btn, ui) {
@@ -6772,7 +6783,7 @@ async function onMessage(env, m, origin) {
   const text = (m.text || '').trim();
 
   // ── ادمین: گرفتن شناسهٔ ایموجی متحرک برای دکمه‌ها ──────────────────────
-  if (isAdminUser) {
+  if (isAdminUser && text && !text.startsWith('/')) {
     const uiState = await getState(env, u.tg_id);
     if (uiState && uiState.step === 'ui_grab') {
       const ids = [];
@@ -6888,6 +6899,12 @@ async function onMessage(env, m, origin) {
         await showPlans(env, chatId, null, sub.panel_id, sub.sid);
         return;
       }
+    }
+    // پل از تنظیمات مینی‌اپ: /start ui_grab ادمین را در حالت گرفتن شناسهٔ ایموجی می‌گذارد.
+    if (payload === 'ui_grab' && isAdminUser) {
+      await setState(env, u.tg_id, 'ui_grab', {});
+      await msg(env, chatId, '📥 <b>شناسهٔ ایموجی متحرک</b>\n\nیک پیام حاوی <b>ایموجی متحرک</b> (پریمیومی) برای ربات فوروارد کنید یا همین‌جا بفرستید؛ شناسه را نشان می‌دهم.\n\nعدد نمایش‌داده‌شده را در مینی‌اپ → تنظیمات → «ظاهر دکمه‌های چت» در فیلد همان دکمه بگذارید.', KB([[BTN('❌ انصراف', 's_ui')]]));
+      return;
     }
     // لینک معرف: /start ref_CODE؛ فقط برای کاربر جدید و یک بار.
     if (payload.startsWith('ref_')) await attachNewReferral(env, u, payload.slice(4));
@@ -9838,6 +9855,7 @@ async function miniAppApi(request, env, url) {
     if (path === '/api/miniapp/admin/settings') {
       if (request.method === 'GET') {
         const view = miniAppAdminSettingsView(await getCfg(env), env, !!(await resolveShetabSecret(env)));
+        view.buttons = await btnLookView(env);
         const panels = await getPanels(env);
         view.panels = Object.entries(panels || {}).map(([id, panel]) => ({ id: String(panel.id || id), name: String(panel.name || ''), enabled: isRecordEnabled(panel) })).sort((a,b) => a.name.localeCompare(b.name, 'fa'));
         return miniAppJson(view, 200);
@@ -9847,6 +9865,31 @@ async function miniAppApi(request, env, url) {
         if (!body) return miniAppJson({ ok: false, error: 'invalid_json' }, 400);
         const result = await miniAppAdminUpdateSettings(env, body);
         return miniAppJson(result.data, result.status);
+      }
+      return miniAppJson({ ok: false, error: 'method_not_allowed' }, 405);
+    }
+    if (path === '/api/miniapp/admin/buttons') {
+      if (request.method === 'GET') return miniAppJson(await btnLookView(env), 200);
+      if (request.method === 'POST') {
+        const body = await readBody();
+        if (!body) return miniAppJson({ ok: false, error: 'invalid_json' }, 400);
+        if (body.colors !== undefined && typeof body.colors !== 'boolean') return miniAppJson({ ok: false, error: 'invalid_colors' }, 400);
+        let icons = null;
+        if (body.icons !== undefined) {
+          if (!body.icons || typeof body.icons !== 'object' || Array.isArray(body.icons)) return miniAppJson({ ok: false, error: 'invalid_icons' }, 400);
+          icons = Object.assign({}, (await btnUI(env)).icons || {});
+          for (const [slot, raw] of Object.entries(body.icons)) {
+            if (!BTN_SLOT_LIST.some((x) => x[0] === slot)) return miniAppJson({ ok: false, error: 'invalid_slot' }, 400);
+            const id = String(raw == null ? '' : raw).trim();
+            if (!id) { delete icons[slot]; continue; }
+            if (!/^\d{6,25}$/.test(id)) return miniAppJson({ ok: false, error: 'invalid_emoji_id' }, 400);
+            icons[slot] = id;
+          }
+        }
+        if (body.colors !== undefined) await kvPut(env, BTN_UI_COLORS_KEY, body.colors ? '1' : '0');
+        if (icons) await saveBtnIcons(env, icons);
+        BTN_UI_CACHE = { at: 0, colors: true, icons: {} };
+        return miniAppJson(Object.assign({ ok: true }, await btnLookView(env)), 200);
       }
       return miniAppJson({ ok: false, error: 'method_not_allowed' }, 405);
     }
