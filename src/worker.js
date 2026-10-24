@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.27-ubuntu26.29';
+const VERSION = '1.8.28-ubuntu26.30';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -2937,8 +2937,44 @@ async function clearState(env, tgid) { await kvDel(env, 'st:' + tgid); }
 function adminIds(env) {
   return String(env.ADMIN_IDS || '').split(',').map((s) => s.trim()).filter(Boolean);
 }
+// مدیران اضافه‌شده از پنل، در KV ذخیره می‌شوند و با کش کوتاه در isAdmin دیده می‌شوند.
+// مدیر «اصلی» همان اولین شناسهٔ ADMIN_IDS است؛ فقط او می‌تواند مدیر اضافه/حذف کند.
+const EXTRA_ADMINS_KEY = 'system:extra_admins';
+let EXTRA_ADMINS_CACHE = { at: 0, items: [] };
+async function refreshExtraAdmins(env, force) {
+  if (!force && Date.now() - EXTRA_ADMINS_CACHE.at < 30 * 1000) return EXTRA_ADMINS_CACHE.items;
+  let items = [];
+  try {
+    const raw = await kvGet(env, EXTRA_ADMINS_KEY, []);
+    if (Array.isArray(raw)) {
+      items = raw
+        .filter((x) => x && /^\d{5,15}$/.test(String(x.id || '')))
+        .map((x) => ({ id: String(x.id), label: String(x.label || ''), at: Number(x.at || 0), by: String(x.by || '') }));
+    }
+  } catch (e) { items = []; }
+  EXTRA_ADMINS_CACHE = { at: Date.now(), items: items };
+  return items;
+}
 function isAdmin(env, tgid) {
-  return adminIds(env).indexOf(String(tgid)) >= 0;
+  const id = String(tgid);
+  return adminIds(env).indexOf(id) >= 0 || EXTRA_ADMINS_CACHE.items.some((x) => x.id === id);
+}
+function isOwner(env, tgid) {
+  const ids = adminIds(env);
+  return ids.length > 0 && ids[0] === String(tgid);
+}
+function allAdminIds(env) {
+  const out = adminIds(env).slice();
+  for (const item of EXTRA_ADMINS_CACHE.items) if (out.indexOf(item.id) < 0) out.push(item.id);
+  return out;
+}
+// اگر تلگرام شناسه را نشناسد، فقط هشدار می‌دهیم (ممکن است کاربر هنوز ربات را استارت نکرده باشد)،
+// تا اشتباه تایپی هم بی‌صدا از دست نرود.
+async function telegramIdLooksReal(env, id) {
+  try {
+    const chatInfo = await tg(env, 'getChat', { chat_id: Number(id) });
+    return !!(chatInfo && (chatInfo.id || chatInfo.type));
+  } catch (e) { return false; }
 }
 
 // رابط تلگرام کلاسیک برای مشتری و مدیر قابل خاموش‌کردن است، بدون حذف کدهای legacy.
@@ -3688,7 +3724,7 @@ async function sendDoc(env, chat_id, filename, content, caption, contentType) {
 }
 
 async function notifyAdmins(env, text, extra) {
-  const ids = adminIds(env);
+  const ids = allAdminIds(env);
   for (const id of ids) {
     try { await msg(env, id, text, extra); } catch (e) {}
   }
@@ -5193,9 +5229,71 @@ async function adminHome(env, chatId, messageId) {
     [BTN('💸 برداشت‌ها (' + wpend.length + ')', 'a_wd'), BTN('📢 پیام همگانی', 'a_bc')],
     [BTN('⚙️ تنظیمات', 'a_set')]
   ];
+  // مدیریت مدیران فقط برای مدیر اصلی (اولین شناسهٔ ADMIN_IDS) دیده می‌شود.
+  if (isOwner(env, chatId)) rows.push([BTN('👤 مدیران', 'a_admins')]);
   const kb = KB(rows);
   if (messageId) await editMsg(env, chatId, messageId, t, kb);
   else await msg(env, chatId, t, kb);
+}
+
+async function adminManagersView(env, chatId, messageId) {
+  if (!isOwner(env, chatId)) {
+    await msg(env, chatId, '⛔ این بخش فقط برای مدیر اصلی است.', mainBotReplyMarkup());
+    return;
+  }
+  const envIds = adminIds(env);
+  const extras = await refreshExtraAdmins(env, true);
+  const lines = envIds.map((id, i) => (i === 0 ? '👑 ' : '🛡 ') + '<code>' + esc(id) + '</code>' + (i === 0 ? ' — مدیر اصلی (مالک)' : ' — مدیر دائمی (ADMIN_IDS)'));
+  extras.forEach((x) => lines.push('👤 <code>' + esc(x.id) + '</code>' + (x.label ? ' — ' + esc(x.label) : '') + (x.at ? ' · ' + fmtDate(x.at) : '')));
+  if (!envIds.length) lines.push('⚠️ ADMIN_IDS خالی است.');
+  const rows = extras.slice(0, 20).map((x) => [BTN('🗑 حذف ' + (x.label || x.id), 'a_delm:' + x.id)]);
+  rows.push([BTN('➕ افزودن مدیر', 'a_addm'), BTN('◀️ پنل مدیریت', 'admin')]);
+  const t = '👤 <b>مدیران ربات</b>\n\n' + lines.join('\n') +
+    (extras.length > 20 ? '\n\n<i>۲۰ مدیر اول نمایش داده شده‌اند؛ بقیه را از تنظیمات مینی‌اپ حذف کنید.</i>' : '') +
+    '\n\n<i>مدیر تازه همان دسترسی کامل پنل را دارد (سفارش‌ها، پلن‌ها، تنظیمات، پیام همگانی و بکاپ KV). مدیران دائمی از ADMIN_IDS می‌آیند و از اینجا حذف نمی‌شوند.</i>';
+  if (messageId) { try { await editMsg(env, chatId, messageId, t, KB(rows)); return; } catch (e) {} }
+  await msg(env, chatId, t, KB(rows));
+}
+
+async function adminManagerAddPrompt(env, chatId) {
+  if (!isOwner(env, chatId)) {
+    await msg(env, chatId, '⛔ فقط مدیر اصلی می‌تواند مدیر اضافه کند.', mainBotReplyMarkup());
+    return;
+  }
+  await setState(env, chatId, 'admin_add', {});
+  await msg(env, chatId,
+    '➕ <b>افزودن مدیر</b>\n\nشناسهٔ عددی تلگرام مدیر جدید را بفرستید.\n' +
+    '<i>شناسه را می‌توانید با ربات @userinfobot بگیرید.</i>',
+    KB([[BTN('❌ انصراف', 'a_admins')]]));
+}
+
+async function adminManagerRemove(env, chatId, messageId, id) {
+  if (!isOwner(env, chatId)) { await msg(env, chatId, '⛔ فقط مدیر اصلی.'); return; }
+  const extras = await refreshExtraAdmins(env, true);
+  const item = extras.find((x) => x.id === String(id));
+  if (!item) {
+    await msg(env, chatId, 'ℹ️ این شناسه در فهرست مدیران اضافه‌شده نیست.', mainBotReplyMarkup());
+    return;
+  }
+  const t = '🗑 <b>حذف مدیر</b>\n\n<code>' + esc(item.id) + '</code>' + (item.label ? ' — ' + esc(item.label) : '') +
+    '\n\nبا حذف، دسترسی کامل این حساب به پنل بسته می‌شود.';
+  const rows = [[BTN('✅ بله، حذف کن', 'a_delmgo:' + item.id), BTN('❌ انصراف', 'a_admins')]];
+  if (messageId) { try { await editMsg(env, chatId, messageId, t, KB(rows)); return; } catch (e) {} }
+  await msg(env, chatId, t, KB(rows));
+}
+
+async function adminManagerRemoveConfirm(env, chatId, messageId, id) {
+  if (!isOwner(env, chatId)) { await msg(env, chatId, '⛔ فقط مدیر اصلی.'); return; }
+  const extras = await refreshExtraAdmins(env, true);
+  const next = extras.filter((x) => x.id !== String(id));
+  if (next.length === extras.length) {
+    await msg(env, chatId, 'ℹ️ این شناسه از قبل در فهرست مدیران نیست.');
+    return;
+  }
+  await kvPut(env, EXTRA_ADMINS_KEY, next);
+  await refreshExtraAdmins(env, true);
+  try { await msg(env, id, '⛔ دسترسی مدیریت شما توسط مدیر اصلی برداشته شد.', mainBotReplyMarkup()); } catch (e) {}
+  await adminManagersView(env, chatId, messageId);
 }
 
 async function adminStats(env, chatId, messageId) {
@@ -6168,6 +6266,16 @@ async function onCallback(env, q, origin) {
   if (data === 'a_agents') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminAgentsView(env, chatId, messageId); return; }
   if (data === 'a_kvb') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminBackupNow(env, chatId, messageId); return; }
   if (data === 'a_store') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminStorePreview(env, chatId, origin); return; }
+  if (data === 'a_admins' || data === 'a_addm' || data.startsWith('a_delm:') || data.startsWith('a_delmgo:')) {
+    if (!await needAdmin()) return;
+    if (!isOwner(env, chatId)) { await ansCb(env, q.id, '⛔ این بخش فقط برای مدیر اصلی است.', true); return; }
+    await ansCb(env, q.id);
+    if (data === 'a_admins') { await clearState(env, chatId); await adminManagersView(env, chatId, messageId); return; }
+    if (data === 'a_addm') { await adminManagerAddPrompt(env, chatId); return; }
+    if (data.startsWith('a_delmgo:')) { await adminManagerRemoveConfirm(env, chatId, messageId, data.slice(9)); return; }
+    await adminManagerRemove(env, chatId, messageId, data.slice(7));
+    return;
+  }
   if (data === 'a_panels') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminPanels(env, chatId, messageId); return; }
   if (data.startsWith('a_p:')) { if (!await needAdmin()) return; await ansCb(env, q.id); await adminPanelDetail(env, chatId, messageId, data.slice(4)); return; }
   if (data === 'a_pa_add') {
@@ -7177,6 +7285,36 @@ async function onStateText(env, u, chatId, text) {
     await msg(env, chatId, cfg.join_lock_text ? '✅ متن پیام قفل ذخیره شد.' : '✅ به متن پیش‌فرض برگشت.', KB([[BTN('◀️ قفل کانال', 's_gate')]]));
     return true;
   }
+  if (step === 'admin_add' && adm) {
+    if (!isOwner(env, u.tg_id)) {
+      await clearState(env, u.tg_id);
+      await msg(env, chatId, '⛔ فقط مدیر اصلی می‌تواند مدیر اضافه کند.', mainBotReplyMarkup());
+      return true;
+    }
+    const newId = normDigits(text).replace(/\D/g, '');
+    if (!/^\d{5,15}$/.test(newId)) {
+      await msg(env, chatId, '❌ شناسهٔ عددی معتبر نیست؛ یک عدد ۵ تا ۱۵ رقمی (مثل <code>123456789</code>) بفرستید.', KB([[BTN('❌ انصراف', 'a_admins')]]));
+      return true;
+    }
+    if (allAdminIds(env).indexOf(newId) >= 0) {
+      await clearState(env, u.tg_id);
+      await msg(env, chatId, 'ℹ️ این حساب از قبل مدیر است.');
+      await adminManagersView(env, chatId, null);
+      return true;
+    }
+    const list = await refreshExtraAdmins(env, true);
+    list.push({ id: newId, label: '', at: Date.now(), by: String(u.tg_id) });
+    await kvPut(env, EXTRA_ADMINS_KEY, list);
+    await refreshExtraAdmins(env, true);
+    await clearState(env, u.tg_id);
+    const realUser = await telegramIdLooksReal(env, newId);
+    try { await msg(env, newId, '🎉 دسترسی مدیریت فروشگاه برای شما فعال شد. با /admin وارد پنل شوید.', mainBotReplyMarkup()); } catch (e) {}
+    await msg(env, chatId, '✅ مدیر جدید اضافه شد: <code>' + esc(newId) + '</code>' +
+      (realUser ? '' : '\n⚠️ تلگرام این شناسه را نشان نداد؛ اگر اشتباه تایپ شده، از همین بخش حذفش کنید.'));
+    await adminManagersView(env, chatId, null);
+    return true;
+  }
+
   if (step === 's_minwd_v' && adm) {
     const n = parseMoney(text);
     if (!n || n < 0) { await msg(env, chatId, '❌ مبلغ نامعتبر:'); return true; }
@@ -10379,6 +10517,7 @@ async function miniAppApi(request, env, url) {
     const cfg = gateCfg || await getCfg(env);
     return miniAppJson({
       ok: true, version: VERSION, role: admin ? 'admin' : agentRole ? 'agent' : 'customer',
+      owner: isOwner(env, user.tg_id),
       profile: { id: String(user.tg_id), first_name: String(user.first_name || ''), username: String(user.username || '') },
       bot_username: String(cfg.bot_username || ''), support: String(cfg.support || ''),
       phone: normalizePhone(user.phone) ? phonePretty(user.phone) : '',
@@ -10566,6 +10705,53 @@ async function miniAppApi(request, env, url) {
     }
     if (path === '/api/miniapp/admin/domain' && request.method === 'GET') {
       return miniAppJson(await miniAppAdminDomainReport(env, url, request), 200);
+    }
+    if (path === '/api/miniapp/admin/managers') {
+      if (!isOwner(env, identity.user.id)) return miniAppJson({ ok: false, error: 'owner_required' }, 403);
+      if (request.method === 'GET') {
+        const extras = await refreshExtraAdmins(env, true);
+        return miniAppJson({
+          ok: true,
+          owner: adminIds(env)[0] || '',
+          env_admins: adminIds(env),
+          extra_admins: extras
+        }, 200);
+      }
+      if (request.method === 'POST') {
+        const body = await readBody();
+        if (!body) return miniAppJson({ ok: false, error: 'invalid_json' }, 400);
+        const action = String(body.action || '').trim();
+        const targetId = String(body.id == null ? '' : body.id).replace(/\D/g, '');
+        // مدیر دائمی (از ADMIN_IDS) حتی با شناسهٔ کوتاه هم قابل حذف نیست.
+        if (action === 'remove' && adminIds(env).indexOf(targetId) >= 0) return miniAppJson({ ok: false, error: 'permanent_admin' }, 409);
+        if (!/^\d{5,15}$/.test(targetId)) return miniAppJson({ ok: false, error: 'invalid_admin_id' }, 400);
+        const extras = await refreshExtraAdmins(env, true);
+        const managersPayload = (list, extra) => Object.assign({
+          ok: true,
+          owner: adminIds(env)[0] || '',
+          env_admins: adminIds(env),
+          extra_admins: list
+        }, extra || {});
+        if (action === 'add') {
+          if (allAdminIds(env).indexOf(targetId) >= 0) return miniAppJson({ ok: false, error: 'already_admin' }, 409);
+          const realUser = await telegramIdLooksReal(env, targetId);
+          extras.push({ id: targetId, label: '', at: Date.now(), by: String(identity.user.id) });
+          await kvPut(env, EXTRA_ADMINS_KEY, extras);
+          await refreshExtraAdmins(env, true);
+          try { await msg(env, targetId, '🎉 دسترسی مدیریت فروشگاه برای شما فعال شد. با /admin وارد پنل شوید.', mainBotReplyMarkup()); } catch (e) {}
+          return miniAppJson(managersPayload(extras, realUser ? null : { warning: 'unverified_id' }), 200);
+        }
+        if (action === 'remove') {
+          const next = extras.filter((x) => x.id !== targetId);
+          if (next.length === extras.length) return miniAppJson({ ok: false, error: 'not_found' }, 404);
+          await kvPut(env, EXTRA_ADMINS_KEY, next);
+          await refreshExtraAdmins(env, true);
+          try { await msg(env, targetId, '⛔ دسترسی مدیریت شما توسط مدیر اصلی برداشته شد.', mainBotReplyMarkup()); } catch (e) {}
+          return miniAppJson(managersPayload(next), 200);
+        }
+        return miniAppJson({ ok: false, error: 'invalid_action' }, 400);
+      }
+      return miniAppJson({ ok: false, error: 'method_not_allowed' }, 405);
     }
     if (path === '/api/miniapp/admin/backup-status' && request.method === 'GET') {
       const lastAt = Number(await kvGet(env, KV_BACKUP_LAST_KEY, 0) || 0);
@@ -11323,6 +11509,8 @@ async function shetabLogRequest(env, request, url, status) {
 async function fetchHandler(request, env) {
   const url = new URL(request.url);
   const shouldLog = shouldLogRequest(url.pathname);
+  // کش مدیران اضافه‌شده پیش از هر بررسی دسترسی تازه می‌شود.
+  try { await refreshExtraAdmins(env); } catch (e) {}
   let response;
   try {
     response = await handleRequest(request, env);
@@ -11561,7 +11749,7 @@ async function sendKvBackup(env, scheduledTime, options) {
   const now = Number.isFinite(nowValue) && nowValue > 0 ? nowValue : Date.now();
   const restoreLock = await kvGet(env, KV_RESTORE_LOCK_KEY, null);
   if (restoreLock && now - Number(restoreLock.started_at || 0) < 30 * 60 * 1000) return { skipped: 'restore_in_progress' };
-  const recipients = adminIds(env);
+  const recipients = allAdminIds(env);
   if (!recipients.length) throw new Error('kv_backup_admins_unconfigured');
   const lastSent = Number(await kvGet(env, KV_BACKUP_LAST_KEY, 0) || 0);
   // ارسال دستی فقط ۶۰ ثانیه فاصله می‌خواهد؛ ارسال زمان‌بندی‌شده همان بازهٔ ایمنی ۲.۵ ساعته را دارد.
@@ -11590,6 +11778,7 @@ async function sendKvBackup(env, scheduledTime, options) {
 }
 
 async function scheduledHandler(event, env) {
+  try { await refreshExtraAdmins(env); } catch (e) {}
   const cron = String(event && event.cron || '');
   if (cron === KV_BACKUP_CRON) {
     try { await sendKvBackup(env, event && event.scheduledTime); }
