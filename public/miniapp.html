@@ -1042,8 +1042,8 @@
     .delivery-card-heading strong,.delivery-card-heading small { display:block; }
     .delivery-card-heading strong { color:#f4f9ff; font-size:15px; }
     .delivery-card-heading small { margin-top:2px; color:#a9c4e3; font-size:10px; }
-    .subscription-qr-frame { display:grid; place-items:center; width:min(100%,284px); aspect-ratio:1; padding:12px; border:1px solid rgba(117,179,241,.28); border-radius:20px; background:#f8fbff; box-shadow:0 12px 28px rgba(0,0,0,.24); }
-    .subscription-qr-image { display:block; width:100%; height:100%; max-width:260px; object-fit:contain; image-rendering:pixelated; border-radius:8px; }
+    .subscription-qr-frame { display:flex; align-items:center; justify-content:center; width:min(100%,284px); min-height:160px; padding:12px; border:1px solid rgba(117,179,241,.28); border-radius:20px; background:#ffffff; box-shadow:0 12px 28px rgba(0,0,0,.24); }
+    .subscription-qr-image { display:block; width:100%; max-width:260px; height:auto; margin:0 auto; object-fit:contain; image-rendering:pixelated; border-radius:8px; background:#fff; }
     .qr-unavailable { display:grid; gap:8px; color:#1c497a; font-size:13px; }
     .qr-unavailable small { color:#5e7692; font-size:11px; }
     .subscription-link-heading { width:100%; color:#d9eafa; font-size:11px; font-weight:800; text-align:right; }
@@ -1179,117 +1179,101 @@
     @media(max-width:900px){.agent-admin-grid{grid-template-columns:minmax(0,1fr)}.agent-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:520px){.agent-stat-grid,.agent-price-grid{grid-template-columns:minmax(0,1fr)}.agent-wallet-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.agent-wallet-controls .admin-field{grid-column:1/-1}.agent-wallet-controls button{width:100%}}
 
-    /* ── نمای مشتری: چیدمان اپ‌مانند با حفظ پالت آبی تیزنت ───────────── */
+    /* ── نمای مشتری: کارت‌های خلاصه، میان‌برها و نوار تب (پالت آبی حفظ می‌شود) ── */
     .customer-top { display:none; }
     .customer-mode .customer-top { display:block; }
-    .customer-mode .main { max-width:600px !important; margin:0 auto; padding-bottom:calc(122px + var(--safe-bottom)) !important; }
-    .customer-mode .topbar { min-height:56px; margin-bottom:12px; border-bottom-color:rgba(127,183,244,.12); }
-    .customer-mode .customer-brand img { height:29px; }
-    .customer-mode .customer-notice { margin-top:12px; }
+    /* خلاصهٔ حساب فقط در تب خانه (خرید) نمایش داده می‌شود تا بقیهٔ تب‌ها شلوغ نشوند. */
+    .customer-mode[data-customer-tab]:not([data-customer-tab="buy"]) .customer-top { display:none; }
 
-    .customer-hero { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:17px 18px; border-radius:24px; border:1px solid rgba(127,183,244,.22);
-      background:radial-gradient(240px 150px at 88% -20%, rgba(101,208,247,.24), transparent 72%), linear-gradient(140deg,#0e3a6d,#0a2346 78%);
-      box-shadow:0 18px 44px rgba(0,8,24,.36); }
-    .customer-hero-main { display:flex; align-items:center; gap:12px; min-width:0; }
-    .customer-avatar { width:48px; height:48px; flex:0 0 48px; border-radius:16px; display:grid; place-items:center; font-size:18px; font-weight:850; color:#04152e;
-      background:linear-gradient(140deg,#a6e8ff,#3ea9ea); box-shadow:0 10px 24px rgba(23,120,200,.38); }
-    .customer-hero-copy { min-width:0; }
-    .customer-hero-copy small { display:block; color:#9dc3e8; font-size:11px; }
-    .customer-hero-copy h2 { margin:3px 0 0; font-size:19px; font-weight:850; line-height:1.5; overflow-wrap:anywhere; }
-    .customer-hero-copy p { margin:5px 0 0; color:#a8c3e2; font-size:11px; line-height:1.7; }
-    .customer-refresh { width:40px; height:40px; flex:0 0 40px; border-radius:14px; display:grid; place-items:center; border:1px solid rgba(127,183,244,.3);
-      background:rgba(9,44,82,.72); color:#c3e6ff; cursor:pointer; transition:transform .18s, background .18s; }
-    .customer-refresh svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
-    .customer-refresh:active { transform:scale(.94); }
+    .customer-hero { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:15px 16px; border-radius:20px; border:1px solid rgba(127,183,244,.22);
+      background:radial-gradient(220px 140px at 90% -30%, rgba(101,208,247,.22), transparent 72%), linear-gradient(140deg,#0e3a6d,#0a2346 78%);
+      box-shadow:0 14px 34px rgba(0,8,24,.32); }
+    .customer-hero-main { display:flex; align-items:center; gap:11px; min-width:0; flex:1 1 170px; }
+    .customer-avatar { width:44px; height:44px; flex:0 0 44px; border-radius:15px; display:grid; place-items:center; font-size:17px; font-weight:850; color:#04152e;
+      background:linear-gradient(140deg,#a6e8ff,#3ea9ea); box-shadow:0 8px 20px rgba(23,120,200,.34); }
+    .customer-hero-copy { min-width:0; flex:1 1 auto; }
+    .customer-hero-copy small { display:block; color:#9dc3e8; font-size:10px; }
+    .customer-hero-copy h2 { margin:2px 0 0; font-size:17px; font-weight:850; line-height:1.5; overflow-wrap:anywhere; }
+    .customer-hero-copy p { margin:4px 0 0; color:#a8c3e2; font-size:10px; line-height:1.7; }
+    .customer-refresh { width:38px; height:38px; flex:0 0 38px; border-radius:13px; display:grid; place-items:center; border:1px solid rgba(127,183,244,.3);
+      background:rgba(9,44,82,.72); color:#c3e6ff; cursor:pointer; }
+    .customer-refresh svg { width:17px; height:17px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
     .customer-refresh.busy svg { animation:customer-spin .8s linear infinite; }
     @keyframes customer-spin { to { transform:rotate(360deg); } }
 
-    .customer-kpis { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:12px; }
-    .customer-kpi { padding:13px 14px; border-radius:18px; border:1px solid rgba(127,183,244,.18);
-      background:linear-gradient(150deg,rgba(14,60,113,.86),rgba(7,32,64,.92)); box-shadow:0 10px 26px rgba(0,10,30,.26); }
-    .customer-kpi span { display:block; color:#a4bfe0; font-size:11px; }
-    .customer-kpi strong { display:block; margin-top:6px; font-size:20px; font-weight:850; color:#f2f8ff; overflow-wrap:anywhere; }
-    .customer-kpi strong small { margin-right:4px; color:#9db6d4; font-size:10px; font-weight:650; }
+    .customer-kpis { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin-top:11px; }
+    .customer-kpi { min-width:0; padding:12px 13px; border-radius:16px; border:1px solid rgba(127,183,244,.18);
+      background:linear-gradient(150deg,rgba(14,60,113,.86),rgba(7,32,64,.92)); box-shadow:0 8px 22px rgba(0,10,30,.24); }
+    .customer-kpi span { display:block; color:#a4bfe0; font-size:10px; }
+    .customer-kpi strong { display:block; margin-top:5px; font-size:18px; font-weight:850; color:#f2f8ff; overflow-wrap:anywhere; }
+    .customer-kpi strong small { margin-right:4px; color:#9db6d4; font-size:9px; font-weight:650; }
 
-    .customer-quick { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:12px; }
-    .customer-quick-tile { display:flex; align-items:center; gap:11px; min-width:0; padding:13px; border-radius:18px; text-align:right; font:inherit; color:#eaf5ff;
-      border:1px solid rgba(127,183,244,.2); background:linear-gradient(150deg,rgba(15,62,116,.9),rgba(8,36,70,.92)); cursor:pointer;
-      transition:transform .16s, border-color .16s; }
+    .customer-quick { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin-top:11px; }
+    .customer-quick-tile { display:flex; align-items:center; gap:10px; min-width:0; padding:12px; border-radius:16px; text-align:right; font:inherit; color:#eaf5ff;
+      border:1px solid rgba(127,183,244,.2); background:linear-gradient(150deg,rgba(15,62,116,.9),rgba(8,36,70,.92)); cursor:pointer; }
     .customer-quick-tile:hover { border-color:rgba(136,205,255,.5); }
-    .customer-quick-tile:active { transform:scale(.97); }
-    .customer-quick-icon { width:38px; height:38px; flex:0 0 38px; border-radius:13px; display:grid; place-items:center; color:#9fd8ff;
+    .customer-quick-icon { width:36px; height:36px; flex:0 0 36px; border-radius:12px; display:grid; place-items:center; color:#9fd8ff;
       background:rgba(63,160,235,.16); border:1px solid rgba(127,196,255,.24); }
-    .customer-quick-icon svg { width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-    .customer-quick-tile strong { display:block; font-size:12px; font-weight:800; }
-    .customer-quick-tile small { display:block; margin-top:3px; color:#9cb6d6; font-size:10px; }
+    .customer-quick-icon svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+    .customer-quick-tile > span:last-child { min-width:0; flex:1 1 auto; }
+    .customer-quick-tile strong { display:block; font-size:11px; font-weight:800; }
+    .customer-quick-tile small { display:block; margin-top:3px; color:#9cb6d6; font-size:9px; line-height:1.6; }
 
-    .customer-mode .pending-orders { margin:12px 0 0; }
-    .customer-mode .pending-order { align-items:center; gap:12px; padding:13px 14px; border-radius:18px; border:1px solid rgba(246,200,107,.42);
-      background:linear-gradient(120deg,rgba(246,200,107,.15),rgba(8,30,58,.93) 64%); }
-    .pending-order-head { display:flex; align-items:center; gap:10px; min-width:0; }
-    .pending-order-icon { width:36px; height:36px; flex:0 0 36px; border-radius:13px; display:grid; place-items:center; color:#ffd278;
-      background:rgba(246,200,107,.16); border:1px solid rgba(246,200,107,.3); }
-    .pending-order-icon svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
-    .customer-mode .pending-order strong { font-size:12px; color:#ffe6b0; }
-    .customer-mode .pending-order small { color:#d9c59b; font-size:10px; }
-    .customer-mode .pending-order .outline-btn { border-color:rgba(246,200,107,.5); background:rgba(246,200,107,.14); color:#ffe1a6; }
-
-    .customer-mode .wallet-card { margin-top:14px; padding:18px; border-radius:22px; border:1px solid rgba(136,205,255,.34);
-      background:radial-gradient(280px 170px at 12% -10%, rgba(120,215,255,.3), transparent 72%), linear-gradient(140deg,#104f92,#0a2a55 82%);
-      box-shadow:0 18px 44px rgba(0,10,32,.44); }
+    .customer-mode .wallet-card { margin:11px 0 0; padding:16px; border-radius:20px; border:1px solid rgba(136,205,255,.32);
+      background:radial-gradient(260px 160px at 12% -10%, rgba(120,215,255,.26), transparent 72%), linear-gradient(140deg,#104f92,#0a2a55 82%);
+      box-shadow:0 14px 34px rgba(0,10,32,.4); }
     .customer-mode .wallet-card .panel-head h3 { font-size:12px; color:#d9edff; }
     .customer-mode .wallet-card .panel-head p { color:#b9d5f0; }
     .customer-mode .wallet-card .stat-icon { color:#cdeaff; background:rgba(6,32,64,.35); border-color:rgba(197,227,255,.35); }
-    .customer-mode .wallet-card .stat-value { margin-top:10px; font-size:27px; color:#fff; }
-    .customer-mode .wallet-card .stat-unit { font-size:11px; color:#bcd9f5; }
+    .customer-mode .wallet-card .stat-value { margin-top:8px; font-size:24px; color:#fff; }
+    .customer-mode .wallet-card .stat-unit { font-size:10px; color:#bcd9f5; }
     .customer-mode .wallet-card .stat-foot { color:#c3dcf5; font-size:10px; }
     .customer-mode .wallet-card .mini-note { display:none; }
-    .customer-wallet-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin-top:15px; }
-    .customer-wallet-actions button { min-height:43px; border-radius:13px; font-size:11px; font-weight:800; cursor:pointer; transition:transform .16s, filter .16s; }
-    .customer-wallet-actions button:active { transform:scale(.97); }
-    .customer-wallet-charge { border:0; color:#04152e; background:linear-gradient(110deg,#a6e8ff,#4fb6f0); box-shadow:0 10px 24px rgba(10,90,150,.35); }
+    .customer-wallet-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:13px; }
+    .customer-wallet-actions button { min-height:42px; border-radius:12px; font-size:11px; font-weight:800; cursor:pointer; }
+    .customer-wallet-charge { border:0; color:#04152e; background:linear-gradient(110deg,#a6e8ff,#4fb6f0); }
     .customer-wallet-history { border:1px solid rgba(197,227,255,.45); color:#eaf5ff; background:rgba(6,32,64,.4); }
 
-    .customer-mode .plans-grid { grid-template-columns:minmax(0,1fr) !important; gap:10px; }
-    .customer-mode .store-plan { min-height:0; padding:16px; border-radius:20px; border-color:rgba(127,183,244,.24);
-      background:linear-gradient(150deg,rgba(17,66,122,.94),rgba(8,36,70,.95)); box-shadow:0 14px 34px rgba(0,10,30,.3); }
-    .customer-mode .store-plan:hover { transform:none; border-color:rgba(136,205,255,.42); box-shadow:0 14px 34px rgba(0,10,30,.3); }
-    .customer-mode .plan-card-orbit,
-    .customer-mode .plan-summary,
-    .customer-mode .plan-card-foot,
-    .customer-mode .plan-card-emblem { display:none; }
-    .customer-mode .store-plan h3 { margin:7px 0 2px; font-size:17px; }
-    .customer-mode .plan-specs { margin-top:10px; }
-    .customer-mode .store-plan-price-row { margin-top:12px; align-items:center; }
-    .customer-mode .store-plan .btn-primary { margin-top:12px; }
-    .customer-mode .customer-summary { grid-template-columns:minmax(0,1fr) !important; gap:10px; }
+    .pending-order-head { display:flex; align-items:center; gap:10px; min-width:0; }
+    .pending-order-icon { width:34px; height:34px; flex:0 0 34px; border-radius:12px; display:grid; place-items:center; color:#ffd278;
+      background:rgba(246,200,107,.16); border:1px solid rgba(246,200,107,.3); }
+    .pending-order-icon svg { width:17px; height:17px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
 
-    /* تب‌ها به نوار پایین شناور تبدیل می‌شوند (متن و شناسه‌ها بدون تغییر) */
-    .customer-mode .customer-tabs { position:fixed; z-index:40; left:50%; bottom:calc(12px + var(--safe-bottom)); transform:translateX(-50%);
-      width:min(560px,calc(100% - 22px)); margin:0; padding:7px; gap:4px; border-radius:24px; border:1px solid rgba(136,197,255,.26);
-      background:rgba(6,26,52,.94); backdrop-filter:blur(20px); box-shadow:0 18px 45px rgba(0,8,24,.55); }
-    .customer-mode .customer-tabs [role="tab"] { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-      min-height:54px; padding:6px 4px; border:1px solid transparent; border-radius:18px; color:#9fbcdd; font-size:11px; font-weight:750;
-      background:transparent; }
-    .customer-mode .customer-tabs [role="tab"]::before { content:""; width:20px; height:20px; background-color:currentColor;
+    /* آیکن تب‌های مشتری؛ چیدمان گرید و جریان صفحه بدون تغییر می‌ماند */
+    .customer-mode .customer-tabs [role="tab"] { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; }
+    .customer-mode .customer-tabs [role="tab"]::before { content:""; width:19px; height:19px; background-color:currentColor;
       -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-position:center; mask-position:center;
-      -webkit-mask-size:20px 20px; mask-size:20px 20px; }
+      -webkit-mask-size:19px 19px; mask-size:19px 19px; }
     .customer-mode .customer-tabs [data-customer-tab="buy"]::before { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 9.5h16l-1.3-5H5.3L4 9.5ZM5 9.5v9A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5v-9'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 9.5h16l-1.3-5H5.3L4 9.5ZM5 9.5v9A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5v-9'/></svg>"); }
     .customer-mode .customer-tabs [data-customer-tab="orders"]::before { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M7 3.5h8l4 4V20H5V5a1.5 1.5 0 0 1 2-1.5ZM14 4v4h4M8 12h8M8 16h8'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M7 3.5h8l4 4V20H5V5a1.5 1.5 0 0 1 2-1.5ZM14 4v4h4M8 12h8M8 16h8'/></svg>"); }
     .customer-mode .customer-tabs [data-customer-tab="history"]::before { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='8'/><path d='M12 8v4l3 2'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='8'/><path d='M12 8v4l3 2'/></svg>"); }
     .customer-mode .customer-tabs [data-customer-tab="referrals"]::before { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='9' cy='8' r='3.5'/><path d='M2.5 20v-1a6.5 6.5 0 0 1 13 0v1M17 7h4M19 5v4'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='9' cy='8' r='3.5'/><path d='M2.5 20v-1a6.5 6.5 0 0 1 13 0v1M17 7h4M19 5v4'/></svg>"); }
-    .customer-mode .customer-tabs [role="tab"][aria-selected="true"] { color:#04152e; border-color:transparent;
-      background:linear-gradient(135deg,#a9e7ff,#4fb6f0); box-shadow:0 10px 24px rgba(24,126,200,.4); }
-    .customer-mode .customer-tabs [role="tab"]:focus-visible { outline:2px solid #91caff; outline-offset:2px; }
-    .customer-mode .toast { bottom:calc(96px + var(--safe-bottom)); }
 
+    /* کارت QR و لینک اشتراک + دکمه‌های نصب هیدیفای */
+    .subscription-qr-slot { display:block; margin-bottom:10px; }
+    .subscription-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .subscription-actions button { flex:1 1 132px; min-height:40px; border-radius:12px; font-size:11px; font-weight:750; cursor:pointer; }
+    .hiddify-downloads { width:100%; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:6px; }
+    .hiddify-downloads button { display:flex; align-items:center; justify-content:center; gap:7px; min-width:0; min-height:44px; padding:8px 10px;
+      border-radius:13px; font:inherit; font-size:11px; font-weight:750; color:#eaf5ff; border:1px solid rgba(127,183,244,.28);
+      background:linear-gradient(150deg,rgba(15,62,116,.92),rgba(8,36,70,.94)); cursor:pointer; }
+    .hiddify-downloads button:hover { border-color:rgba(136,205,255,.55); }
+    .hiddify-downloads button svg { width:17px; height:17px; flex:0 0 17px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+    .hiddify-downloads button span { min-width:0; overflow-wrap:anywhere; text-align:right; }
+    .hiddify-downloads .hiddify-github { grid-column:1/-1; border-color:rgba(136,205,255,.45); background:rgba(9,44,82,.72); }
+    .subscription-install-title { width:100%; margin-top:4px; color:#d9eafa; font-size:11px; font-weight:800; text-align:right; }
+
+    @media (min-width:720px) {
+      .customer-kpis { grid-template-columns:repeat(4,minmax(0,1fr)); }
+      .customer-quick { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    }
     @media (max-width:420px) {
-      .customer-hero { padding:15px; border-radius:22px; }
-      .customer-hero-copy h2 { font-size:17px; }
-      .customer-kpi strong { font-size:18px; }
-      .customer-quick-tile { padding:11px; gap:9px; border-radius:16px; }
-      .customer-quick-icon { width:34px; height:34px; flex-basis:34px; border-radius:12px; }
-      .customer-mode .customer-tabs [role="tab"] { font-size:10px; min-height:50px; }
+      .customer-hero { padding:13px 14px; }
+      .customer-hero-copy h2 { font-size:16px; }
+      .customer-kpi strong { font-size:17px; }
+      .customer-quick-tile { padding:10px; gap:8px; }
+      .customer-quick-icon { width:32px; height:32px; flex-basis:32px; border-radius:11px; }
+      .customer-mode .customer-tabs [role="tab"] { font-size:11px; }
     }
   </style>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -1867,6 +1851,7 @@
         button.tabIndex=active?0:-1;
       });
       document.querySelectorAll('.customer-tab-panel').forEach(panel=>{panel.hidden=panel.id!=='customerTab'+tab.charAt(0).toUpperCase()+tab.slice(1);});
+      document.body.setAttribute('data-customer-tab',tab);
       if(changed&&isCustomer&&document.body.classList.contains('customer-mode'))window.scrollTo({top:0,behavior:'smooth'});
     }
     function setRole(customer) {
@@ -2510,9 +2495,11 @@
       if(!button||button.disabled||!liveMode)return;
       button.disabled=true;button.textContent='در حال صدور…';if(status)status.textContent='درخواست به Worker ارسال شد؛ تا دریافت نتیجه دوباره کلیک نکنید.';
       try {
-        await api('/api/miniapp/free-subscription',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
-        if(status)status.textContent='اشتراک رایگان صادر شد؛ وضعیت و لینک در فهرست اشتراک‌ها نمایش داده می‌شود.';
+        const result=await api('/api/miniapp/free-subscription',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+        if(status)status.textContent='اشتراک رایگان صادر شد؛ QR و لینک همین اشتراک نمایش داده شد.';
         toast('اشتراک رایگان صادر شد.');
+        const issuedSid=String(result&&result.sid||'');
+        if(issuedSid)showFreeSubscriptionDelivery(issuedSid,result);
         await loadCustomer();
       } catch(e) {
         if(status)status.textContent=customerFreeErrorText(e.message);
@@ -2597,8 +2584,10 @@
       if(!button||button.disabled||!liveMode)return;
       button.disabled=true;button.textContent='در حال صدور…';if(status)status.textContent='درخواست صدور به Worker ارسال شد؛ چند لحظه صبر کنید.';
       try{
-        await api('/api/miniapp/referrals/free-reward',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
-        if(status)status.textContent='هدیه صادر شد و در فهرست اشتراک‌ها نمایش داده می‌شود.';toast('هدیهٔ دعوت صادر شد.');
+        const gift=await api('/api/miniapp/referrals/free-reward',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})});
+        if(status)status.textContent='هدیه صادر شد؛ QR و لینک همین اشتراک نمایش داده شد.';toast('هدیهٔ دعوت صادر شد.');
+        const giftSid=String(gift&&gift.sid||'');
+        if(giftSid)showFreeSubscriptionDelivery(giftSid,{link:String(gift&&gift.link||''),qr_data_url:String(gift&&gift.qr_data_url||''),panel_name:String(gift&&gift.panel_name||'')},'هدیهٔ دعوت شما صادر شد','هدیهٔ دعوت دوستان');
         await loadCustomer();
       }catch(e){
         if(status)status.textContent=referralErrorText(e.message);toast(referralErrorText(e.message));
@@ -2627,7 +2616,8 @@
         const remain=s.days_remaining==null?'':` · ${fmt(s.days_remaining)} روز باقی`;
         const link=s.link?`<button class="outline-btn" data-web-url="${esc(s.link)}">لینک اشتراک</button>`:'';
         const manage=!isPreview&&s.sid?`<button class="btn-secondary" data-subscription-detail="${esc(s.sid)}">مدیریت اشتراک</button>`:'<button class="btn-secondary" data-demo-action>جزئیات اشتراک</button>';
-        return `<article class="customer-sub-card" tabindex="0" data-subscription-detail="${esc(s.sid||'')}" aria-label="جزئیات اشتراک ${esc(s.plan_name||'')}"><div class="customer-sub-top"><div><strong>${esc(s.plan_name||'اشتراک')} · ${esc(s.panel_name||'سرور')}</strong><small>${esc(s.status_label||'وضعیت نامشخص')}${esc(remain)}${s.expires_at?' · انقضا '+esc(fmtDate(s.expires_at)):''}</small></div><span class="status ${s.status==='active'?'paid':s.status==='unknown'?'pending':'failed'}">${esc(s.status_label||'نامشخص')}</span></div><div class="usage"><div class="usage-label"><span>مصرف</span><b>${esc(usageText)}</b></div><span class="bar-track"><i class="bar-fill" style="width:${percent}%"></i></span></div><div class="customer-sub-actions">${link}${manage}</div></article>`;
+        const qrButton=!isPreview&&s.sid?`<button class="outline-btn" data-subscription-qr="${esc(s.sid)}">QR و کپی لینک</button>`:'';
+        return `<article class="customer-sub-card" tabindex="0" data-subscription-detail="${esc(s.sid||'')}" aria-label="جزئیات اشتراک ${esc(s.plan_name||'')}"><div class="customer-sub-top"><div><strong>${esc(s.plan_name||'اشتراک')} · ${esc(s.panel_name||'سرور')}</strong><small>${esc(s.status_label||'وضعیت نامشخص')}${esc(remain)}${s.expires_at?' · انقضا '+esc(fmtDate(s.expires_at)):''}</small></div><span class="status ${s.status==='active'?'paid':s.status==='unknown'?'pending':'failed'}">${esc(s.status_label||'نامشخص')}</span></div><div class="usage"><div class="usage-label"><span>مصرف</span><b>${esc(usageText)}</b></div><span class="bar-track"><i class="bar-fill" style="width:${percent}%"></i></span></div><div class="customer-sub-actions">${qrButton}${link}${manage}</div></article>`;
       }).join('') || '<div class="empty-state">هنوز اشتراکی ثبت نشده است. از پلن‌های فروشگاه خرید کنید و وضعیت آن را همین‌جا دنبال کنید.</div>';
       const plans=Array.isArray(data.plans)?data.plans:[];
       const plansGrid=document.getElementById('customerPlansGrid');
@@ -2649,13 +2639,39 @@
       modalTitleElement.textContent='مدیریت اشتراک';
       modalTextElement.textContent=[sub.plan_name,sub.panel_name].filter(Boolean).join(' · ');
       let html=`<div class="order-summary-box"><div>وضعیت: <strong>${esc(sub.status_label||'نامشخص')}</strong></div><div>مصرف: <strong>${esc(usage)}</strong></div><div>روزهای باقی‌مانده: <strong>${sub.days_remaining==null?'—':fmt(sub.days_remaining)+' روز'}</strong></div><div>انقضا: <strong>${esc(sub.expires_at?fmtDate(sub.expires_at):'—')}</strong></div></div><div class="usage" style="margin:12px 0"><span class="bar-track"><i class="bar-fill" style="width:${percent}%"></i></span></div>`;
-      if(sub.link)html+=`<button class="outline-btn" style="width:100%;margin-bottom:10px" data-web-url="${esc(sub.link)}">بازکردن لینک اشتراک</button>`;
-      if(sub.sid)html+=`<button class="btn-secondary" style="width:100%;margin-bottom:10px" data-subscription-qr="${esc(sub.sid)}">نمایش QR و کپی لینک اشتراک</button>`;
+      if(sub.sid)html+='<div id="subscriptionQrSlot" class="subscription-qr-slot">'+subscriptionQrMarkup({link:sub.link||'',qr_data_url:sub.qr_data_url||'',plan_title:sub.plan_name,panel_name:sub.panel_name},{heading:'QR و لینک این اشتراک'})+'</div>';
       if(sub.sid&&sub.plan_id)html+=`<button class="btn-primary" style="width:100%;margin-bottom:10px" data-renew-sub="${esc(sub.sid)}" data-panel-id="${esc(sub.panel_id||'')}" data-plan-id="${esc(sub.plan_id)}">تمدید همین پلن</button>`;
       if(sub.sid&&sub.plan_id)html+=`<button class="outline-btn" style="width:100%;margin-bottom:10px" data-upgrade-sub="${esc(sub.sid)}">ارتقا یا تغییر پلن</button>`;
       if(sub.sid)html+=`<button class="table-action danger" style="width:100%;min-height:46px" data-subscription-delete="${esc(sub.sid)}">حذف اشتراک</button>`;
       if(sub.status==='unknown')html+='<div class="mini-note" style="margin-top:10px">وضعیت از پنل تأیید نشد. اگر دسترسی هنوز فعال است، قبل از اقدام با پشتیبانی تماس بگیرید.</div>';
       modalBodyElement.innerHTML=html;setModalAction('','');openModal();
+      loadSubscriptionQrInto(sub.sid);
+    }
+    async function showFreeSubscriptionDelivery(sid, result, modalTitle, planTitle) {
+      if(!sid)return;
+      checkoutContext=null;activeOrderId='';stopOrderPolling();subscriptionActionContext=null;
+      modalTitleElement.textContent=modalTitle||'اشتراک رایگان شما صادر شد';
+      modalTextElement.textContent=[planTitle||'اشتراک رایگان',result&&result.panel_name].filter(Boolean).join(' · ');
+      const initial=subscriptionQrMarkup({link:String(result&&result.link||''),qr_data_url:String(result&&result.qr_data_url||''),plan_title:planTitle||'اشتراک رایگان',panel_name:String(result&&result.panel_name||'')},{heading:'QR و لینک اشتراک رایگان'});
+      modalBodyElement.innerHTML='<div id="subscriptionQrSlot" class="subscription-qr-slot">'+initial+'</div>';
+      setModalAction('','');openModal();
+      await loadSubscriptionQrInto(sid);
+    }
+    async function loadSubscriptionQrInto(sid) {
+      if(!sid||!liveMode)return;
+      const slot=document.getElementById('subscriptionQrSlot');
+      if(!slot)return;
+      const frame=slot.querySelector('.subscription-qr-frame');
+      const hasQr=!!slot.querySelector('.subscription-qr-image');
+      if(frame&&!hasQr)frame.innerHTML='<div class="qr-unavailable"><span>در حال ساخت QR…</span><small>لینک زیر همین حالا قابل کپی است.</small></div>';
+      try {
+        const data=await api('/api/miniapp/subscriptions/'+encodeURIComponent(sid)+'/qr');
+        const current=document.getElementById('subscriptionQrSlot');
+        if(current&&data&&data.delivery)current.innerHTML=subscriptionQrMarkup(data.delivery,{heading:current.dataset.heading||'QR و لینک این اشتراک'});
+      } catch(_) {
+        const current=document.getElementById('subscriptionQrSlot');
+        if(current)current.insertAdjacentHTML('beforeend','<div class="mini-note">QR از سرور دریافت نشد؛ از لینک بالا استفاده کنید و صفحه را تازه کنید.</div>');
+      }
     }
     function openUpgradePlanSelector(sid) {
       const sub=(customerData&&Array.isArray(customerData.subscriptions)?customerData.subscriptions:[]).find(x=>String(x.sid)===String(sid));
@@ -3065,11 +3081,26 @@
       if(order.payment_method==='wallet')return {text:'پرداخت از کیف پول ثبت شده و وضعیت تحویل در حال به‌روزرسانی است؛ پرداخت مجدد انجام ندهید.',kind:'warn'};
       return {text:'وضعیت سفارش در انتظار به‌روزرسانی است. پرداخت را تکرار نکنید.',kind:'warn'};
     }
-    function subscriptionQrMarkup(delivery) {
+    const HIDDIFY_DOWNLOADS = {
+      android: 'https://github.com/hiddify/hiddify-app/releases/latest/download/Hiddify-Android-universal.apk',
+      ios: 'https://apps.apple.com/app/hiddify-proxy-vpn/id6596777532',
+      windows: 'https://github.com/hiddify/hiddify-app/releases/latest/download/Hiddify-Windows-Setup-x64.exe',
+      github: 'https://github.com/hiddify/hiddify-app/releases/latest'
+    };
+    function hiddifyDownloadsMarkup() {
+      return `<div class="subscription-install-title">اپ هیدیفای را نصب کنید و لینک/QR را در آن وارد کنید</div><div class="hiddify-downloads">`
+        +`<button type="button" data-open-url="${esc(HIDDIFY_DOWNLOADS.android)}" aria-label="دانلود هیدیفای برای اندروید"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="3"/><path d="M10 18h4"/></svg><span>دانلود اندروید</span></button>`
+        +`<button type="button" data-open-url="${esc(HIDDIFY_DOWNLOADS.ios)}" aria-label="دانلود هیدیفای برای آیفون و آیپد"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 12.6c0-2 1.6-3 1.7-3.1-1-1.4-2.4-1.6-2.9-1.6-1.3-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.4 0-2.6.8-3.3 2-1.4 2.4-.4 6 1 8 .7 1 1.5 2 2.5 2 1 0 1.4-.6 2.6-.6s1.6.6 2.6.6 1.8-1 2.5-2c.8-1.1 1.1-2.2 1.1-2.3-.1 0-2.2-.9-2.2-3z"/><path d="M13.4 6.2c.5-.7.9-1.5.8-2.4-.8 0-1.8.5-2.4 1.2-.5.6-1 1.5-.8 2.4.9.1 1.8-.5 2.4-1.2z"/></svg><span>دانلود آیفون</span></button>`
+        +`<button type="button" data-open-url="${esc(HIDDIFY_DOWNLOADS.windows)}" aria-label="دانلود هیدیفای برای ویندوز"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M2 20h20"/></svg><span>دانلود ویندوز</span></button>`
+        +`<button class="hiddify-github" type="button" data-open-url="${esc(HIDDIFY_DOWNLOADS.github)}" aria-label="صفحهٔ گیت‌هاب هیدیفای برای دانلود"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 19c-4 1.4-4-2.1-5.6-2.5M15 21v-3.4c0-1 .1-1.4-.5-2 2.3-.3 4.5-1.2 4.5-5a3.9 3.9 0 0 0-1.1-2.7 3.6 3.6 0 0 0-.1-2.7s-.9-.3-2.9 1.1a10 10 0 0 0-5.2 0C7.7 4.9 6.8 5.2 6.8 5.2a3.6 3.6 0 0 0-.1 2.7A3.9 3.9 0 0 0 5.6 10.6c0 3.8 2.2 4.7 4.5 5-.6.6-.6 1.2-.5 2V21"/></svg><span>گیت‌هاب هیدیفای</span></button>`
+        +`</div>`;
+    }
+    function subscriptionQrMarkup(delivery,opts) {
+      const options=opts||{};
       if(!delivery||!delivery.link)return '<div class="order-state warn">لینک اشتراک فعلاً در دسترس نیست؛ صفحهٔ اشتراک‌ها را تازه کنید یا با پشتیبانی تماس بگیرید.</div>';
       const qr=delivery.qr_data_url?`<img class="subscription-qr-image" src="${esc(delivery.qr_data_url)}" alt="QR اشتراک تیزنت VPN" width="260" height="260">`:'<div class="qr-unavailable"><span>QR موقتاً در دسترس نیست</span><small>از لینک زیر برای اتصال استفاده کنید.</small></div>';
       const title=[delivery.plan_title,delivery.panel_name].filter(Boolean).join(' · ');
-      return `<section class="subscription-delivery-card"><div class="delivery-card-heading"><span class="delivery-ready-icon" aria-hidden="true">✓</span><div><strong>اشتراک شما آماده است</strong><small>${esc(title||'TiznetVPN')}</small></div></div><div class="subscription-qr-frame">${qr}</div><div class="subscription-link-heading">لینک اشتراک</div><div class="copy-line subscription-copy"><code dir="ltr">${esc(delivery.link)}</code><button type="button" data-copy-text="${esc(delivery.link)}">کپی لینک</button></div><p class="subscription-qr-help">QR را در Hiddify اسکن کنید، یا لینک بالا را کپی و در برنامه وارد کنید.</p></section>`;
+      return `<section class="subscription-delivery-card"><div class="delivery-card-heading"><span class="delivery-ready-icon" aria-hidden="true">✓</span><div><strong>${esc(options.heading||'اشتراک شما آماده است')}</strong><small>${esc(title||'TiznetVPN')}</small></div></div><div class="subscription-qr-frame">${qr}</div><div class="subscription-link-heading">لینک اشتراک (قابل کپی)</div><div class="copy-line subscription-copy"><code dir="ltr">${esc(delivery.link)}</code><button type="button" data-copy-text="${esc(delivery.link)}">کپی لینک</button></div><div class="subscription-actions"><button class="btn-secondary" type="button" data-copy-text="${esc(delivery.link)}">کپی لینک اشتراک</button><button class="btn-primary" type="button" data-open-url="${esc(delivery.link)}">بازکردن لینک اشتراک</button></div>${hiddifyDownloadsMarkup()}<p class="subscription-qr-help">QR را در Hiddify اسکن کنید، یا لینک بالا را کپی و در برنامه وارد کنید. اگر QR را نمی‌بینید، از لینک استفاده کنید.</p></section>`;
     }
     async function openCustomerSubscriptionQr(sid) {
       if(!liveMode){toast('نمایش QR زنده در Mini App تلگرام فعال است.');return;}
@@ -3188,9 +3219,26 @@
         if(button){button.disabled=false;button.textContent='ارسال رسید برای تأیید ادمین';}
       }
     }
+    function legacyCopy(text) {
+      try {
+        const area=document.createElement('textarea');
+        area.value=text;area.setAttribute('readonly','');area.style.cssText='position:fixed;top:0;left:-9999px;opacity:0';
+        document.body.appendChild(area);area.select();area.setSelectionRange(0,text.length);
+        const done=document.execCommand&&document.execCommand('copy');
+        document.body.removeChild(area);
+        return !!done;
+      } catch(_) { return false; }
+    }
     async function copyValue(value) {
-      try{await navigator.clipboard.writeText(String(value||''));toast('کپی شد.');}
-      catch(_){toast('امکان کپی خودکار نیست؛ شماره را نگه دارید و دستی کپی کنید.');}
+      const text=String(value||'');
+      if(!text){toast('مقداری برای کپی وجود ندارد.');return;}
+      try {
+        if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);toast('کپی شد.');return;}
+        throw new Error('clipboard_unavailable');
+      } catch(_) {
+        if(legacyCopy(text)){toast('کپی شد.');return;}
+        toast('کپی خودکار ممکن نشد؛ لینک را لمس و نگه دارید و دستی کپی کنید.');
+      }
     }
     function renderPreviewDashboard() {
       renderOrders(mockOrders);
@@ -3232,7 +3280,7 @@
     }
     function handleCustomerQuick(kind) {
       if(kind==='support'){openCustomerSupport();return;}
-      if(kind==='wallet'){document.getElementById('customerWalletCard')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
+      if(kind==='wallet'){setCustomerTab('buy');document.getElementById('customerWalletCard')?.scrollIntoView({behavior:'smooth',block:'center'});return;}
       setCustomerTab('buy');
       const target=document.getElementById(kind==='mysubs'?'customerSubsList':'storePlans');
       if(target)target.scrollIntoView({behavior:'smooth',block:'start'});
@@ -3377,6 +3425,7 @@
       const follow=e.target.closest('[data-track-order]');if(follow){openOrderTracking(follow.dataset.trackOrder);return;}
       const method=e.target.closest('[data-pay-method]');if(method&&!method.disabled){startCheckout(method.dataset.payMethod);return;}
       const retry=e.target.closest('[data-retry-checkout]');if(retry&&checkoutContext){startCheckout(checkoutContext.method);return;}
+      const openUrl=e.target.closest('[data-open-url]');if(openUrl){openExternal(openUrl.dataset.openUrl);return;}
       const copy=e.target.closest('[data-copy-text]');if(copy){copyValue(copy.dataset.copyText);return;}
       if(e.target.closest('[data-demo-action]')){toast('این فقط پیش‌نمایش طراحی است؛ خرید زنده داخل Mini App تلگرام انجام می‌شود.');return;}
       if(e.target===modalElement)closeModal();
