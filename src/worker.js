@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.23-ubuntu26.25';
+const VERSION = '1.8.24-ubuntu26.26';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -4168,31 +4168,24 @@ function orderTypeFa(t) {
 async function showHome(env, chatId, u, messageId, origin, allowWebApp) {
   const cfg = await getCfg(env);
   const text = '✨ <b>تیزنت VPN | TiznetVPN</b>\n' + esc(cfg.welcome) +
-    '\n\n💰 موجودی کیف پول: <b>' + fmtToman(u.balance) + '</b>';
-  const rows = [
-    [BTN('🛍 خرید اشتراک', 'buy'), BTN('📦 اشتراک‌های من', 'mysubs')],
-    [BTN('💰 کیف پول / شارژ', 'wallet'), BTN('🎁 دعوت دوستان', 'ref')],
-    [BTN('📖 راهنما', 'help'), BTN('📥 دانلود اپ‌ها', 'apps')],
-    [BTN('📞 پشتیبانی', 'sup')]
-  ];
-  const appUrl = allowWebApp === false ? '' : miniAppUrl(env, origin);
-  if (appUrl) rows.unshift([WEBAPPBTN('🚀 ورود به اپ', appUrl)]);
-  const kb = KB(rows);
+    '\n\n💰 موجودی کیف پول: <b>' + fmtToman(u.balance) + '</b>' +
+    '\n\n👇 از کیبورد پایین چت استفاده کنید.';
+  // منوی شیشه‌ای داخل پیام حذف شده؛ ناوبری فقط با کیبورد پایین چت انجام می‌شود.
+  const kb = mainBotReplyMarkup();
   if (messageId) await editMsg(env, chatId, messageId, text, kb);
   else await msg(env, chatId, text, kb);
 }
 
 async function showMiniAppOnlyStart(env, chatId, origin) {
-  const appUrl = miniAppUrl(env, origin);
-  const appButton = appUrl ? KB([[WEBAPPBTN('🚀 ورود به اپ', appUrl)]]) : undefined;
-  await msg(env, chatId, 'جهت خرید وارد اپ فروش شوید.', appButton);
-  await msg(env, chatId, 'برای سایر خدمات، یکی از دکمه‌های پایین چت را انتخاب کنید.', mainBotReplyMarkup());
+  // دکمهٔ وب‌اپ داخل پیام حذف شد؛ ورود به اپ از دکمهٔ منوی تلگرام (☰) انجام می‌شود.
+  await msg(env, chatId, 'برای خرید و خدمات، اپ فروشگاه را از دکمهٔ منوی تلگرام (☰) باز کنید.\nبرای سایر خدمات، یکی از دکمه‌های پایین چت را انتخاب کنید.', mainBotReplyMarkup());
 }
 
 async function sendMiniAppEntry(env, chatId, origin, caption) {
   const appUrl = miniAppUrl(env, origin);
-  const extra = appUrl ? KB([[WEBAPPBTN('🚀 ورود به اپ', appUrl)]]) : undefined;
-  await msg(env, chatId, caption || 'برای ادامه وارد اپ فروش تیزنت شوید.', extra);
+  const text = (caption || 'برای ادامه وارد اپ فروش تیزنت شوید.') +
+    (appUrl ? '\n\n☰ اپ را از دکمهٔ منوی تلگرام باز کنید.' : '');
+  await msg(env, chatId, text, mainBotReplyMarkup());
 }
 
 function miniOnlyFreeError(error) {
@@ -4339,7 +4332,11 @@ async function runChatButton(env, u, chatId, id, origin, cfgIn) {
   const cfg = cfgIn || await getCfg(env);
   const reply = mainBotReplyMarkup();
   if (id === 'buy') {
-    await sendMiniAppEntry(env, chatId, origin, 'برای خرید اشتراک وارد اپ فروش تیزنت شوید.');
+    if (miniAppOnlyMode(env)) {
+      await sendMiniAppEntry(env, chatId, origin, 'برای خرید اشتراک وارد اپ فروش تیزنت شوید.');
+    } else {
+      await showPanels(env, chatId, null);
+    }
     return true;
   }
   if (id === 'support') {
@@ -5082,29 +5079,10 @@ async function walletRenew(env, u, sid, plid, messageId) {
 /* ============================ اشتراک‌های من ============================ */
 
 async function showMySubs(env, chatId, messageId, u) {
-  const subs = [];
-  for (const sid of (u.subs || [])) {
-    const s = await getSub(env, sid);
-    if (s) subs.push(s);
-  }
-  if (!subs.length) {
-    const t = '📦 شما هنوز اشتراکی ندارید.\nاز دکمه زیر اولین اشتراک را بخرید 👇';
-    const kb = KB([[BTN('🛍 خرید اشتراک', 'buy')], [BTN('◀️ برگشت', 'home')]]);
-    if (messageId) await editMsg(env, chatId, messageId, t, kb);
-    else await msg(env, chatId, t, kb);
-    return;
-  }
-  const panels = await getPanels(env);
-  const plans = await getPlans(env);
-  const rows = subs.map((s) => {
-    const pn = panels[s.panel_id] ? panels[s.panel_id].name : '?';
-    const pl = plans[s.plan_id] ? plans[s.plan_id].title : '';
-    return [BTN('📦 ' + pn + ' | ' + pl, 'sub:' + s.sid)];
-  });
-  rows.push([BTN('◀️ برگشت', 'home')]);
-  const t = '📦 <b>اشتراک‌های شما:</b>\nبرای مشاهده جزئیات، مصرف و لینک، یکی را انتخاب کنید.';
-  if (messageId) await editMsg(env, chatId, messageId, t, KB(rows));
-  else await msg(env, chatId, t, KB(rows));
+  const text = await chatSubsText(env, u);
+  const kb = mainBotReplyMarkup();
+  if (messageId) await editMsg(env, chatId, messageId, text, kb);
+  else await msg(env, chatId, text, kb);
 }
 
 async function showSubDetail(env, chatId, messageId, u, sid) {
@@ -5148,11 +5126,10 @@ async function showSubDetail(env, chatId, messageId, u, sid) {
 /* ============================ کیف پول و شارژ ============================ */
 
 async function showWallet(env, chatId, messageId, u) {
-  const t = '💰 <b>کیف پول</b>\n\n💰 موجودی: <b>' + fmtToman(u.balance) + '</b>' +
-    '\n\nبا موجودی کیف پول می‌توانید <b>فوری و بدون انتظار</b> خرید و تمدید کنید ⚡';
-  const rows = [[BTN('➕ شارژ کیف پول', 'chg')], [BTN('◀️ برگشت', 'home')]];
-  if (messageId) await editMsg(env, chatId, messageId, t, KB(rows));
-  else await msg(env, chatId, t, KB(rows));
+  const text = await chatWalletText(env, u);
+  const kb = mainBotReplyMarkup();
+  if (messageId) await editMsg(env, chatId, messageId, text, kb);
+  else await msg(env, chatId, text, kb);
 }
 
 async function showCharge(env, chatId, messageId) {
@@ -5192,18 +5169,10 @@ async function ensureBotUsername(env, cfg) {
 
 async function showRef(env, chatId, messageId, u) {
   const cfg = await getCfg(env);
-  const bun = await ensureBotUsername(env, cfg);
-  const link = bun ? 'https://t.me/' + bun + '?start=ref_' + u.ref_code : '—';
-  const t = '🎁 <b>دعوت دوستان و کسب درآمد</b>\n\n' +
-    '🔗 لینک دعوت شما:\n<code>' + esc(link) + '</code>' +
-    '\n\n💰 با هر خرید زیرمجموعه‌ها، <b>' + faNum(cfg.commission) + '٪ مبلغ</b> به کیف پول شما اضافه می‌شود.' +
-    '\n👥 تعداد زیرمجموعه‌ها: <b>' + faNum(u.invited || 0) + '</b>' +
-    '\n💵 مجموع درآمد شما: <b>' + fmtToman(u.earned || 0) + '</b>' +
-    '\n💰 موجودی قابل برداشت/خرید: <b>' + fmtToman(u.balance) + '</b>' +
-    '\n\n💸 حداقل مبلغ برداشت: ' + fmtToman(cfg.min_withdraw);
-  const rows = [[BTN('💸 درخواست برداشت', 'wd')], [BTN('◀️ برگشت', 'home')]];
-  if (messageId) await editMsg(env, chatId, messageId, t, KB(rows));
-  else await msg(env, chatId, t, KB(rows));
+  const text = await chatRefText(env, u, cfg);
+  const kb = mainBotReplyMarkup();
+  if (messageId) await editMsg(env, chatId, messageId, text, kb);
+  else await msg(env, chatId, text, kb);
 }
 
 /* ============================ پنل ادمین ============================ */
@@ -7392,9 +7361,10 @@ async function onMessage(env, m, origin) {
 
   if (text) {
     const handled = await onStateText(env, u, chatId, text);
-    if (!handled) {
-      await showHome(env, chatId, u, null, origin, !m.chat || !m.chat.type || m.chat.type === 'private');
-    }
+    if (handled) return;
+    // متن کیبورد پایین چت هم در حالت عادی مسیر همان دکمه را اجرا می‌کند.
+    if (await handleMiniAppOnlyButton(env, u, chatId, text, origin)) return;
+    await showHome(env, chatId, u, null, origin, !m.chat || !m.chat.type || m.chat.type === 'private');
     return;
   }
 }
