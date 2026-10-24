@@ -25,7 +25,7 @@ if (!backupCronMatch || backupCronMatch[1] !== '0 */3 * * *') throw new Error('K
 if (!cronScriptSource.includes("'0 */3 * * *'")) throw new Error('زمان‌بندی scripts/run-cron.mjs با KV_BACKUP_CRON یکی نیست');
 if (!backupTimerUnit.includes('OnCalendar=*-*-* 00/3:00:00 UTC')) throw new Error('systemd timer بکاپ باید هر ۳ ساعت اجرا شود');
 if (!workerSource.includes('KV_BACKUP_MIN_INTERVAL_MS') || workerSource.includes('11 * 60 * 60 * 1000')) throw new Error('فاصلهٔ ایمنی بکاپ با بازهٔ ۳ ساعته هماهنگ نیست');
-src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser; globalThis.__normalizePhone = normalizePhone; globalThis.__isJoinGateMarkup = isJoinGateMarkup; globalThis.__isPhoneRequestMarkup = isPhoneRequestMarkup; globalThis.__accessGate = accessGate; globalThis.__DEFAULT_SETTINGS = DEFAULT_SETTINGS; globalThis.__btnSlotFor = btnSlotFor; globalThis.__decorateMarkup = decorateMarkup; globalThis.__btnStyleFor = btnStyleFor; globalThis.__resetBtnUI = () => { BTN_UI_CACHE = { at: 0, colors: true, icons: {} }; }; globalThis.__resetChatButtons = () => { resetChatButtonCache(); }; globalThis.__chatButtons = chatButtons;');
+src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser; globalThis.__normalizePhone = normalizePhone; globalThis.__isJoinGateMarkup = isJoinGateMarkup; globalThis.__isPhoneRequestMarkup = isPhoneRequestMarkup; globalThis.__accessGate = accessGate; globalThis.__DEFAULT_SETTINGS = DEFAULT_SETTINGS; globalThis.__btnSlotFor = btnSlotFor; globalThis.__decorateMarkup = decorateMarkup; globalThis.__btnStyleFor = btnStyleFor; globalThis.__resetBtnUI = () => { BTN_UI_CACHE = { at: 0, colors: true, icons: {} }; }; globalThis.__btnUI = btnUI; globalThis.__resetChatButtons = () => { resetChatButtonCache(); }; globalThis.__chatButtons = chatButtons;');
 // eslint-disable-next-line no-eval
 eval(src);
 const APP = globalThis.APP;
@@ -258,7 +258,7 @@ console.log('— TiznetVPN Shop Bot integration test —');
 const miniAppSource = fs.readFileSync(path.join(here, '..', 'public', 'miniapp.html'), 'utf8');
 assert(miniAppSource.includes('const remain=s.days_remaining') && miniAppSource.includes('${esc(remain)}') && !miniAppSource.includes('${esc(rem)}'), 'قالب اشتراک مشتری متغیر روزهای باقی‌مانده را بدون ReferenceError نشان می‌دهد');
 const yekanLicense = fs.readFileSync(path.join(here, '..', 'public', 'assets', 'Yekan-OFL.txt'), 'utf8');
-assert(miniAppSource.includes('--bg: #08170f') && miniAppSource.includes('--brand-blue:#2b6f34') && miniAppSource.includes("font-family:'Yekan',Vazirmatn") && miniAppSource.includes('/assets/Yekan.woff2') && fs.statSync(path.join(here, '..', 'public', 'assets', 'Yekan.woff2')).size > 10000 && yekanLicense.includes('SIL Open Font License, Version 1.1') && miniAppSource.includes('/assets/Vazirmatn-Arabic.woff2') && miniAppSource.includes('/assets/Vazirmatn-Latin.woff2'), 'فونت جایگزین Yekan با فایل و مجوز OFL 1.1 محلی جاسازی شده و Vazirmatn fallback آن است');
+assert(miniAppSource.includes('--bg: #08080a') && miniAppSource.includes('--brand-blue:#9f1239') && miniAppSource.includes("font-family:'Yekan',Vazirmatn") && miniAppSource.includes('/assets/Yekan.woff2') && fs.statSync(path.join(here, '..', 'public', 'assets', 'Yekan.woff2')).size > 10000 && yekanLicense.includes('SIL Open Font License, Version 1.1') && miniAppSource.includes('/assets/Vazirmatn-Arabic.woff2') && miniAppSource.includes('/assets/Vazirmatn-Latin.woff2'), 'فونت جایگزین Yekan با فایل و مجوز OFL 1.1 محلی جاسازی شده و Vazirmatn fallback آن است');
 assert(!miniAppSource.includes('#87182f') && !miniAppSource.includes('#ff343d') && !miniAppSource.includes('--ruby-') && miniAppSource.includes('subscription-delivery-card') && miniAppSource.includes('cv-plan-foot'), 'رنگ‌های برند قدیمی از Mini App پاک شده‌اند؛ پالت آبی و کارت فروش جدید حفظ شده است');
 assert(!miniAppSource.includes('id="menuToggle"') && !miniAppSource.includes('id="notifyBtn"') && miniAppSource.includes('id="mobileNav"') && miniAppSource.includes('id="accountTrigger"'), 'دکمهٔ همبرگری و زنگ حذف شده‌اند؛ ناوبری پایین و جزئیات حساب حفظ شده‌اند');
 assert(miniAppSource.includes('data-dashboard-drill="revenue"') && miniAppSource.includes('data-drill-method') && miniAppSource.includes('data-drill-plan') && miniAppSource.includes('clearDashboardDrill'), 'مدیر می‌تواند از KPIها، روش پرداخت و پلن‌ها به فهرست جزئیات drill-down کند');
@@ -352,11 +352,11 @@ assert(badApi.status === 401, 'API مینی‌اپ دست‌کاری initData ر
 
 await sendText(U1, '/start');
 assert((lastMsgTo(U1) || {}).params && lastMsgTo(U1).params.text.includes('تیزنت VPN | TiznetVPN'), '/start صفحهٔ اصلی برند تیزنت را نشان می‌دهد');
-const homeMarkup = lastMsgTo(U1).params.reply_markup.inline_keyboard;
-assert(homeMarkup.some(row => row.some(button => button.web_app && button.web_app.url === 'https://t.test/miniapp' && button.text === '🚀 ورود به اپ')), 'منوی ربات دکمهٔ Web App «ورود به اپ» با URL همین Worker دارد');
+const homeMarkup = lastMsgTo(U1).params.reply_markup;
+assert(homeMarkup && Array.isArray(homeMarkup.keyboard) && homeMarkup.keyboard.flat().length === 6 && !homeMarkup.inline_keyboard, 'منوی اصلی فقط با کیبورد پایین چت می‌آید و هیچ دکمهٔ شیشه‌ای داخل پیام ندارد');
 const privateMenuButton = TG.find(x => x.method === 'setChatMenuButton' && String(x.params.chat_id) === String(U1));
 assert(privateMenuButton && privateMenuButton.params.menu_button.type === 'web_app' && privateMenuButton.params.menu_button.text === 'tiznet' && privateMenuButton.params.menu_button.web_app.url === 'https://t.test/miniapp' && (await kvJson('u:' + U1)).miniapp_menu_set_version === 'tiznetvpn-menu-button-ubuntu-v1', 'MenuButtonWebApp عنوان دقیق tiznet با حروف کوچک دارد و نسخهٔ برچسب به‌روزرسانی می‌شود');
-assert(homeMarkup.some(row => row.some(button => button.web_app && button.text === '🚀 ورود به اپ')), 'دکمهٔ Web App در پیام چت هم عنوان «ورود به اپ» دارد');
+assert(String(lastMsgTo(U1).params.text || '').includes('از کیبورد پایین چت استفاده کنید'), 'پیام خانه کاربر را به کیبورد پایین چت راهنمایی می‌کند');
 await upd({ callback_query: { id: 'q' + (qSeq++), from: { id: U7, first_name: 'GroupUser' }, message: { message_id: 77, chat: { id: -10001, type: 'group' } }, data: 'home' } });
 const groupHome = TG.filter(x => x.method === 'editMessageText' && String(x.params.chat_id) === '-10001').at(-1);
 const groupMarkup = groupHome && groupHome.params.reply_markup && groupHome.params.reply_markup.inline_keyboard || [];
@@ -380,17 +380,17 @@ const miniOnlyStartIndex = TG.length;
 await sendText(U5, '/start ref_' + u1a.ref_code);
 const miniOnlyStartMessages = TG.slice(miniOnlyStartIndex).filter(x => x.method === 'sendMessage' && String(x.params.chat_id) === String(U5));
 const miniOnlyEntry = miniOnlyStartMessages[0];
-const miniOnlyKeyboardMessage = miniOnlyStartMessages[1];
+const miniOnlyKeyboardMessage = miniOnlyStartMessages[0];
 const miniOnlyCommands = TG.filter(x => x.method === 'setMyCommands').at(-1);
 const miniOnlyMenu = TG.find(x => x.method === 'setChatMenuButton' && String(x.params.chat_id) === String(U5));
 await sendText(U5, '🛍 خرید اشتراک');
 const emojiButtonEntry = lastMsgTo(U5);
 await sendText(U5, 'خرید اشتراک');
 const plainButtonEntry = lastMsgTo(U5);
-assert(emojiButtonEntry && emojiButtonEntry.params.text === 'برای خرید اشتراک وارد اپ فروش تیزنت شوید.' && plainButtonEntry && plainButtonEntry.params.text === 'برای خرید اشتراک وارد اپ فروش تیزنت شوید.', 'دکمه‌های ایموجی‌دار ربات کار می‌کنند و متن بدون ایموجی هم پشتیبانی می‌شود');
+assert(emojiButtonEntry && emojiButtonEntry.params.text.includes('برای خرید اشتراک وارد اپ فروش تیزنت شوید') && plainButtonEntry && plainButtonEntry.params.text.includes('برای خرید اشتراک وارد اپ فروش تیزنت شوید'), 'دکمه‌های ایموجی‌دار ربات کار می‌کنند و متن بدون ایموجی هم پشتیبانی می‌شود');
 const exactRobotButtons = ['🛍 خرید اشتراک','🎧 پشتیبانی','🎁 اشتراک رایگان','📘 راهنما','🪪 اطلاعات حساب','🤝 دریافت نمایندگی'];
 const replyTexts = miniOnlyKeyboardMessage?.params.reply_markup?.keyboard?.flat().map(x => x.text) || [];
-assert(miniOnlyEntry && miniOnlyEntry.params.text === 'جهت خرید وارد اپ فروش شوید.' && miniOnlyEntry.params.reply_markup?.inline_keyboard?.flat().some(x => x.text === '🚀 ورود به اپ' && x.web_app?.url === 'https://t.test/miniapp') && miniOnlyKeyboardMessage?.params.reply_markup?.keyboard && JSON.stringify(replyTexts) === JSON.stringify(exactRobotButtons), '/start در Mini App-only پیام ورود به اپ و در پیام جداگانه دقیقاً شش reply button مجاز را نشان می‌دهد');
+assert(miniOnlyEntry && miniOnlyEntry.params.text.includes('دکمهٔ منوی تلگرام') && !miniOnlyEntry.params.reply_markup?.inline_keyboard && miniOnlyKeyboardMessage?.params.reply_markup?.keyboard && JSON.stringify(replyTexts) === JSON.stringify(exactRobotButtons), '/start در Mini App-only فقط کیبورد پایین چت با همان شش دکمه را می‌فرستد و دکمهٔ شیشه‌ای داخل پیام ندارد');
 assert(miniOnlyMenu && miniOnlyMenu.params.menu_button.text === 'tiznet' && miniOnlyCommands && miniOnlyCommands.params.commands.length === 1 && miniOnlyCommands.params.commands[0].command === 'start', 'در حالت Mini App-only Menu Button دقیقاً tiznet است و فهرست دستورها به /start محدود می‌شود');
 assert((await kvJson('u:' + U5)).referred_by === U1, 'خاموش‌بودن منوی legacy انتساب لینک معرف را حفظ می‌کند');
 await sendText(U4, '/start ref_' + u1a.ref_code);
@@ -1098,13 +1098,13 @@ const hUsersBeforeBotFree = hUsers.size;
 env.MINIAPP_ONLY_MODE = 'true';
 await sendText(U7, '/start');
 const botFreeStartMessages = TG.filter(x => x.method === 'sendMessage' && String(x.params.chat_id) === String(U7)).slice(-2);
-const botFreeStartKb = botFreeStartMessages[1]?.params.reply_markup?.keyboard?.flat().map(x => x.text) || [];
+const botFreeStartKb = botFreeStartMessages[0]?.params.reply_markup?.keyboard?.flat().map(x => x.text) || [];
 const botFreeDeliveryStart = TG.length;
 await sendText(U7, 'اشتراک رایگان');
 const botFreeDelivery = TG.slice(botFreeDeliveryStart).filter(x => x.method === 'sendPhoto' && String(x.params.chat_id) === String(U7)).at(-1);
 const botFreeMarkup = botFreeDelivery ? JSON.parse(botFreeDelivery.params.reply_markup || '{}') : {};
 const botFreeReplyTexts = botFreeMarkup.keyboard?.flat().map(x => x.text) || [];
-assert(botFreeStartMessages[0]?.params.reply_markup?.inline_keyboard?.flat().some(x => x.text === '🚀 ورود به اپ') && botFreeStartKb.join('|') === exactRobotButtons.join('|') && botFreeDelivery?.params.caption.includes('اشتراک رایگان شما فعال شد') && botFreeReplyTexts.join('|') === exactRobotButtons.join('|') && hUsers.size === hUsersBeforeBotFree + 1, 'ربات از شش‌گزینه‌ای Mini App-only اشتراک رایگان را صادر می‌کند و reply keyboard را حفظ می‌کند');
+assert(!botFreeStartMessages[0]?.params.reply_markup?.inline_keyboard && botFreeStartKb.join('|') === exactRobotButtons.join('|') && botFreeDelivery?.params.caption.includes('اشتراک رایگان شما فعال شد') && botFreeReplyTexts.join('|') === exactRobotButtons.join('|') && hUsers.size === hUsersBeforeBotFree + 1, 'ربات از شش‌گزینه‌ای Mini App-only اشتراک رایگان را صادر می‌کند و reply keyboard را حفظ می‌کند');
 env.MINIAPP_ONLY_MODE = 'false';
 
 const restoreKv = new MockKV();
@@ -1173,20 +1173,20 @@ assert(miniAppSource.indexOf('id="customerTabBuy"') < miniAppSource.indexOf('cla
 assert(/\.customer-mode #storePage \{[^}]*animation-name:fadeInNoTransform/.test(miniAppSource) && miniAppSource.includes('@keyframes fadeInNoTransform { from { opacity:0; } to { opacity:1; } }') && !/\.customer-mode #storePage \{[^}]*transform/.test(miniAppSource), 'صفحهٔ فروشگاه در نمای مشتری فقط opacity را انیمیت می‌کند؛ ترنسفورم ماندگار fadeIn نوار پایین را از حالت fixed خارج نمی‌کند');
 assert(miniAppSource.indexOf('class="customer-tabs"') > miniAppSource.indexOf('id="mobileNav"') - 4000 && !/class="page[^"]*"[^]*?class="customer-tabs"/.test(miniAppSource.slice(miniAppSource.indexOf('id="storePage"'))), 'نوار ناوبری مشتری بیرون از المان‌های .page قرار دارد تا ترنسفورم انیمیشن آن را از حالت ثابت خارج نکند');
 assert(miniAppSource.includes('.customer-tabs { display:none; }') && miniAppSource.includes('.customer-mode .mobile-nav { display:none !important; }'), 'نوار ناوبری مشتری فقط در نمای مشتری دیده می‌شود و نوار موبایل قدیمی در این حالت غیرفعال است');
-assert(miniAppSource.includes('body.customer-mode {') && miniAppSource.includes('#09150f') && miniAppSource.includes('background-attachment:fixed') && miniAppSource.includes('backdrop-filter:blur(18px)') && miniAppSource.includes('.customer-mode .customer-tabs [role="tab"][aria-selected="true"]::after'), 'طرح جدید مشتری از پس‌زمینهٔ آبی عمیق، کارت‌های شیشه‌ای و نشانگر تب فعال استفاده می‌کند');
+assert(miniAppSource.includes('body.customer-mode {') && miniAppSource.includes('#101013') && miniAppSource.includes('background-attachment:fixed') && miniAppSource.includes('backdrop-filter:blur(18px)') && miniAppSource.includes('.customer-mode .customer-tabs [role="tab"][aria-selected="true"]::after'), 'طرح جدید مشتری از پس‌زمینهٔ آبی عمیق، کارت‌های شیشه‌ای و نشانگر تب فعال استفاده می‌کند');
 assert((miniAppSource.match(/class="cv-stat"/g)||[]).length === 4 && miniAppSource.includes("`<div class=\"cv-stat\"><small>") && miniAppSource.includes('.cv-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr))') && !miniAppSource.includes('kpiIcons'), 'نوار آمار مشتری سه شاخص فشرده را در یک ردیف نشان می‌دهد (بدون تکرار موجودی کیف پول)');
 assert(!miniAppSource.includes('.customer-mode .main { max-width:600px') && !miniAppSource.includes('.customer-mode .plans-grid { grid-template-columns:minmax(0,1fr) !important') && !miniAppSource.includes('.customer-mode .store-plan { min-height:0; padding:16px') && !miniAppSource.includes('padding-bottom:calc(122px + var(--safe-bottom)) !important'), 'نمای مشتری چیدمان ریسپانسیو پایه (عرض، گرید پلن‌ها، کارت‌ها و حاشیهٔ پایین) را بازنویسی نمی‌کند');
 assert(miniAppSource.includes('function subscriptionQrMarkup') && miniAppSource.includes('function loadSubscriptionQrInto') && miniAppSource.includes('subscriptionQrSlot') && miniAppSource.includes('function showFreeSubscriptionDelivery') && miniAppSource.includes('data-subscription-qr="${esc(s.sid)}"') && miniAppSource.includes('qr_data_url:sub.qr_data_url'), 'صفحهٔ اطلاعات اشتراک و تحویل اشتراک رایگان/هدیه، QR و لینک قابل کپی را نشان می‌دهند');
 assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('function hiddifyDownloadsMarkup') && ['android','ios','windows','github'].every(k => miniAppSource.includes('HIDDIFY_DOWNLOADS.'+k)) && miniAppSource.includes('play.google.com/store/apps/details?id=app.hiddify.com') && miniAppSource.includes('apps.apple.com/us/app/hiddify-proxy-vpn/id6596777532') && miniAppSource.includes('apps.microsoft.com/detail/9pdfnl3qv2s5') && miniAppSource.includes('github.com/hiddify/hiddify-app/releases') && miniAppSource.includes('همهٔ سیستم‌عامل‌ها') && miniAppSource.includes('data-open-url'), 'دکمه‌های دانلود هیدیفای برای اندروید، آیفون، ویندوز و صفحهٔ گیت‌هاب در کارت اشتراک وجود دارد');
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
-assert(miniAppSource.includes('--bg: #08170f') && miniAppSource.includes('--brand-blue:#2b6f34') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت سبز پسته‌ای (زمینهٔ جنگلی تیره) در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.23-ubuntu26.25';"), 'شمارهٔ نسخهٔ سرور 1.8.23-ubuntu26.25 است و در «بررسی اتصال» همین دیده می‌شود');
-assert(miniAppSource.includes('تم «آبی زنده»') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #b4d994, #6dc84f 52%, #50943a)'), 'تم زندهٔ پسته‌ای روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
+assert(miniAppSource.includes('--bg: #08080a') && miniAppSource.includes('--brand-blue:#9f1239') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت یاقوتی روی مشکی متالیک در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
+assert(workerSource.includes("const VERSION = '1.8.24-ubuntu26.26';"), 'شمارهٔ نسخهٔ سرور 1.8.24-ubuntu26.26 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(miniAppSource.includes('تم «آبی زنده»') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #ff8195, #d21c44 52%, #8c0b28)'), 'تم زندهٔ یاقوتی روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ آبی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
-assert(miniAppSource.includes('--purple: #8cb96f;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها آبی/فیروزه‌ای‌اند');
+assert(miniAppSource.includes('--purple: #c284a2;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها یاقوتی و متالیک‌اند');
 assert(miniAppSource.includes('id="settingsEditorPanel"') && miniAppSource.includes('data-stab="look"') && miniAppSource.includes('function showSettingsGroup') && !miniAppSource.includes('settingCommission') && !miniAppSource.includes('settingMinWithdraw'), 'تنظیمات مینی‌اپ در پنج سربرگ (فروشگاه، پرداخت، اشتراک رایگان، دکمه‌ها، پشتیبان) گروه‌بندی شده و کارت‌های «درصد کمیسیون» و «حداقل برداشت» حذف شده‌اند');
-assert(miniAppSource.includes('تم «سبز پسته‌ای براق»') && !miniAppSource.includes('#3497ff') && !miniAppSource.includes('#6ee0ff') && !miniAppSource.includes('#04152e') && miniAppSource.includes('linear-gradient(180deg, #e6f4c8 0%, #c3e08d 30%, #9cc95f 68%, #7cae44 100%)'), 'پالت مینی‌اپ روی چیدمان نسخهٔ A با سبز پسته‌ای براق بازرنگ شده و هیچ آبی از پالت قدیم نمانده است');
+assert(miniAppSource.includes('تم «یاقوتی براق + مشکی متالیک»') && !miniAppSource.includes('#3497ff') && !miniAppSource.includes('#6ee0ff') && !miniAppSource.includes('#04152e') && miniAppSource.includes('linear-gradient(180deg, #dc4460 0%, #c81c42 26%, #a8123a 68%, #7d0b26 100%)') && miniAppSource.includes('.status.paid, .status.good, .order-state.good {'), 'پالت مینی‌اپ روی چیدمان نسخهٔ A یاقوتی براق و مشکی متالیک شده، هیچ آبی از پالت قدیم نمانده و رنگ سبز «پرداخت‌شده» حفظ شده است');
 assert(src.includes('play.google.com/store/apps/details?id=app.hiddify.com') && src.includes('apps.apple.com/us/app/hiddify-proxy-vpn/id6596777532') && src.includes('apps.microsoft.com/detail/9pdfnl3qv2s5') && src.includes('github.com/hiddify/hiddify-app/releases'), 'فهرست دانلود اپ‌ها در چت و مینی‌اپ به‌صورت یکسان به پلی‌استور، اپ‌استور، مایکروسافت‌استور و گیت‌هاب اشاره می‌کند');
 assert(miniAppSource.includes('@media (prefers-reduced-motion: reduce)') && miniAppSource.includes('@keyframes riseIn') && miniAppSource.includes('.stat-card:hover, .stat-card:focus-visible {'), 'حرکت‌ها افزوده شده‌اند و با تنظیم «کاهش حرکت» سیستم خاموش می‌شوند');
 assert(miniAppSource.includes('@media (max-width: 900px) and (min-width: 421px) {\n      .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }'), 'کارت‌های KPI در تبلت و گوشی دو‌به‌دو می‌نشینند تا شلوغ نشوند');
@@ -1318,8 +1318,8 @@ const walletStartMark = TG.length;
 await sendText(U4, '/start miniapp_wallet');
 const walletStartMsgs = TG.slice(walletStartMark).filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(U4));
 assert(walletStartMsgs.some((m) => String(m.params.text || '').includes('شارژ کیف پول از داخل خودِ اپ'))
-  && walletStartMsgs.some((m) => ((m.params.reply_markup && m.params.reply_markup.inline_keyboard) || []).flat().some((b) => b.web_app)),
-  'در حالت Mini App-only پیوند قدیمی «شارژ کیف پول» به صفحهٔ استارت نمی‌افتد و مسیر درست را نشان می‌دهد');
+  && !walletStartMsgs.some((m) => ((m.params.reply_markup && m.params.reply_markup.inline_keyboard) || []).flat().some((b) => b.web_app)),
+  'در حالت Mini App-only پیوند قدیمی «شارژ کیف پول» به صفحهٔ استارت نمی‌افتد، مسیر درست را نشان می‌دهد و دکمهٔ شیشه‌ای نمی‌سازد');
 env.MINIAPP_ONLY_MODE = 'false';
 const adminOrderDetail = await miniApi('/api/miniapp/admin/orders/' + manualMiniOrder.id, adminInit);
 const customerCannotReadAdminOrder = await miniApi('/api/miniapp/admin/orders/' + manualMiniOrder.id, user4Init);
@@ -1718,12 +1718,13 @@ assert(globalThis.__btnSlotFor('🛍 خرید اشتراک') === 'buy' && global
 assert(globalThis.__btnStyleFor('✅ تأیید', 'ok') === 'success' && globalThis.__btnStyleFor('❌ انصراف', 'menu') === 'danger' && globalThis.__btnStyleFor('🛍 خرید اشتراک', 'buy') === 'primary' && globalThis.__btnStyleFor('📊 آمار', 'stats') === '', 'رنگ دکمه از معنی آن می‌آید: سبز تأیید، قرمز انصراف، آبی خرید');
 
 globalThis.__resetBtnUI();
-await sendText(ADMIN, '/start');
-const styledHome = lookupButtons(lastMsgTo(ADMIN));
-const buyStyled = styledHome.find((b) => b.callback_data === 'buy');
-const plainHome = styledHome.find((b) => b.callback_data === 'help');
-assert(buyStyled && buyStyled.style === 'primary' && buyStyled.text === '🛍 خرید اشتراک', 'دکمهٔ خرید در چت رنگ آبی می‌گیرد و متنش دست‌نخورده می‌ماند');
-assert(plainHome && plainHome.text === '📖 راهنما' && !plainHome.style, 'دکمه‌های خنثی رنگ نمی‌گیرند تا صفحه شلوغ نشود');
+const uiProbe = () => ({ inline_keyboard: [[{ text: '🛍 خرید اشتراک', callback_data: 'buy' }, { text: '📖 راهنما', callback_data: 'help' }]] });
+const uiDecorate = async () => globalThis.__decorateMarkup(uiProbe(), await globalThis.__btnUI(env)).markup.inline_keyboard[0];
+{
+  const [buyBtn, helpBtn] = await uiDecorate();
+  assert(buyBtn.style === 'primary' && buyBtn.text === '🛍 خرید اشتراک', 'دکمهٔ خرید در چت رنگ اصلی می‌گیرد و متنش دست‌نخورده می‌ماند');
+  assert(helpBtn && helpBtn.text === '📖 راهنما' && !helpBtn.style, 'دکمه‌های خنثی رنگ نمی‌گیرند تا صفحه شلوغ نشود');
+}
 
 await press(ADMIN, 's_gate');
 await press(ADMIN, 's_gate_add');
@@ -1742,14 +1743,12 @@ assert(globalThis.__btnStyleFor('✅ بله، حذف کن', 'ok') === 'danger', 
 // آیکن متحرک از تنظیمات
 await kv.put('ui:btn_icons', JSON.stringify({ buy: '5368324170671202286' }));
 globalThis.__resetBtnUI();
-await sendText(ADMIN, '/start');
-const iconBtn = lookupButtons(lastMsgTo(ADMIN)).find((b) => b.callback_data === 'buy');
+const iconBtn = (await uiDecorate())[0];
 assert(iconBtn && iconBtn.icon_custom_emoji_id === '5368324170671202286', 'آیکن متحرک ذخیره‌شده روی دکمهٔ خرید می‌نشیند');
 assert(iconBtn && iconBtn.text === 'خرید اشتراک', 'وقتی آیکن متحرک ست شده، ایموجی ابتدای متن حذف می‌شود تا دو ایموجی پشت‌هم نیاید');
 await kv.put('ui:btn_icons', JSON.stringify({ buy: 'not-a-number' }));
 globalThis.__resetBtnUI();
-await sendText(ADMIN, '/start');
-const badIconBtn = lookupButtons(lastMsgTo(ADMIN)).find((b) => b.callback_data === 'buy');
+const badIconBtn = (await uiDecorate())[0];
 assert(badIconBtn && !badIconBtn.icon_custom_emoji_id, 'شناسهٔ نامعتبر آیکن نادیده گرفته می‌شود و پیام سالم می‌ماند');
 
 // پاک‌کردن
@@ -1768,13 +1767,10 @@ assert(lookPanel && lookButtons.some((b) => b.callback_data === 's_ui_colors' &&
 // خاموش‌کردن رنگ‌ها
 const colorCallsBefore = TG.filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN)).length;
 await press(ADMIN, 's_ui_colors');
-await sendText(ADMIN, '/start');
-const plainAfterOff = lookupButtons(lastMsgTo(ADMIN));
-assert(plainAfterOff.every((b) => !b.style), 'با خاموش‌کردن رنگ‌ها هیچ دکمه‌ای استایل نمی‌گیرد');
+assert((await uiDecorate()).every((b) => !b.style), 'با خاموش‌کردن رنگ‌ها هیچ دکمه‌ای استایل نمی‌گیرد');
 await press(ADMIN, 's_ui');
 await press(ADMIN, 's_ui_colors');
-await sendText(ADMIN, '/start');
-assert(lookupButtons(lastMsgTo(ADMIN)).some((b) => b.style === 'primary'), 'روشن‌کردن دوبارهٔ رنگ‌ها برمی‌گردد');
+assert((await uiDecorate()).some((b) => b.style === 'primary'), 'روشن‌کردن دوبارهٔ رنگ‌ها برمی‌گردد');
 
 // ثبت دستی شناسه
 await press(ADMIN, 's_ui');
@@ -1783,16 +1779,17 @@ await sendText(ADMIN, '12345678901234567');
 const iconsAfterManual = await kvJson('ui:btn_icons');
 assert(iconsAfterManual && iconsAfterManual.buy === '12345678901234567', 'ادمین می‌تواند شناسهٔ آیکن را دستی وارد کند');
 globalThis.__resetBtnUI();
-await sendText(ADMIN, '/start');
-assert(lookupButtons(lastMsgTo(ADMIN)).find((b) => b.callback_data === 'buy').icon_custom_emoji_id === '12345678901234567', 'آیکن ثبت‌شدهٔ دستی روی دکمه ظاهر می‌شود');
+assert((await uiDecorate())[0].icon_custom_emoji_id === '12345678901234567', 'آیکن ثبت‌شدهٔ دستی روی دکمه ظاهر می‌شود');
 
 // با آیکن ست‌شده، دکمه‌ها هنوز با متن بدون ایموجی کار می‌کنند
 await kv.put('ui:btn_icons', JSON.stringify({ buy: '5368324170671202286' }));
 globalThis.__resetBtnUI();
+const iconOnly = (await uiDecorate())[0];
+assert(iconOnly.text === 'خرید اشتراک' && iconOnly.icon_custom_emoji_id === '5368324170671202286' && iconOnly.style === 'primary', 'با آیکن ست‌شده، متن دکمه بدون ایموجی می‌ماند و آیکن خودش قبل از متن می‌آید');
+const kbRouteMark = TG.length;
 await sendText(ADMIN, 'خرید اشتراک');
-const strippedMsg = TG.filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN) && String(x.params.text || '').includes('خوش آمدید')).slice(-1)[0];
-const inlineBuy = strippedMsg ? lookupButtons(strippedMsg).find((b) => b.callback_data === 'buy') : null;
-assert(inlineBuy && inlineBuy.text === 'خرید اشتراک' && inlineBuy.icon_custom_emoji_id === '5368324170671202286' && inlineBuy.style === 'primary', 'با آیکن ست‌شده، متن دکمه بدون ایموجی می‌ماند (آیکن خودش قبل از متن می‌آید) و پیام متنی کاربر باز هم به همان دکمه می‌رسد');
+const kbRouteTexts = TG.slice(kbRouteMark).filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN)).map((x) => String(x.params.text || ''));
+assert(kbRouteTexts.some((t) => t.includes('لوکیشن') || t.includes('سرور')), 'پیام متنی کاربر (بدون ایموجی) باز هم مسیر «خرید اشتراک» را از کیبورد پایین چت اجرا می‌کند');
 await kv.put('ui:btn_icons', JSON.stringify({}));
 globalThis.__resetBtnUI();
 
@@ -1822,8 +1819,8 @@ globalThis.__resetBtnUI();
 // پشتیبان: اگر تلگرام دکمهٔ استایل‌دار را رد کند
 tgRejectDecorated = 1;
 const fbBefore = TG.length;
-await sendText(ADMIN, '/start');
-const fbCalls = TG.slice(fbBefore).filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN));
+await press(ADMIN, 's_kb');
+const fbCalls = TG.slice(fbBefore).filter((x) => (x.method === 'sendMessage' || x.method === 'editMessageText') && String(x.params.chat_id) === String(ADMIN));
 const firstDecorated = fbCalls[0] && Array.isArray(fbCalls[0].params.reply_markup?.inline_keyboard) && fbCalls[0].params.reply_markup.inline_keyboard.flat().some((b) => b && b.style);
 const secondPlain = fbCalls[1] && Array.isArray(fbCalls[1].params.reply_markup?.inline_keyboard) && fbCalls[1].params.reply_markup.inline_keyboard.flat().every((b) => b && !b.style && !b.icon_custom_emoji_id);
 assert(firstDecorated && secondPlain, 'اگر تلگرام استایل را رد کند، همان پیام بی‌درنگ بدون استایل دوباره فرستاده می‌شود');
@@ -1845,9 +1842,8 @@ const storedColors = await kvJson('ui:btn_colors');
 assert(String(storedColors) === '0' || storedColors === 0, 'حالت شیشه‌ای در KV ذخیره می‌شود');
 assert((await kvJson('ui:btn_icons')).buy === '5368324170671202286', 'شناسهٔ آیکن از اپ در KV ذخیره می‌شود');
 
-globalThis.__resetBtnUI();
-await sendText(ADMIN, '/start');
-const afterAppSave = lookupButtons(lastMsgTo(ADMIN)).find((b) => b.callback_data === 'buy');
+const uiAfterApp = await globalThis.__btnUI(env);
+const afterAppSave = globalThis.__decorateMarkup(uiProbe(), uiAfterApp).markup.inline_keyboard[0][0];
 assert(afterAppSave && !afterAppSave.style && afterAppSave.icon_custom_emoji_id === '5368324170671202286', 'تغییری که از مینی‌اپ ذخیره شد، همان لحظه روی دکمه‌های چت اعمال می‌شود');
 
 const badEmoji = await miniApi('/api/miniapp/admin/buttons', lookAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ icons: { buy: 'abc' } }) });
@@ -1917,9 +1913,9 @@ assert(renamedCfg && renamedCfg.labels && renamedCfg.labels.buy === 'اشترا�
 await sendText(U12, '/start');
 assert(JSON.stringify(kbTexts(lastMsgTo(U12))) === JSON.stringify(['🛍 اشتراک بخرم', '🎧 پشتیبانی', '🎁 اشتراک رایگان', '📘 راهنما', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی']), 'نام تازه همان لحظه روی کیبورد مشتری می‌آید');
 await sendText(U12, 'خرید اشتراک');
-assert(lastMsgTo(U12).params.text === 'برای خرید اشتراک وارد اپ فروش تیزنت شوید.', 'نام پیش‌فرض قبلی هم بعد از تغییر نام هنوز مسیر درست را اجرا می‌کند');
+assert(String(lastMsgTo(U12).params.text || '').includes('برای خرید اشتراک وارد اپ فروش تیزنت شوید'), 'نام پیش‌فرض قبلی هم بعد از تغییر نام هنوز مسیر درست را اجرا می‌کند');
 await sendText(U12, 'اشتراک بخرم');
-assert(lastMsgTo(U12).params.text === 'برای خرید اشتراک وارد اپ فروش تیزنت شوید.', 'نام سفارشی هم همان دکمه را اجرا می‌کند');
+assert(String(lastMsgTo(U12).params.text || '').includes('برای خرید اشتراک وارد اپ فروش تیزنت شوید'), 'نام سفارشی هم همان دکمه را اجرا می‌کند');
 
 await press(ADMIN, 's_kb_tog:support');
 await sendText(U12, '/start');
