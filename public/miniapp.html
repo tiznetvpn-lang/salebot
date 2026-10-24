@@ -1179,85 +1179,163 @@
     @media(max-width:900px){.agent-admin-grid{grid-template-columns:minmax(0,1fr)}.agent-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:520px){.agent-stat-grid,.agent-price-grid{grid-template-columns:minmax(0,1fr)}.agent-wallet-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.agent-wallet-controls .admin-field{grid-column:1/-1}.agent-wallet-controls button{width:100%}}
 
-    /* ── نمای مشتری: کارت‌های خلاصه، میان‌برها و نوار تب (پالت آبی حفظ می‌شود) ── */
+    /* ── نمای مشتری: طراحی جدید — آبی عمیق، کارت‌های شیشه‌ای، ناوبری پایین ── */
     .customer-top { display:none; }
     .customer-mode .customer-top { display:block; }
-    /* خلاصهٔ حساب فقط در تب خانه (خرید) نمایش داده می‌شود تا بقیهٔ تب‌ها شلوغ نشوند. */
     .customer-mode[data-customer-tab]:not([data-customer-tab="buy"]) .customer-top { display:none; }
 
-    .customer-hero { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:15px 16px; border-radius:20px; border:1px solid rgba(127,183,244,.22);
-      background:radial-gradient(220px 140px at 90% -30%, rgba(101,208,247,.22), transparent 72%), linear-gradient(140deg,#0e3a6d,#0a2346 78%);
-      box-shadow:0 14px 34px rgba(0,8,24,.32); }
-    .customer-hero-main { display:flex; align-items:center; gap:11px; min-width:0; flex:1 1 170px; }
-    .customer-avatar { width:44px; height:44px; flex:0 0 44px; border-radius:15px; display:grid; place-items:center; font-size:17px; font-weight:850; color:#04152e;
-      background:linear-gradient(140deg,#a6e8ff,#3ea9ea); box-shadow:0 8px 20px rgba(23,120,200,.34); }
+    body.customer-mode {
+      background:
+        radial-gradient(920px 540px at 88% -10%, rgba(47,134,232,.30), transparent 62%),
+        radial-gradient(760px 460px at 4% 2%, rgba(90,216,255,.15), transparent 60%),
+        radial-gradient(720px 540px at 50% 114%, rgba(29,96,190,.28), transparent 66%),
+        linear-gradient(180deg,#02091c 0%,#04152e 46%,#03102a 100%);
+      background-attachment:fixed;
+    }
+    .customer-mode .main { max-width:1180px; padding-bottom:calc(96px + var(--safe-bottom)) !important; }
+    .customer-mode .topbar { min-height:62px; margin-bottom:14px; border-bottom-color:rgba(126,196,255,.16); }
+    .customer-mode .customer-notice { border-color:rgba(126,196,255,.22); background:rgba(11,44,88,.42); color:#a8c4e4; }
+
+    /* ── هرو / خوش‌آمدگویی ── */
+    .customer-hero { position:relative; overflow:hidden; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:14px;
+      padding:18px; border-radius:24px; border:1px solid rgba(146,214,255,.26);
+      background:radial-gradient(330px 200px at 92% -30%, rgba(90,216,255,.34), transparent 70%),
+                 radial-gradient(270px 190px at 6% 124%, rgba(47,134,232,.36), transparent 72%),
+                 linear-gradient(145deg,#0d3a72 0%,#071f45 62%,#041530 100%);
+      box-shadow:0 22px 46px rgba(0,8,26,.5), inset 0 1px rgba(255,255,255,.10); }
+    .customer-hero::after { content:""; position:absolute; inset:0; pointer-events:none;
+      background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.07) 45%,transparent 60%); }
+    body.customer-mode.preview-data .customer-hero::before { content:"دادهٔ نمونه"; position:absolute; top:12px; left:12px; z-index:2;
+      padding:4px 10px; border-radius:99px; font-size:9px; font-weight:800; letter-spacing:.2px; color:#ffdfa3;
+      background:rgba(246,200,107,.14); border:1px solid rgba(246,200,107,.42); }
+    .customer-hero-main { display:flex; align-items:center; gap:13px; min-width:0; flex:1 1 180px; }
+    .customer-avatar { width:52px; height:52px; flex:0 0 52px; border-radius:18px; display:grid; place-items:center; font-size:19px; font-weight:850; color:#03152f;
+      background:linear-gradient(145deg,#a9ecff,#3aa4ea); box-shadow:0 10px 26px rgba(30,140,220,.5), inset 0 1px rgba(255,255,255,.6); }
     .customer-hero-copy { min-width:0; flex:1 1 auto; }
-    .customer-hero-copy small { display:block; color:#9dc3e8; font-size:10px; }
-    .customer-hero-copy h2 { margin:2px 0 0; font-size:17px; font-weight:850; line-height:1.5; overflow-wrap:anywhere; }
-    .customer-hero-copy p { margin:4px 0 0; color:#a8c3e2; font-size:10px; line-height:1.7; }
-    .customer-refresh { width:38px; height:38px; flex:0 0 38px; border-radius:13px; display:grid; place-items:center; border:1px solid rgba(127,183,244,.3);
-      background:rgba(9,44,82,.72); color:#c3e6ff; cursor:pointer; }
-    .customer-refresh svg { width:17px; height:17px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+    .customer-hero-copy small { display:block; color:#9fd0f5; font-size:10px; letter-spacing:.4px; }
+    .customer-hero-copy h2 { margin:3px 0 0; font-size:18px; font-weight:850; line-height:1.5; color:#f2f9ff; overflow-wrap:anywhere; }
+    .customer-hero-copy p { margin:5px 0 0; color:#a6c6e6; font-size:10px; line-height:1.7; }
+    .customer-refresh { position:relative; z-index:1; width:42px; height:42px; flex:0 0 42px; border-radius:14px; display:grid; place-items:center; cursor:pointer;
+      border:1px solid rgba(146,214,255,.34); background:rgba(6,28,60,.6); color:#bfe6ff;
+      box-shadow:inset 0 1px rgba(255,255,255,.08); transition:transform .18s, background .18s; }
+    .customer-refresh:active { transform:scale(.94); }
+    .customer-refresh svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
     .customer-refresh.busy svg { animation:customer-spin .8s linear infinite; }
     @keyframes customer-spin { to { transform:rotate(360deg); } }
 
-    .customer-kpis { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin-top:11px; }
-    .customer-kpi { min-width:0; padding:12px 13px; border-radius:16px; border:1px solid rgba(127,183,244,.18);
-      background:linear-gradient(150deg,rgba(14,60,113,.86),rgba(7,32,64,.92)); box-shadow:0 8px 22px rgba(0,10,30,.24); }
-    .customer-kpi span { display:block; color:#a4bfe0; font-size:10px; }
-    .customer-kpi strong { display:block; margin-top:5px; font-size:18px; font-weight:850; color:#f2f8ff; overflow-wrap:anywhere; }
-    .customer-kpi strong small { margin-right:4px; color:#9db6d4; font-size:9px; font-weight:650; }
+    /* ── کارت کیف پول ── */
+    .customer-mode .wallet-card { position:relative; overflow:hidden; margin:12px 0 0; padding:18px; border-radius:24px;
+      border:1px solid rgba(146,214,255,.34);
+      background:radial-gradient(340px 210px at 8% -22%, rgba(120,220,255,.34), transparent 70%),
+                 radial-gradient(300px 210px at 102% 132%, rgba(47,134,232,.42), transparent 72%),
+                 linear-gradient(140deg,#10559c 0%,#0a2c58 70%,#071d3e 100%);
+      box-shadow:0 24px 48px rgba(0,8,26,.55), inset 0 1px rgba(255,255,255,.12); }
+    .customer-mode .wallet-card::after { content:""; position:absolute; inset:0; pointer-events:none;
+      background:linear-gradient(100deg,transparent 34%,rgba(255,255,255,.08) 48%,transparent 62%); }
+    .customer-mode .wallet-card .panel-head h3 { font-size:12px; color:#e2f2ff; }
+    .customer-mode .wallet-card .panel-head p { color:#b6d5f2; }
+    .customer-mode .wallet-card .stat-icon { position:relative; z-index:1; color:#d8f1ff; background:rgba(4,24,52,.42); border-color:rgba(197,227,255,.4); }
+    .customer-mode .wallet-card .stat-value { position:relative; z-index:1; margin-top:10px; font-size:27px; color:#fff; text-shadow:0 3px 18px rgba(10,80,170,.6); }
+    .customer-mode .wallet-card .stat-unit { font-size:10px; color:#c3ddf6; }
+    .customer-mode .wallet-card .stat-foot { position:relative; z-index:1; color:#c3dcf5; font-size:10px; }
+    .customer-mode .wallet-card .mini-note { display:none; }
+    .customer-wallet-actions { position:relative; z-index:1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:15px; }
+    .customer-wallet-actions button { min-height:44px; border-radius:14px; font-size:11px; font-weight:800; cursor:pointer; transition:transform .16s, box-shadow .18s; }
+    .customer-wallet-actions button:active { transform:scale(.98); }
+    .customer-wallet-charge { border:0; color:#03152f; background:linear-gradient(110deg,#b5efff,#4fb6f0); box-shadow:0 10px 24px rgba(45,150,225,.42); }
+    .customer-wallet-history { border:1px solid rgba(197,227,255,.5); color:#eaf5ff; background:rgba(5,26,56,.5); }
 
-    .customer-quick { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; margin-top:11px; }
-    .customer-quick-tile { display:flex; align-items:center; gap:10px; min-width:0; padding:12px; border-radius:16px; text-align:right; font:inherit; color:#eaf5ff;
-      border:1px solid rgba(127,183,244,.2); background:linear-gradient(150deg,rgba(15,62,116,.9),rgba(8,36,70,.92)); cursor:pointer; }
-    .customer-quick-tile:hover { border-color:rgba(136,205,255,.5); }
-    .customer-quick-icon { width:36px; height:36px; flex:0 0 36px; border-radius:12px; display:grid; place-items:center; color:#9fd8ff;
-      background:rgba(63,160,235,.16); border:1px solid rgba(127,196,255,.24); }
-    .customer-quick-icon svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+    /* ── کارت‌های KPI ── */
+    .customer-kpis { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:12px; }
+    .customer-kpi { display:flex; flex-direction:column; gap:7px; min-width:0; padding:13px 14px; border-radius:18px;
+      border:1px solid rgba(126,196,255,.18); background:linear-gradient(158deg,rgba(17,60,116,.66),rgba(6,25,56,.8));
+      backdrop-filter:blur(14px); box-shadow:0 12px 28px rgba(0,8,26,.4), inset 0 1px rgba(255,255,255,.06); }
+    .kpi-icon { width:32px; height:32px; border-radius:11px; display:grid; place-items:center; color:#8fd8ff;
+      background:linear-gradient(145deg,rgba(90,216,255,.22),rgba(47,134,232,.14)); border:1px solid rgba(146,214,255,.26); }
+    .kpi-icon svg { width:17px; height:17px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+    .customer-kpi span:not(.kpi-icon) { color:#9dbbdb; font-size:10px; }
+    .customer-kpi strong { font-size:19px; font-weight:850; color:#f4faff; overflow-wrap:anywhere; line-height:1.3; }
+    .customer-kpi strong small { margin-right:4px; color:#8fb0d4; font-size:9px; font-weight:650; }
+
+    /* ── میان‌برها ── */
+    .customer-quick { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:12px; }
+    .customer-quick-tile { display:flex; align-items:center; gap:11px; min-width:0; padding:13px; border-radius:18px; text-align:right; font:inherit; color:#eaf5ff;
+      border:1px solid rgba(126,196,255,.2); background:linear-gradient(158deg,rgba(20,68,128,.7),rgba(7,30,64,.82));
+      backdrop-filter:blur(14px); box-shadow:0 12px 26px rgba(0,8,26,.38), inset 0 1px rgba(255,255,255,.06);
+      cursor:pointer; transition:transform .18s, border-color .18s, box-shadow .18s; }
+    .customer-quick-tile:hover { border-color:rgba(146,214,255,.5); transform:translateY(-2px); box-shadow:0 18px 34px rgba(0,10,30,.5); }
+    .customer-quick-tile:active { transform:scale(.985); }
+    .customer-quick-icon { width:40px; height:40px; flex:0 0 40px; border-radius:14px; display:grid; place-items:center; color:#9fdcff;
+      background:linear-gradient(145deg,rgba(90,216,255,.26),rgba(47,134,232,.16)); border:1px solid rgba(146,214,255,.28); }
+    .customer-quick-icon svg { width:20px; height:20px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
     .customer-quick-tile > span:last-child { min-width:0; flex:1 1 auto; }
     .customer-quick-tile strong { display:block; font-size:11px; font-weight:800; }
-    .customer-quick-tile small { display:block; margin-top:3px; color:#9cb6d6; font-size:9px; line-height:1.6; }
+    .customer-quick-tile small { display:block; margin-top:3px; color:#93b1d2; font-size:9px; line-height:1.6; }
 
-    .customer-mode .wallet-card { margin:11px 0 0; padding:16px; border-radius:20px; border:1px solid rgba(136,205,255,.32);
-      background:radial-gradient(260px 160px at 12% -10%, rgba(120,215,255,.26), transparent 72%), linear-gradient(140deg,#104f92,#0a2a55 82%);
-      box-shadow:0 14px 34px rgba(0,10,32,.4); }
-    .customer-mode .wallet-card .panel-head h3 { font-size:12px; color:#d9edff; }
-    .customer-mode .wallet-card .panel-head p { color:#b9d5f0; }
-    .customer-mode .wallet-card .stat-icon { color:#cdeaff; background:rgba(6,32,64,.35); border-color:rgba(197,227,255,.35); }
-    .customer-mode .wallet-card .stat-value { margin-top:8px; font-size:24px; color:#fff; }
-    .customer-mode .wallet-card .stat-unit { font-size:10px; color:#bcd9f5; }
-    .customer-mode .wallet-card .stat-foot { color:#c3dcf5; font-size:10px; }
-    .customer-mode .wallet-card .mini-note { display:none; }
-    .customer-wallet-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:13px; }
-    .customer-wallet-actions button { min-height:42px; border-radius:12px; font-size:11px; font-weight:800; cursor:pointer; }
-    .customer-wallet-charge { border:0; color:#04152e; background:linear-gradient(110deg,#a6e8ff,#4fb6f0); }
-    .customer-wallet-history { border:1px solid rgba(197,227,255,.45); color:#eaf5ff; background:rgba(6,32,64,.4); }
-
+    /* ── بنر سفارش در انتظار ── */
     .pending-order-head { display:flex; align-items:center; gap:10px; min-width:0; }
-    .pending-order-icon { width:34px; height:34px; flex:0 0 34px; border-radius:12px; display:grid; place-items:center; color:#ffd278;
-      background:rgba(246,200,107,.16); border:1px solid rgba(246,200,107,.3); }
-    .pending-order-icon svg { width:17px; height:17px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+    .pending-order-icon { width:36px; height:36px; flex:0 0 36px; border-radius:13px; display:grid; place-items:center; color:#ffd278;
+      background:rgba(246,200,107,.16); border:1px solid rgba(246,200,107,.32); }
+    .pending-order-icon svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+    .customer-mode .pending-orders { margin-top:12px; }
+    .customer-mode .pending-order { border-color:rgba(255,206,128,.32);
+      background:linear-gradient(120deg,rgba(96,67,25,.34),rgba(7,29,59,.9)); box-shadow:0 14px 30px rgba(0,8,26,.42); }
 
-    /* آیکن تب‌های مشتری؛ چیدمان گرید و جریان صفحه بدون تغییر می‌ماند */
-    .customer-mode .customer-tabs [role="tab"] { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; }
-    .customer-mode .customer-tabs [role="tab"]::before { content:""; width:19px; height:19px; background-color:currentColor;
+    /* ── پنل‌ها و کارت‌های محتوا: شیشه‌ای ── */
+    .customer-mode .panel,
+    .customer-mode .store-plan,
+    .customer-mode .customer-sub-card,
+    .customer-mode .referral-stat,
+    .customer-mode .customer-transaction,
+    .customer-mode .customer-history-panel {
+      border-color:rgba(126,196,255,.18);
+      background:linear-gradient(158deg,rgba(17,60,116,.6),rgba(6,25,56,.8));
+      backdrop-filter:blur(14px);
+      box-shadow:0 14px 32px rgba(0,8,26,.4), inset 0 1px rgba(255,255,255,.05);
+    }
+    .customer-mode .store-plan { border-color:rgba(126,196,255,.2); }
+    .customer-mode .store-plan:hover { border-color:rgba(146,214,255,.55); box-shadow:0 22px 44px rgba(0,10,30,.55); }
+    .customer-mode .section-title h2,
+    .customer-mode .section-title h3 { position:relative; padding-right:12px; color:#eef7ff; }
+    .customer-mode .section-title h2::before,
+    .customer-mode .section-title h3::before { content:""; position:absolute; right:0; top:.35em; bottom:.35em; width:4px; border-radius:99px;
+      background:linear-gradient(180deg,#7ce0ff,#2f86e8); box-shadow:0 0 12px rgba(90,216,255,.6); }
+
+    /* ── نوار ناوبری پایین (ثابت در همهٔ اندازه‌ها) ── */
+    .customer-mode .customer-tabs { position:fixed; left:0; right:0; bottom:0; z-index:60;
+      display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; margin:0; border:0; border-radius:0;
+      padding:8px max(10px, calc((100% - 760px) / 2)) calc(8px + var(--safe-bottom));
+      border-top:1px solid rgba(126,196,255,.22);
+      background:linear-gradient(0deg,rgba(2,9,26,.98) 0%,rgba(5,22,50,.94) 100%);
+      backdrop-filter:blur(22px); box-shadow:0 -16px 42px rgba(0,4,16,.6); }
+    .customer-mode .customer-tabs [role="tab"] { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+      min-height:54px; padding:6px 4px; border:1px solid transparent; border-radius:16px;
+      background:transparent; color:#8fb2d6; font:inherit; font-size:11px; font-weight:750;
+      white-space:nowrap; cursor:pointer; transition:color .18s, background .18s, border-color .18s; }
+    .customer-mode .customer-tabs [role="tab"]::before { content:""; width:21px; height:21px; background-color:currentColor;
       -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-position:center; mask-position:center;
-      -webkit-mask-size:19px 19px; mask-size:19px 19px; }
+      -webkit-mask-size:21px 21px; mask-size:21px 21px; }
+    .customer-mode .customer-tabs [role="tab"][aria-selected="true"] { color:#f0f9ff; border-color:rgba(146,214,255,.42);
+      background:linear-gradient(150deg,rgba(47,134,232,.46),rgba(90,216,255,.18));
+      box-shadow:inset 0 1px rgba(255,255,255,.14), 0 10px 22px rgba(10,60,130,.42); }
+    .customer-mode .customer-tabs [role="tab"][aria-selected="true"]::after { content:""; position:absolute; top:4px; width:24px; height:3px; border-radius:99px;
+      background:linear-gradient(90deg,#7ce0ff,#2f86e8); box-shadow:0 0 12px rgba(124,224,255,.85); }
+    .customer-mode .customer-tabs [role="tab"]:focus-visible { outline:2px solid #91caff; outline-offset:2px; }
     .customer-mode .customer-tabs [data-customer-tab="buy"]::before { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 9.5h16l-1.3-5H5.3L4 9.5ZM5 9.5v9A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5v-9'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 9.5h16l-1.3-5H5.3L4 9.5ZM5 9.5v9A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5v-9'/></svg>"); }
     .customer-mode .customer-tabs [data-customer-tab="orders"]::before { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M7 3.5h8l4 4V20H5V5a1.5 1.5 0 0 1 2-1.5ZM14 4v4h4M8 12h8M8 16h8'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M7 3.5h8l4 4V20H5V5a1.5 1.5 0 0 1 2-1.5ZM14 4v4h4M8 12h8M8 16h8'/></svg>"); }
     .customer-mode .customer-tabs [data-customer-tab="history"]::before { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='8'/><path d='M12 8v4l3 2'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='8'/><path d='M12 8v4l3 2'/></svg>"); }
     .customer-mode .customer-tabs [data-customer-tab="referrals"]::before { -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='9' cy='8' r='3.5'/><path d='M2.5 20v-1a6.5 6.5 0 0 1 13 0v1M17 7h4M19 5v4'/></svg>"); mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='9' cy='8' r='3.5'/><path d='M2.5 20v-1a6.5 6.5 0 0 1 13 0v1M17 7h4M19 5v4'/></svg>"); }
 
-    /* کارت QR و لینک اشتراک + دکمه‌های نصب هیدیفای */
+    /* ── کارت QR و لینک اشتراک + دکمه‌های نصب هیدیفای ── */
     .subscription-qr-slot { display:block; margin-bottom:10px; }
     .subscription-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
     .subscription-actions button { flex:1 1 132px; min-height:40px; border-radius:12px; font-size:11px; font-weight:750; cursor:pointer; }
     .hiddify-downloads { width:100%; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:6px; }
     .hiddify-downloads button { display:flex; align-items:center; justify-content:center; gap:7px; min-width:0; min-height:44px; padding:8px 10px;
       border-radius:13px; font:inherit; font-size:11px; font-weight:750; color:#eaf5ff; border:1px solid rgba(127,183,244,.28);
-      background:linear-gradient(150deg,rgba(15,62,116,.92),rgba(8,36,70,.94)); cursor:pointer; }
-    .hiddify-downloads button:hover { border-color:rgba(136,205,255,.55); }
+      background:linear-gradient(150deg,rgba(15,62,116,.92),rgba(8,36,70,.94)); cursor:pointer; transition:transform .16s, border-color .18s; }
+    .hiddify-downloads button:hover { border-color:rgba(136,205,255,.55); transform:translateY(-1px); }
+    .hiddify-downloads button:active { transform:scale(.985); }
     .hiddify-downloads button svg { width:17px; height:17px; flex:0 0 17px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
     .hiddify-downloads button span { min-width:0; overflow-wrap:anywhere; text-align:right; }
     .hiddify-downloads .hiddify-github { grid-column:1/-1; border-color:rgba(136,205,255,.45); background:rgba(9,44,82,.72); }
@@ -1267,13 +1345,16 @@
       .customer-kpis { grid-template-columns:repeat(4,minmax(0,1fr)); }
       .customer-quick { grid-template-columns:repeat(4,minmax(0,1fr)); }
     }
-    @media (max-width:420px) {
-      .customer-hero { padding:13px 14px; }
-      .customer-hero-copy h2 { font-size:16px; }
-      .customer-kpi strong { font-size:17px; }
-      .customer-quick-tile { padding:10px; gap:8px; }
-      .customer-quick-icon { width:32px; height:32px; flex-basis:32px; border-radius:11px; }
-      .customer-mode .customer-tabs [role="tab"] { font-size:11px; }
+    @media (max-width:430px) {
+      .customer-hero { padding:15px; gap:11px; }
+      .customer-hero-copy h2 { font-size:17px; }
+      .customer-avatar { width:46px; height:46px; flex-basis:46px; border-radius:16px; }
+      .customer-kpi strong { font-size:18px; }
+      .customer-quick-tile { padding:11px; gap:9px; }
+      .customer-quick-icon { width:36px; height:36px; flex-basis:36px; border-radius:12px; }
+      .customer-mode .customer-tabs [role="tab"] { font-size:10px; min-height:52px; }
+      .customer-mode .customer-tabs [role="tab"]::before { width:19px; height:19px; -webkit-mask-size:19px 19px; mask-size:19px 19px; }
+      .customer-mode .wallet-card .stat-value { font-size:24px; }
     }
   </style>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -1530,27 +1611,28 @@
 
 
     <section class="page hidden" id="storePage">
+      <section class="customer-tab-panel" id="customerTabBuy" role="tabpanel" aria-labelledby="customerTabButtonBuy">
       <div class="customer-top">
-        <div class="customer-hero">
+        <section class="customer-hero" aria-label="خوش‌آمدگویی">
           <div class="customer-hero-main">
             <span class="customer-avatar" id="customerHeroAvatar" aria-hidden="true">؟</span>
             <div class="customer-hero-copy"><small>خوش آمدید</small><h2>سلام، <span id="customerGreeting">دوست عزیز</span> 👋</h2><p>سرویس، کیف پول و سفارش‌هایت در یک نگاه</p></div>
           </div>
           <button class="customer-refresh" id="customerRefresh" type="button" aria-label="به‌روزرسانی اطلاعات"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v5h-5"/></svg></button>
-        </div>
-        <div class="customer-kpis" id="customerKpis" aria-live="polite">
-          <article class="customer-kpi"><span>اشتراک فعال</span><strong>—<small>سرویس</small></strong></article>
-          <article class="customer-kpi"><span>نزدیک‌ترین انقضا</span><strong>—<small>روز</small></strong></article>
-          <article class="customer-kpi"><span>حجم باقی‌مانده</span><strong>—<small>گیگ</small></strong></article>
-          <article class="customer-kpi"><span>موجودی کیف پول</span><strong>—<small>تومان</small></strong></article>
-        </div>
+        </section>
         <div class="pending-orders" id="customerPendingOrders"></div>
         <article class="panel wallet-card" id="customerWalletCard">
-          <div class="panel-head"><div><h3>موجودی کیف پول</h3><p>قابل استفاده برای پرداخت سریع</p></div><span class="stat-icon">◈</span></div>
+          <div class="panel-head"><div><h3>موجودی کیف پول</h3><p>قابل استفاده برای پرداخت سریع</p></div><span class="stat-icon" aria-hidden="true">◈</span></div>
           <strong class="stat-value" id="customerBalance">—<span class="stat-unit">تومان</span></strong>
           <div class="stat-foot"><span>مجموع خریدهای ثبت‌شده</span><span id="customerSpent">—</span></div>
           <div class="customer-wallet-actions"><button class="customer-wallet-charge" id="customerWalletCharge" type="button">شارژ کیف پول</button><button class="customer-wallet-history" id="customerWalletHistory" type="button">تاریخچه تراکنش‌ها</button></div>
         </article>
+        <div class="customer-kpis" id="customerKpis" aria-live="polite">
+          <article class="customer-kpi"><span class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12h4l2.5-7 3 14 2.5-7h6"/></svg></span><span>اشتراک فعال</span><strong>—<small>سرویس</small></strong></article>
+          <article class="customer-kpi"><span class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span><span>نزدیک‌ترین انقضا</span><strong>—<small>روز</small></strong></article>
+          <article class="customer-kpi"><span class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg></span><span>حجم باقی‌مانده</span><strong>—<small>گیگ</small></strong></article>
+          <article class="customer-kpi"><span class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H18v3"/><rect x="3" y="8" width="18" height="11" rx="3"/><path d="M16 13.5h2"/></svg></span><span>موجودی کیف پول</span><strong>—<small>تومان</small></strong></article>
+        </div>
         <div class="customer-quick">
           <button class="customer-quick-tile" type="button" data-customer-quick="plans"><span class="customer-quick-icon"><svg viewBox="0 0 24 24"><path d="M4 9.5h16l-1.3-5H5.3L4 9.5ZM5 9.5v9A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5v-9"/></svg></span><span><strong>خرید سرویس</strong><small>انتخاب پلن و پرداخت</small></span></button>
           <button class="customer-quick-tile" type="button" data-customer-quick="mysubs"><span class="customer-quick-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 10h8M8 14h5"/></svg></span><span><strong>سرویس‌های من</strong><small>وضعیت و مصرف اشتراک</small></span></button>
@@ -1558,13 +1640,6 @@
           <button class="customer-quick-tile" type="button" data-customer-quick="support"><span class="customer-quick-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/></svg></span><span><strong>پشتیبانی ۲۴</strong><small>گفت‌وگو با تیم تیزنت</small></span></button>
         </div>
       </div>
-      <div class="customer-tabs" role="tablist" aria-label="بخش‌های حساب مشتری">
-        <button id="customerTabButtonBuy" type="button" role="tab" aria-selected="true" aria-controls="customerTabBuy" data-customer-tab="buy">خرید</button>
-        <button id="customerTabButtonOrders" type="button" role="tab" aria-selected="false" aria-controls="customerTabOrders" data-customer-tab="orders" tabindex="-1">سفارشات</button>
-        <button id="customerTabButtonHistory" type="button" role="tab" aria-selected="false" aria-controls="customerTabHistory" data-customer-tab="history" tabindex="-1">تاریخچه</button>
-        <button id="customerTabButtonReferrals" type="button" role="tab" aria-selected="false" aria-controls="customerTabReferrals" data-customer-tab="referrals" tabindex="-1">عضوگیری</button>
-      </div>
-      <section class="customer-tab-panel" id="customerTabBuy" role="tabpanel" aria-labelledby="customerTabButtonBuy">
         <article class="panel free-claim-card" id="customerFreeCard" aria-labelledby="customerFreeTitle">
           <div class="panel-head"><div><h3 id="customerFreeTitle">اشتراک رایگان</h3><p id="customerFreeDescription">در صورت فعال‌بودن، یک اشتراک رایگان از سرور انتخاب‌شده دریافت کنید.</p></div><span class="status pending" id="customerFreeBadge">در حال بررسی</span></div>
           <div class="free-claim-footer"><div class="mini-note" id="customerFreeStatus" role="status" aria-live="polite">وضعیت دریافت بررسی می‌شود.</div><button class="btn-primary" id="customerFreeClaim" type="button" disabled>دریافت اشتراک رایگان</button></div>
@@ -1614,6 +1689,12 @@
           <div class="referral-share-actions"><button class="btn-primary" id="referralRedeemButton" type="button" disabled>تبدیل امتیاز به کیف پول</button><span class="mini-note" id="referralRedeemStatus" role="status" aria-live="polite">تبدیل فقط با فشردن دکمه انجام می‌شود.</span></div>
         </article>
       </section>
+      <div class="customer-tabs" role="tablist" aria-label="بخش‌های حساب مشتری">
+        <button id="customerTabButtonBuy" type="button" role="tab" aria-selected="true" aria-controls="customerTabBuy" data-customer-tab="buy">خرید</button>
+        <button id="customerTabButtonOrders" type="button" role="tab" aria-selected="false" aria-controls="customerTabOrders" data-customer-tab="orders" tabindex="-1">سفارشات</button>
+        <button id="customerTabButtonHistory" type="button" role="tab" aria-selected="false" aria-controls="customerTabHistory" data-customer-tab="history" tabindex="-1">تاریخچه</button>
+        <button id="customerTabButtonReferrals" type="button" role="tab" aria-selected="false" aria-controls="customerTabReferrals" data-customer-tab="referrals" tabindex="-1">عضوگیری</button>
+      </div>
     </section>
 
     <div class="mobile-nav" id="mobileNav">
@@ -2419,16 +2500,21 @@
       const nearest=days.length?Math.min(...days):null;
       const remaining=active.map(s=>Number(s.usage_remaining)).filter(v=>Number.isFinite(v)&&v>=0);
       const totalRemaining=remaining.length?remaining.reduce((a,b)=>a+b,0):null;
+      const kpiIcons={
+        active:'<path d="M3 12h4l2.5-7 3 14 2.5-7h6"/>',
+        days:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+        volume:'<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>',
+        wallet:'<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H18v3"/><rect x="3" y="8" width="18" height="11" rx="3"/><path d="M16 13.5h2"/>'
+      };
       const kpis=[
-        {label:'اشتراک فعال',value:fmt(active.length),unit:'سرویس'},
-        {label:'نزدیک‌ترین انقضا',value:nearest==null?'—':fmt(nearest),unit:nearest==null?'':'روز'},
-        {label:'حجم باقی‌مانده',value:totalRemaining==null?'—':fmtDec(totalRemaining),unit:totalRemaining==null?'':'گیگ'},
-        {label:'موجودی کیف پول',value:fmt(c.balance||0),unit:'تومان'}
+        {icon:kpiIcons.active,label:'اشتراک فعال',value:fmt(active.length),unit:'سرویس'},
+        {icon:kpiIcons.days,label:'نزدیک‌ترین انقضا',value:nearest==null?'—':fmt(nearest),unit:nearest==null?'':'روز'},
+        {icon:kpiIcons.volume,label:'حجم باقی‌مانده',value:totalRemaining==null?'—':fmtDec(totalRemaining),unit:totalRemaining==null?'':'گیگ'},
+        {icon:kpiIcons.wallet,label:'موجودی کیف پول',value:fmt(c.balance||0),unit:'تومان'}
       ];
       const box=document.getElementById('customerKpis');
-      if(box)box.innerHTML=kpis.map(item=>`<article class="customer-kpi"><span>${esc(item.label)}</span><strong>${esc(item.value)}${item.unit?`<small>${esc(item.unit)}</small>`:''}</strong></article>`).join('');
-      const hero=document.querySelector('.customer-hero');
-      if(hero)hero.classList.toggle('preview-data',!!isPreview);
+      if(box)box.innerHTML=kpis.map(item=>`<article class="customer-kpi"><span class="kpi-icon" aria-hidden="true"><svg viewBox="0 0 24 24">${item.icon}</svg></span><span>${esc(item.label)}</span><strong>${esc(item.value)}${item.unit?`<small>${esc(item.unit)}</small>`:''}</strong></article>`).join('');
+      if(isPreview)document.body.classList.add('preview-data');else document.body.classList.remove('preview-data');
     }
     function renderCustomerOrders(orders, partial) {
       const body=document.getElementById('customerOrdersBody');
