@@ -545,11 +545,11 @@
       .page-top > button,.page-top .table-tools { flex:0 1 auto; }
       .page-top h1 { font-size:22px; }
       .page-top p { line-height:1.8; }
-      .section-title,.panel-head { align-items:flex-start; flex-wrap:wrap; }
+      .section-title,.panel-head { align-items:flex-start; flex-wrap:nowrap; }
       .section-title > *, .panel-head > * { min-width:0; }
-      .stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:9px; }
+      .stats-grid { grid-template-columns:repeat(auto-fit,minmax(min(100%,132px),1fr)) !important; gap:9px; }
       .stat-card { min-height:110px; padding:12px; }
-      .stat-value { overflow-wrap:anywhere; font-size:clamp(17px,5vw,22px); }.content-grid, .lower-grid, .admin-layout-grid { grid-template-columns:minmax(0,1fr) !important; }
+      .stat-value { white-space:nowrap; font-size:clamp(17px,5vw,22px); }.content-grid, .lower-grid, .admin-layout-grid { grid-template-columns:minmax(0,1fr) !important; }
       .panel { padding:13px; border-radius:15px; }
       .hero { min-height:0; padding:17px; align-items:flex-start; }
       .hero-copy { min-width:0; }
@@ -564,14 +564,14 @@
       .table-wrap thead { display:none; }
       .table-wrap tbody { display:grid; gap:9px; width:100%; }
       .table-wrap tbody tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 12px; width:100%; min-width:0; padding:11px; border:1px solid rgba(235, 245, 255,.22); border-radius:14px; background:linear-gradient(145deg,rgba(31, 101, 174,.86),rgba(18, 71, 126,.9)); box-shadow:0 8px 20px rgba(0, 27, 56,.12); }
-      .table-wrap tbody td { display:flex; align-items:flex-start; justify-content:space-between; gap:7px; min-width:0; padding:2px 0; border:0; white-space:normal; font-size:13px; line-height:1.65; overflow-wrap:anywhere; }
+      .table-wrap tbody td { display:flex; align-items:center; justify-content:space-between; gap:7px; min-width:0; padding:2px 0; border:0; white-space:nowrap; font-size:13px; line-height:1.65; }
       .table-wrap tbody td::before { content:""; flex:0 1 43%; min-width:42px; color:#cbdff4; font-size:11px; line-height:1.7; font-weight:750; }
       .table-wrap tbody td[colspan] { grid-column:1/-1; display:block; text-align:center; padding:11px 5px !important; }
       .table-wrap tbody td[colspan]::before { content:none; }
       .table-wrap tbody td > * { max-width:100%; }
       .customer-cell { align-items:flex-start; min-width:0; }
-      .customer-cell > span:last-child { min-width:0; overflow-wrap:anywhere; }
-      .table-action,.order-follow { min-height:40px; white-space:normal; }
+      .customer-cell > span:last-child { min-width:0; }
+      .table-action,.order-follow { min-height:40px; white-space:nowrap; }
       #recentOrdersBody td:nth-child(1)::before { content:"شناسه"; }
       #recentOrdersBody td:nth-child(2)::before { content:"مشتری"; }
       #recentOrdersBody td:nth-child(3)::before { content:"نوع"; }
@@ -613,7 +613,7 @@
       .settings-grid,.settings-toggles,.admin-layout-grid { grid-template-columns:minmax(0,1fr) !important; }
       .settings-wide { grid-column:auto; }
       .admin-actions,.managed-actions,.form-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
-      .admin-actions > button,.managed-actions > button,.form-actions > button { min-width:0; min-height:44px; white-space:normal; }
+      .admin-actions > button,.managed-actions > button,.form-actions > button { min-width:0; min-height:44px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .managed-item { align-items:flex-start; }
       .managed-main { min-width:0; width:100%; }
       .mobile-nav { display:flex; position:fixed; z-index:30; left:0; right:0; bottom:0; width:100%; height:calc(70px + var(--safe-bottom)); padding:7px 8px calc(7px + var(--safe-bottom)); gap:4px; justify-content:flex-start; flex-wrap:nowrap; overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain; touch-action:pan-x; scrollbar-width:none; background:rgba(13, 63, 115,.98); border-top:1px solid rgba(231, 243, 255,.25); }
@@ -842,9 +842,9 @@
       .store-art { width:clamp(56px,13vw,82px); height:clamp(56px,13vw,82px); border-radius:20px; }
       .store-art img { width:100%; height:auto; }
       .kv-backup-actions > button,.kv-backup-actions > .kv-restore-file-label { width:100%; min-width:0; }
-      .outline-btn,.table-action,.btn-primary,.btn-secondary { min-width:0; white-space:normal; overflow-wrap:anywhere; }
-      .stat-top,.stat-foot { gap:6px; flex-wrap:wrap; }
-      .status,.type-pill { max-width:100%; white-space:normal; overflow-wrap:anywhere; }
+      .outline-btn,.table-action,.btn-primary,.btn-secondary { min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .stat-top,.stat-foot { gap:6px; flex-wrap:nowrap; }
+      .status,.type-pill { max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     }
     @media (max-width:390px)  {
     }
@@ -928,7 +928,7 @@
     @media (max-width:760px) {
       .customer-detail-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .customer-detail-row { flex-direction:column; }
-      .customer-detail-row .amount { white-space:normal; }
+      .customer-detail-row .amount { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .referral-stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
       .referral-stat { padding:12px; }
       .referral-stat strong { font-size:21px; }
@@ -1326,6 +1326,148 @@
     .topup-presets .outline-btn { padding:9px 4px; font-size:10px; justify-content:center; }
     .topup-presets .outline-btn.is-active { border-color:rgba(61,156,255,.62); color:#a8d3ff; background:#1b2c45; }
     @media (max-width:420px) { .topup-presets { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    /* ══════════════════════════════════════════════════════════════════════
+       لایهٔ «تک‌خطی و سیال» — نمای کلی مدیر و نمای مشتری (۱.۸.۱۶)
+       قاعدهٔ این لایه: هیچ نوشته‌ای در این دو نما به خط دوم نمی‌رود.
+       ۱) اندازهٔ فونت با clamp() پیوسته با عرض صفحه رشد می‌کند؛ پس متن در
+          هر عرضی جا می‌شود بدون اینکه بشکند (از ۳۲۰px تا ۴K).
+       ۲) اگر متنی از ظرفش بلندتر بود، با «…» کوتاه می‌شود؛ هرگز وسط کلمه
+          نمی‌شکند و از کارت بیرون نمی‌زند.
+       ۳) چیدمان‌ها auto-fit/minmax هستند، پس بین بریک‌پوینت‌ها هم درست‌اند.
+       ══════════════════════════════════════════════════════════════════════ */
+    :root {
+      --fs-3xs: clamp(8px, .22vw + 7.3px, 10px);
+      --fs-2xs: clamp(9px, .26vw + 8.15px, 11px);
+      --fs-xs:  clamp(10px, .32vw + 9px, 12.5px);
+      --fs-sm:  clamp(11px, .42vw + 9.65px, 14px);
+      --fs-md:  clamp(12px, .55vw + 10.25px, 16px);
+      --fs-lg:  clamp(13.5px, .8vw + 10.95px, 20px);
+      --fs-xl:  clamp(16px, 1.05vw + 12.65px, 24px);
+      --fs-2xl: clamp(18px, 1.5vw + 13.2px, 30px);
+    }
+
+    /* ── ۱) قانون تک‌خطی ───────────────────────────────────────────────── */
+    #overviewPage, #overviewPage *, #storePage, #storePage * { white-space: nowrap; }
+
+    /* ── ۲) متن‌های بلند: کوتاه‌سازی با «…» به‌جای شکستن ────────────────── */
+    #overviewPage :is(.hero p, .hero h1, .eyebrow, .panel-head h3, .panel-head p,
+        .section-title h2, .section-title p, .page-top p, .mini-note, .stat-top > span,
+        .stat-value, .stat-foot > span, .legend-item, .legend-name, .legend-row strong,
+        .legend-row small, .chart-bottom span, .plan-name, .plan-count,
+        .donut-center strong, .donut-center span, .link-button, .outline-btn,
+        .btn-primary, .btn-secondary),
+    #storePage :is(.cv-card-head h3, .cv-card-head p, .cv-sec-title h2, .cv-sec-title p,
+        .cv-empty, .cv-notice, .cv-hero-copy h2, .cv-hero-copy p, .cv-plan-top h3,
+        .cv-spec small, .cv-sub-head small, .cv-tx-main small, .cv-pending-head small,
+        .cv-free-foot .mini-note, .cv-wallet-spent, .panel-head h3, .panel-head p,
+        .mini-note, .cv-quick-tile strong) {
+      min-width: 0; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* ── ۳) ستون‌های فلکس همیشه قابل‌کوچک‌شدن (وگرنه متن از کارت بیرون می‌زند) ── */
+    .stat-icon, .stat-head-icon { flex: 0 0 auto; }
+    .stat-top > span:first-child, .stat-foot > span:first-child { flex: 1 1 auto; min-width: 0; }
+    .stat-foot > span:last-child, .stat-foot .trend { flex: 0 0 auto; }
+    .panel-head > div, .section-title > div, .page-top > div, .cv-card-head > div,
+    .cv-sec-title h2, .hero-copy, .cv-hero-copy, .cv-wallet-label, .cv-plan-top h3 { min-width: 0; }
+    .panel-head > :not(div), .section-title > :not(div), .page-top > :not(div),
+    .cv-card-head > :not(div), .hero-pill { flex: 0 0 auto; }
+    .cv-sec-title > :not(h2) { flex: 0 1 auto; min-width: 0; }
+    .hero { flex-wrap: nowrap; }
+    .hero-copy { flex: 1 1 auto; }
+    .cv-free-foot .mini-note { flex: 1 1 auto; }
+    .cv-plan-top h3 { flex: 1 1 auto; }
+    .legend-item, .legend-name { display: block; overflow: hidden; text-overflow: ellipsis; }
+    .legend-name i, .legend-item i { display: inline-block; vertical-align: middle; margin-left: 6px; }
+    .chart-bottom span { flex: 1 1 0; min-width: 0; text-align: center; }
+
+    /* ── ۴) مقیاس تایپوگرافی سیال (همان اندازه در هر عرضی، بدون پرش) ─────── */
+    .stat-value { font-size: var(--fs-xl); }
+    .stat-top { font-size: var(--fs-xs); }
+    .stat-foot, .stat-unit { font-size: var(--fs-2xs); }
+    .panel-head h3 { font-size: var(--fs-sm); }
+    .panel-head p { font-size: var(--fs-2xs); }
+    .page-top h1 { font-size: var(--fs-2xl); }
+    .page-top p { font-size: var(--fs-xs); }
+    .hero h1 { font-size: var(--fs-2xl); }
+    .hero p { font-size: var(--fs-xs); }
+    .eyebrow { font-size: var(--fs-2xs); }
+    .mini-note { font-size: var(--fs-2xs); }
+    th { font-size: var(--fs-2xs); }
+    td { font-size: var(--fs-xs); }
+    .plan-name, .plan-count { font-size: var(--fs-2xs); }
+    .chart-legend, .chart-bottom { font-size: var(--fs-2xs); }
+    .donut-center strong { font-size: var(--fs-lg); }
+    .donut-center span { font-size: var(--fs-2xs); }
+    .cv-hero-copy h2 { font-size: var(--fs-lg); }
+    .cv-hero-copy small, .cv-hero-copy p { font-size: var(--fs-2xs); }
+    .cv-wallet-label strong { font-size: var(--fs-xl); }
+    .cv-stat small { font-size: var(--fs-2xs); }
+    .cv-stat strong { font-size: var(--fs-md); }
+    .cv-quick-tile strong { font-size: var(--fs-xs); }
+    .cv-plan-top h3 { font-size: var(--fs-md); }
+    .cv-spec strong { font-size: var(--fs-sm); }
+    .cv-price { font-size: var(--fs-lg); }
+    .cv-sub-head strong { font-size: var(--fs-sm); }
+    .cv-sub-head small, .cv-pending-head small { font-size: var(--fs-2xs); }
+    .cv-pending-head strong { font-size: var(--fs-xs); }
+    .cv-tx-main strong { font-size: var(--fs-xs); }
+    .cv-tx-main small { font-size: var(--fs-2xs); }
+    .cv-notice, .cv-empty { font-size: var(--fs-2xs); }
+
+    /* ── ۵) چیدمان سیال: تعداد ستون‌ها با عرض صفحه، نه با بریک‌پوینت ─────── */
+    .main { padding-left: clamp(10px, 2.3vw, 34px); padding-right: clamp(10px, 2.3vw, 34px); }
+    .stats-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); }
+    .content-grid { grid-template-columns: minmax(0, 1.55fr) minmax(min(100%, 300px), .85fr); }
+    .lower-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.18fr); }
+    .plan-row { grid-template-columns: minmax(0, 1.15fr) minmax(40px, 1.25fr) auto; }
+    .table-wrap { overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+    @media (max-width: 1024px) {
+      .content-grid, .lower-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    /* ── ۶) سلول‌های جدول: یک خط «برچسب … مقدار» در کارت موبایل ──────────── */
+    .table-wrap .cell { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cell-main { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cell-sub { display: block; margin-top: 3px; color: #b9cfe8; font-size: 11px; direction: ltr;
+      text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    @media (max-width: 760px) {
+      .table-wrap tbody td { white-space: nowrap; overflow-wrap: normal; word-break: normal; font-size: var(--fs-xs); }
+      .table-wrap tbody td::before { flex: 0 1 42%; white-space: nowrap; font-size: var(--fs-2xs); }
+      .table-wrap tbody td { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+      .table-wrap tbody td > span, .table-wrap tbody td > strong, .table-wrap tbody td > small,
+      .table-wrap tbody td > b, .table-wrap tbody td > a, .table-wrap tbody td > em,
+      .customer-cell > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .table-wrap tbody td > .customer-cell { flex: 1 1 auto; }
+      .cell-main { display: inline; }
+      .cell-sub { display: inline; margin: 0 4px 0 0; font-size: var(--fs-2xs); }
+    }
+
+    /* ── ۷) عرض‌های کوچک: فشرده‌سازی بدون شکستن متن ─────────────────────── */
+    @media (max-width: 480px) {
+      .topbar { flex-wrap: wrap; row-gap: 8px; }
+      .top-left { flex: 1 1 100%; }
+      .top-actions { flex: 0 0 auto; margin-right: auto; }
+      .hero { flex-direction: column; align-items: stretch; gap: 9px; }
+      .hero h1 { font-size: var(--fs-xl); }
+      .stats-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 126px), 1fr)) !important; }
+      .cv-stats { gap: 6px; }
+      .cv-quick { gap: 5px; }
+      .cv-hero { padding: 9px 11px; gap: 8px; }
+      .cv-avatar { width: 34px; height: 34px; border-radius: 11px; font-size: 13px; }
+      .cv-wallet { padding: 10px 11px; gap: 8px; }
+      .cv-plan, .cv-subs, .cv-free { padding: 10px 11px; }
+      .cv-wallet-actions button { font-size: var(--fs-xs); }
+      .table-wrap tbody tr { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 360px) {
+      .stat-card { padding: 9px; }
+      .stat-value { letter-spacing: -.4px; }
+      .cv-quick-tile { padding: 7px 2px; gap: 4px; }
+      .cv-quick-icon { width: 26px; height: 26px; border-radius: 9px; }
+      .cv-stat { padding: 7px 6px; }
+      .cv-wallet-actions { gap: 5px; }
+    }
   </style>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -1370,16 +1512,16 @@
 
     <section class="page" id="overviewPage">
       <div class="hero">
-        <div class="hero-copy"><div class="eyebrow">داشبورد هوشمند تیزنت</div><h1>سلام، مدیر تیزنت 👋</h1><p>نمایی شفاف از فروش، خریدها و تمدیدهای فروشگاه شما.<br>همه‌چیز برای تصمیم‌گیری سریع، در یک نگاه.</p></div>
-        <div class="hero-pill"><svg viewBox="0 0 24 24"><path d="M3 17 9 11l4 4 8-9"/><path d="M15 6h6v6"/></svg><span>گزارش فروش<br><b id="periodCaption">۳۰ روز اخیر</b></span></div>
+        <div class="hero-copy"><div class="eyebrow">داشبورد هوشمند تیزنت</div><h1>سلام، مدیر تیزنت 👋</h1><p>فروش، خرید و تمدید در یک نگاه.</p></div>
+        <div class="hero-pill"><svg viewBox="0 0 24 24"><path d="M3 17 9 11l4 4 8-9"/><path d="M15 6h6v6"/></svg><span>گزارش فروش · <b id="periodCaption">۳۰ روز اخیر</b></span></div>
       </div>
 
       <div class="section-title"><div><h2>عملکرد فروشگاه</h2><p>مقایسه با بازهٔ قبل از همین مدت</p></div><button class="link-button" id="exportTop">دریافت گزارش کامل ←</button></div>
       <div class="stats-grid">
-        <article class="stat-card dashboard-drill" tabindex="0" role="button" data-dashboard-drill="revenue" aria-label="جزئیات درآمد فروش" style="--tone:var(--teal);--iconbg:rgba(43,161,222,.1);--glow:rgba(43,161,222,.08)"><div class="stat-top"><span>درآمد فروش</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M3 7h18v13H3zM3 7l2-4h14l2 4M16 13h5"/><circle cx="16" cy="13" r="1"/></svg></span></div><strong class="stat-value" id="kpiRevenue">۸٬۴۵۰٬۰۰۰<span class="stat-unit">تومان</span></strong><div class="stat-foot"><span>خرید موفق + تمدید</span><span class="trend" id="kpiRevenueChange">↗ ۱۸٫۶٪</span></div></article>
-        <article class="stat-card dashboard-drill" tabindex="0" role="button" data-dashboard-drill="sales" aria-label="جزئیات فروش موفق" style="--tone:var(--blue);--iconbg:rgba(26,103,196,.12);--glow:rgba(26,103,196,.09)"><div class="stat-top"><span>فروش موفق</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/><path d="m15 17 2 2 4-4"/></svg></span></div><strong class="stat-value" id="kpiSales">۱۲۴</strong><div class="stat-foot"><span>سفارش تکمیل‌شده</span><span class="trend" id="kpiSalesChange">↗ ۱۲٫۲٪</span></div></article>
-        <article class="stat-card dashboard-drill" tabindex="0" role="button" data-dashboard-drill="buy" aria-label="جزئیات خریدهای جدید" style="--tone:var(--purple);--iconbg:rgba(170,139,255,.12);--glow:rgba(170,139,255,.09)"><div class="stat-top"><span>خرید جدید</span><span class="stat-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2.5 21v-1.5a6.5 6.5 0 0 1 13 0V21M19 8v6M16 11h6"/></svg></span></div><strong class="stat-value" id="kpiNew">۸۱</strong><div class="stat-foot"><span>اشتراک تازه‌فعال‌شده</span><span class="trend" id="kpiNewChange">↗ ۹٫۴٪</span></div></article>
-        <article class="stat-card dashboard-drill" tabindex="0" role="button" data-dashboard-drill="renew" aria-label="جزئیات تمدید اشتراک" style="--tone:var(--yellow);--iconbg:rgba(246,200,107,.12);--glow:rgba(246,200,107,.08)"><div class="stat-top"><span>تمدید اشتراک</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9A7 7 0 0 1 18 6l2 2M4 16l2 2a7 7 0 0 0 12.5-3"/></svg></span></div><strong class="stat-value" id="kpiRenew">۴۳</strong><div class="stat-foot"><span>سهم تمدید از فروش</span><span class="trend" id="kpiRenewShare">۳۴٫۷٪</span></div></article>
+        <article class="stat-card dashboard-drill" tabindex="0" role="button" data-dashboard-drill="revenue" aria-label="جزئیات درآمد فروش" style="--tone:var(--teal);--iconbg:rgba(43,161,222,.1);--glow:rgba(43,161,222,.08)"><div class="stat-top"><span>درآمد فروش</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M3 7h18v13H3zM3 7l2-4h14l2 4M16 13h5"/><circle cx="16" cy="13" r="1"/></svg></span></div><strong class="stat-value" id="kpiRevenue">۸٬۴۵۰٬۰۰۰<span class="stat-unit">تومان</span></strong><div class="stat-foot"><span>خرید + تمدید</span><span class="trend" id="kpiRevenueChange">↗ ۱۸٫۶٪</span></div></article>
+        <article class="stat-card dashboard-drill" tabindex="0" role="button" data-dashboard-drill="sales" aria-label="جزئیات فروش موفق" style="--tone:var(--blue);--iconbg:rgba(26,103,196,.12);--glow:rgba(26,103,196,.09)"><div class="stat-top"><span>فروش موفق</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/><path d="m15 17 2 2 4-4"/></svg></span></div><strong class="stat-value" id="kpiSales">۱۲۴</strong><div class="stat-foot"><span>سفارش موفق</span><span class="trend" id="kpiSalesChange">↗ ۱۲٫۲٪</span></div></article>
+        <article class="stat-card dashboard-drill" tabindex="0" role="button" data-dashboard-drill="buy" aria-label="جزئیات خریدهای جدید" style="--tone:var(--purple);--iconbg:rgba(170,139,255,.12);--glow:rgba(170,139,255,.09)"><div class="stat-top"><span>خرید جدید</span><span class="stat-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2.5 21v-1.5a6.5 6.5 0 0 1 13 0V21M19 8v6M16 11h6"/></svg></span></div><strong class="stat-value" id="kpiNew">۸۱</strong><div class="stat-foot"><span>اشتراک تازه</span><span class="trend" id="kpiNewChange">↗ ۹٫۴٪</span></div></article>
+        <article class="stat-card dashboard-drill" tabindex="0" role="button" data-dashboard-drill="renew" aria-label="جزئیات تمدید اشتراک" style="--tone:var(--yellow);--iconbg:rgba(246,200,107,.12);--glow:rgba(246,200,107,.08)"><div class="stat-top"><span>تمدید اشتراک</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9A7 7 0 0 1 18 6l2 2M4 16l2 2a7 7 0 0 0 12.5-3"/></svg></span></div><strong class="stat-value" id="kpiRenew">۴۳</strong><div class="stat-foot"><span>سهم تمدید</span><span class="trend" id="kpiRenewShare">۳۴٫۷٪</span></div></article>
       </div>
 
       <div class="content-grid">
@@ -1392,7 +1534,7 @@
         <article class="panel">
           <div class="panel-head"><div><h3>ترکیب روش پرداخت</h3><p>سهم هر روش از فروش موفق</p></div><button class="link-button" data-go="orders">جزئیات</button></div>
           <div class="revenue-summary"><div class="donut" id="paymentDonut"><div class="donut-center"><strong id="paymentTotal">۱۲۴</strong><span>سفارش موفق</span></div></div><div class="revenue-legend" id="paymentLegend"><div class="legend-row"><span class="legend-name"><i></i>کیف پول</span><strong>۵۲٪</strong><small>۶۵ سفارش</small></div><div class="legend-row"><span class="legend-name"><i class="blue"></i>خودکار</span><strong>۲۸٪</strong><small>۳۵ سفارش</small></div><div class="legend-row"><span class="legend-name"><i class="purple"></i>دستی</span><strong>۲۰٪</strong><small>۲۴ سفارش</small></div></div></div>
-          <div class="mini-note">پرداخت‌های تأییدشده مبنای گزارش هستند؛ سفارش‌های در انتظار جداگانه نمایش داده می‌شوند.</div>
+          <div class="mini-note">پرداخت‌های تأییدشده مبنای گزارش؛ سفارش‌های باز جدا.</div>
         </article>
       </div>
 
@@ -1411,9 +1553,9 @@
     <section class="page hidden" id="ordersPage">
       <div class="page-top"><div><h1>سفارش‌ها</h1><p>خرید جدید، تمدید، شارژ و وضعیت پرداخت</p></div><button class="btn-primary" id="ordersExport">خروجی CSV</button></div>
       <div class="stats-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-        <article class="stat-card"><div class="stat-top"><span>رکوردهای نمایش‌داده‌شده</span><span class="stat-icon">▤</span></div><strong class="stat-value" id="ordersTotalKpi">۰</strong><div class="stat-foot"><span>با فیلترهای فعلی</span><span class="trend">دفتر فروش</span></div></article>
-        <article class="stat-card" style="--tone:var(--yellow);--iconbg:rgba(246,200,107,.12)"><div class="stat-top"><span>در انتظار بررسی</span><span class="stat-icon">◷</span></div><strong class="stat-value" id="ordersPendingKpi">۰</strong><div class="stat-foot"><span>سفارش‌های باز</span><span style="color:var(--yellow)">باز</span></div></article>
-        <article class="stat-card" style="--tone:var(--green);--iconbg:rgba(86,214,162,.12)"><div class="stat-top"><span>تکمیل‌شده در فهرست</span><span class="stat-icon">✓</span></div><strong class="stat-value" id="ordersPaidKpi">۰</strong><div class="stat-foot"><span>پرداخت و تحویل موفق</span><span class="trend">دفتر فروش</span></div></article>
+        <article class="stat-card"><div class="stat-top"><span>رکوردهای نمایش‌داده‌شده</span><span class="stat-icon">▤</span></div><strong class="stat-value" id="ordersTotalKpi">۰</strong><div class="stat-foot"><span>فیلتر فعلی</span><span class="trend">دفتر فروش</span></div></article>
+        <article class="stat-card" style="--tone:var(--yellow);--iconbg:rgba(246,200,107,.12)"><div class="stat-top"><span>در انتظار بررسی</span><span class="stat-icon">◷</span></div><strong class="stat-value" id="ordersPendingKpi">۰</strong><div class="stat-foot"><span>سفارش باز</span><span style="color:var(--yellow)">باز</span></div></article>
+        <article class="stat-card" style="--tone:var(--green);--iconbg:rgba(86,214,162,.12)"><div class="stat-top"><span>تکمیل‌شده در فهرست</span><span class="stat-icon">✓</span></div><strong class="stat-value" id="ordersPaidKpi">۰</strong><div class="stat-foot"><span>پرداخت موفق</span><span class="trend">دفتر فروش</span></div></article>
       </div>
       <article class="panel" style="margin-top:14px">
         <div class="panel-head"><div><h3>فهرست سفارش‌ها</h3><p>جست‌وجو و فیلتر رویدادهای ثبت‌شده در Worker</p></div><div class="table-tools"><button class="outline-btn" id="ordersReload">به‌روزرسانی</button></div></div>
@@ -1427,9 +1569,9 @@
     <section class="page hidden" id="customersPage">
       <div class="page-top"><div><h1>مشتری‌ها</h1><p>کاربران، موجودی کیف پول و سابقهٔ خرید ثبت‌شده</p></div><button class="outline-btn" id="customersExport">خروجی مشتری‌ها</button></div>
       <div class="stats-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-        <article class="stat-card"><div class="stat-top"><span>کاربران ثبت‌شده</span><span class="stat-icon">◉</span></div><strong class="stat-value" id="customersTotalKpi">۰</strong><div class="stat-foot"><span>در KV فروشگاه</span><span class="trend">کل</span></div></article>
+        <article class="stat-card"><div class="stat-top"><span>کاربران ثبت‌شده</span><span class="stat-icon">◉</span></div><strong class="stat-value" id="customersTotalKpi">۰</strong><div class="stat-foot"><span>در فروشگاه</span><span class="trend">کل</span></div></article>
         <article class="stat-card" style="--tone:var(--purple);--iconbg:rgba(170,139,255,.12)"><div class="stat-top"><span>کاربر جدید</span><span class="stat-icon">＋</span></div><strong class="stat-value" id="customersNewKpi">۰</strong><div class="stat-foot"><span>در بازهٔ فعلی</span><span class="trend">ثبت‌شده</span></div></article>
-        <article class="stat-card" style="--tone:var(--yellow);--iconbg:rgba(246,200,107,.12)"><div class="stat-top"><span>سهم تمدید از فروش</span><span class="stat-icon">↻</span></div><strong class="stat-value" id="customersRenewKpi">—</strong><div class="stat-foot"><span>تمدید ÷ خرید و تمدید</span><span class="trend">دوره</span></div></article>
+        <article class="stat-card" style="--tone:var(--yellow);--iconbg:rgba(246,200,107,.12)"><div class="stat-top"><span>سهم تمدید</span><span class="stat-icon">↻</span></div><strong class="stat-value" id="customersRenewKpi">—</strong><div class="stat-foot"><span>تمدید ÷ کل</span><span class="trend">دوره</span></div></article>
       </div>
       <article class="panel" style="margin-top:14px">
         <div class="panel-head"><div><h3>فهرست مشتری‌ها</h3><p>موجودی، اشتراک‌های ثبت‌شده و مجموع خرج</p></div><input class="search" id="customerSearch" placeholder="نام، username یا Telegram ID" aria-label="جست‌وجوی مشتری"></div>
@@ -1813,7 +1955,7 @@
       const name = o.name || o.first_name || ('کاربر ' + (o.tg_id || ''));
       const handle = o.tg || (o.username ? '@'+o.username : (o.tg_id || ''));
       const drillRow=compact&&o.id?` data-drill-order="${esc(o.id)}" role="button" tabindex="0" aria-label="نمایش جزئیات سفارش ${esc(o.id)}"`:'';
-      return `<tr${drillRow}><td><span class="order-id">${esc(o.id || '—')}</span></td><td><div class="customer-cell"><span class="mini-avatar">${esc(initials(name))}</span><span>${esc(name)}<small style="display:block;color:#ffe0e5;margin-top:3px;font-size:11px;direction:ltr;text-align:right">${esc(handle)}</small></span></div></td><td>${esc(typeText(o))}</td>${compact ? '' : `<td>${esc(o.plan || '—')}</td><td>${esc(o.method || 'نامشخص')}</td>`}<td>${money(o.amount)}</td>${compact ? '' : `<td>${esc(date)}</td>`}<td><span class="status ${safeState(o)}">${esc(statusText(o))}</span></td>${compact?'':`<td>${o.mutable?`<button class="table-action" data-order-admin="${esc(o.order_id||o.id)}">مدیریت</button>`:'—'}</td>`}</tr>`;
+      return `<tr${drillRow}><td><span class="order-id">${esc(o.id || '—')}</span></td><td><div class="customer-cell"><span class="mini-avatar">${esc(initials(name))}</span><span class="cell"><span class="cell-main">${esc(name)}</span><small class="cell-sub">${esc(handle)}</small></span></div></td><td><span class="cell">${esc(typeText(o))}</span></td>${compact ? '' : `<td><span class="cell">${esc(o.plan || '—')}</span></td><td><span class="cell">${esc(o.method || 'نامشخص')}</span></td>`}<td><span class="cell">${money(o.amount)}</span></td>${compact ? '' : `<td><span class="cell">${esc(date)}</span></td>`}<td><span class="status ${safeState(o)}">${esc(statusText(o))}</span></td>${compact?'':`<td>${o.mutable?`<button class="table-action" data-order-admin="${esc(o.order_id||o.id)}">مدیریت</button>`:'<span class="cell">—</span>'}</td>`}</tr>`;
     }
     function renderRecent(list) {
       recentOrders = Array.isArray(list) ? list : [];
@@ -2531,9 +2673,9 @@
       const rows=Array.isArray(orders)?orders:[];
       if(body)body.innerHTML=rows.map(o=>{
         const id=String(o.id||'');
-        const amount=o.status==='pending'&&o.pay_amount!=null?`<strong>${money(o.pay_amount)}</strong><small style="display:block;color:#b79c9d;font-size:12px;margin-top:3px">مبلغ دقیق انتقال</small>`:money(o.amount||0);
+        const amount=o.status==='pending'&&o.pay_amount!=null?`<span class="cell"><strong>${money(o.pay_amount)}</strong><small class="cell-sub">مبلغ دقیق انتقال</small></span>`:`<span class="cell">${money(o.amount||0)}</span>`;
         const follow=o.status==='pending'&&id?`<button class="order-follow" data-track-order="${esc(id)}">پیگیری</button>`:'—';
-        return `<tr><td><span class="order-id">${esc(id||'—')}</span></td><td><span class="type-pill">${esc(o.type_label||typeText(o))}</span></td><td>${esc(o.plan||'—')}</td><td>${amount}</td><td>${esc(o.method||'نامشخص')}</td><td>${esc(fmtDate(o.created_at))}</td><td><span class="status ${safeState(o)}">${esc(o.status_label||statusText(o))}</span></td><td>${follow}</td></tr>`;
+        return `<tr><td><span class="order-id">${esc(id||'—')}</span></td><td><span class="type-pill">${esc(o.type_label||typeText(o))}</span></td><td><span class="cell">${esc(o.plan||'—')}</span></td><td>${amount}</td><td><span class="cell">${esc(o.method||'نامشخص')}</span></td><td><span class="cell">${esc(fmtDate(o.created_at))}</span></td><td><span class="status ${safeState(o)}">${esc(o.status_label||statusText(o))}</span></td><td>${follow}</td></tr>`;
       }).join('')||'<tr><td colspan="8" style="text-align:center;color:#a39b9c;padding:24px">سفارشی در فهرست ثبت‌شده پیدا نشد.</td></tr>';
       const note=document.getElementById('customerOrdersNote');if(note)note.textContent=(partial?'فقط ۵۰ سفارش اخیر نمایش داده می‌شود. ':'')+'سفارش‌های باز را با دکمهٔ «پیگیری» به‌روز کنید.';
     }
@@ -2573,7 +2715,7 @@
       const panel=String(state.panel_name||'');
       if(description)description.textContent='حجم '+volume+' · مدت '+duration+(panel?' · سرور '+panel:'');
       let label='غیرفعال است',message='دریافت اشتراک رایگان در حال حاضر توسط مدیریت غیرفعال است.',tone='failed';
-      if(isPreview){label='پیش‌نمایش';message='برای بررسی امکان دریافت، Mini App را با حساب Telegram باز کنید.';tone='pending';}
+      if(isPreview){label='پیش‌نمایش';message='برای بررسی، اپ را با حساب Telegram باز کنید.';tone='pending';}
       else if(state.reason==='panel_unavailable'){label='ناموجود';message='سرور اختصاصی اشتراک رایگان در دسترس نیست؛ بعداً دوباره بررسی کنید.';tone='failed';}
       else if(state.can_claim){label='آمادهٔ دریافت';message='می‌توانید اشتراک رایگان را دریافت کنید.';tone='paid';}
       else if(state.reason==='already_claimed'){label='دریافت‌شده';message='این حساب قبلاً یک اشتراک رایگان دریافت کرده است.';tone='pending';}
@@ -2704,7 +2846,7 @@
       const spent=document.getElementById('customerSpent');if(spent)spent.textContent=money(c.total_spent||0);
       const subs=Array.isArray(data.subscriptions)?data.subscriptions:[];
       const count=document.getElementById('customerSubCount');if(count)count.textContent=fmt(subs.length)+(data.subscriptions_partial?'+':'')+' اشتراک';
-      const subCaption=document.getElementById('customerSubCaption');if(subCaption)subCaption.textContent=data.subscriptions_partial?'۲۵ اشتراک اخیر نمایش داده می‌شود؛ موارد قدیمی‌تر از طریق پشتیبانی قابل پیگیری‌اند.':'وضعیت زندهٔ اشتراک‌های شما؛ برای مدیریت، روی کارت اشتراک بزنید.';
+      const subCaption=document.getElementById('customerSubCaption');if(subCaption)subCaption.textContent=data.subscriptions_partial?'۲۵ اشتراک اخیر نمایش داده می‌شود.':'برای مدیریت، روی کارت اشتراک بزنید.';
       const subList=document.getElementById('customerSubsList');
       if(subList)subList.innerHTML=subs.map(s=>{
         const max=Number(s.usage_total||0),used=Number(s.usage_used||0),percent=s.usage_unlimited?0:(max>0?Math.min(100,Math.max(0,used/max*100)):0);
@@ -2723,8 +2865,8 @@
         const buy=!isPreview&&p.panel_id&&p.plan_id?`<button class="cv-buy" type="button" data-buy-panel="${esc(p.panel_id)}" data-buy-plan="${esc(p.plan_id)}"><span>خرید</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>`:'<button class="cv-buy" type="button" data-demo-action><span>مشاهده</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>';
         return `<article class="cv-card cv-plan"><div class="cv-plan-top"><h3>${esc(p.title||'پلن')}</h3><span class="cv-chip">${esc(p.panel_name||'سرور')}</span></div><div class="cv-specs"><div class="cv-spec"><small>حجم</small><strong>${esc(size)}</strong></div><div class="cv-spec"><small>مدت</small><strong>${fmt(p.days||0)} روز</strong></div></div><div class="cv-plan-foot"><div class="cv-price">${fmt(p.price||0)} <small>تومان</small></div>${buy}</div></article>`;
       }).join('') || '<article class="cv-card cv-plan"><div class="cv-plan-top"><h3>فعلاً پلن فعالی وجود ندارد</h3></div><p class="cv-empty">برای راهنمایی با پشتیبانی فروشگاه تماس بگیرید.</p></article>';
-      const caption=document.getElementById('customerPlansCaption');if(caption)caption.textContent=isPreview?'پیش‌نمایش طراحی؛ نام پلن‌ها و مبالغ نمونه‌ای هستند.':'مبلغ‌ها به تومان هستند؛ معادل ریالی و مبلغ یکتای انتقال پیش از پرداخت نمایش داده می‌شود.';
-      const notice=document.getElementById('customerNotice');if(notice)notice.textContent=isPreview?'پیش‌نمایش طراحی است؛ خرید واقعی در حساب Telegram انجام می‌شود.':'پرداخت و ارسال رسید داخل همین صفحه است. رسید دستی برای تأیید ادمین ارسال می‌شود؛ پرداخت خودکار از مسیر فعال فروشگاه استفاده می‌کند.';
+      const caption=document.getElementById('customerPlansCaption');if(caption)caption.textContent=isPreview?'پیش‌نمایش طراحی؛ مبالغ نمونه‌ای.':'مبلغ‌ها به تومان؛ معادل ریالی پیش از پرداخت.';
+      const notice=document.getElementById('customerNotice');if(notice)notice.textContent=isPreview?'پیش‌نمایش طراحی؛ خرید واقعی داخل Telegram.':'پرداخت و ارسال رسید، همین‌جا و بدون خروج از اپ.';
     }
     function openCustomerSubscriptionDetail(sid) {
       const sub=(customerData&&Array.isArray(customerData.subscriptions)?customerData.subscriptions:[]).find(x=>String(x.sid)===String(sid));
