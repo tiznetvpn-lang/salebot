@@ -199,6 +199,7 @@ fi
 chown -R root:tiznetvpn "$INSTALL_DIR"
 find "$INSTALL_DIR" -type d -exec chmod 0750 {} \;
 find "$INSTALL_DIR" -type f -exec chmod 0640 {} \;
+chmod 0750 "$INSTALL_DIR/scripts/check-shetab.sh" 2>/dev/null || true
 
 WEBHOOK_SECRET=$(openssl rand -hex 32)
 # Secret اتصال اپ Shetab Verification؛ اپ همین مقدار را در فیلد API Secret می‌گذارد.

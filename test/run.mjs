@@ -273,7 +273,16 @@ const shetabHealthWrongKey = await APP.fetch(new Request('https://t.test/api/she
 const shetabHealthBlankKey = await APP.fetch(new Request('https://t.test/api/shetab-verify', { headers: { Authorization: 'Bearer' } }), env, {});
 const shetabUnconfiguredEnv = Object.assign({}, env, { SHETAB_API_SECRET: '' });
 const shetabHealthUnconfigured = await APP.fetch(new Request('https://t.test/api/shetab-verify'), shetabUnconfiguredEnv, {});
-assert(shetabHealth.status === 200 && JSON.parse(shetabHealth.text).success === true && powerPsShetabHealth.status === 200 && JSON.parse(powerPsShetabHealth.text).success === true && shetabHealthWrongKey.status === 401 && shetabHealthBlankKey.status === 401 && shetabHealthUnconfigured.status === 503, 'تست اتصال GET روی هر دو مسیر Shetab پاسخ درست می‌دهد؛ کلید اشتباه و secret پیکربندی‌نشده هم آشکارا رد می‌شوند');
+const shetabHealthJson = JSON.parse(shetabHealth.text);
+const shetabWrongJson = await shetabHealthWrongKey.json();
+const shetabMissingJson = await shetabHealthUnconfigured.json();
+assert(shetabHealth.status === 200 && shetabHealthJson.success === true && shetabHealthJson.secret_set === true
+  && String(shetabHealthJson.endpoint).endsWith('/wp-json/webdide-cv/v1/confirm') && shetabHealthJson.version
+  && powerPsShetabHealth.status === 200 && JSON.parse(powerPsShetabHealth.text).success === true
+  && shetabHealthWrongKey.status === 401 && shetabWrongJson.reason === 'secret_mismatch' && !!shetabWrongJson.hint
+  && shetabHealthBlankKey.status === 401
+  && shetabHealthUnconfigured.status === 503 && shetabMissingJson.reason === 'secret_missing' && !!shetabMissingJson.hint,
+  'تست اتصال GET روی هر دو مسیر Shetab پاسخ درست می‌دهد و reason/hint دقیق برای کلید اشتباه و Secret خالی برمی‌گرداند');
 const miniAsset = await get('/miniapp');
 assert(miniAsset.status === 200 && miniAsset.text.includes('TiznetVPN Mini App'), 'GET /miniapp فایل Mini App را از binding دارایی Worker می‌خواند');
 const noInitData = await miniApi('/api/miniapp/bootstrap');
@@ -723,23 +732,38 @@ await kv.put('cfg', Object.assign({}, cfgBeforeGen, { shetab_secret: '', shetab_
 delete env.SHETAB_API_SECRET;
 await press(ADMIN, 'a_shapp');
 const appGuideNoSecret = lastMsgTo(ADMIN, 'editMessageText');
-assert(String(appGuideNoSecret.params.text).includes('هنوز ساخته نشده')
-  && lookupButtons(appGuideNoSecret).some((b) => b.callback_data === 'a_shgen'),
-  'بدون Secret، صفحهٔ اتصال اپ دکمهٔ ساخت را نشان می‌دهد');
-await press(ADMIN, 'a_shgen');
-const appGuideGenerated = lastMsgTo(ADMIN, 'editMessageText');
 const cfgAfterGen = await kvJson('cfg');
 const generatedSecret = String(cfgAfterGen.shetab_secret || '');
-const generatedCopy = lookupButtons(appGuideGenerated).find((b) => b.copy_text);
-assert(/^[0-9a-f]{64}$/.test(generatedSecret) && cfgAfterGen.shetab_secret_created_at > 0
+const generatedCopy = lookupButtons(appGuideNoSecret).find((b) => b.copy_text);
+assert(String(appGuideNoSecret.params.text).includes('Secret همین حالا ساخته شد')
+  && /^[0-9a-f]{64}$/.test(generatedSecret) && cfgAfterGen.shetab_secret_created_at > 0
   && !!generatedCopy && generatedCopy.copy_text.text === generatedSecret
-  && String(appGuideGenerated.params.text).includes('کاراکتر'),
-  'ربات Secret امن ۶۴ کاراکتری می‌سازد و دکمهٔ کپی همان مقدار را نشان می‌دهد');
+  && String(appGuideNoSecret.params.text).includes('کاراکتر'),
+  'باز کردن صفحهٔ اتصال اپ، Secret ۶۴ کاراکتری را خودکار می‌سازد و دکمهٔ کپی همان مقدار را نشان می‌دهد');
 const generatedAuthProbe = await shetabPost({ amount: 123457, recipeId: 'BOT-MADE-SECRET' }, generatedSecret);
 assert(generatedAuthProbe.status === 404 && !String(await generatedAuthProbe.text()).includes('Unauthorized'),
   'Secret ساخته‌شده در ربات همان چیزی است که اپ برای احراز هویت استفاده می‌کند');
 const wrongAfterGenerated = await shetabPost({ amount: 123457, recipeId: 'BOT-MADE-SECRET' }, 'shetab-test-secret');
 assert(wrongAfterGenerated.status === 401, 'Secret قدیمی env وقتی مقدار معتبری در ربات ثبت شده دیگر پذیرفته نمی‌شود');
+await press(ADMIN, 'a_shgen');
+const regenConfirm = lastMsgTo(ADMIN, 'editMessageText');
+const secretBeforeRegen = (await kvJson('cfg')).shetab_secret;
+assert(String(regenConfirm.params.text).includes('کلید قبلی باطل می‌شود')
+  && (await kvJson('cfg')).shetab_secret === secretBeforeRegen
+  && lookupButtons(regenConfirm).some((b) => b.callback_data === 'a_shgen_y'),
+  'ساخت Secret تازه فقط با تأیید صریح انجام می‌شود');
+await press(ADMIN, 'a_shgen_y');
+const afterRegen = (await kvJson('cfg')).shetab_secret;
+assert(/^[0-9a-f]{64}$/.test(afterRegen) && afterRegen !== secretBeforeRegen,
+  'تأیید ساخت کلید تازه، Secret را واقعاً عوض می‌کند');
+const quotedToken = await shetabPost({ amount: 123458, recipeId: 'QUOTED-TOKEN' }, '  "' + afterRegen + '"  ');
+assert(quotedToken.status === 404, 'توکنی که با فاصله/کوتیشن کپی شده باشد هم پذیرفته می‌شود');
+await press(ADMIN, 'a_shcheck');
+const checkReport = lastMsgTo(ADMIN, 'editMessageText');
+assert(String(checkReport.params.text).includes('بررسی اتصال پرداخت خودکار')
+  && String(checkReport.params.text).includes('آخرین خبر از اپ')
+  && String(checkReport.params.text).includes('آماده است'),
+  'گزارش بررسی اتصال، وضعیت آدرس/Secret/کارت/سوییچ و آخرین تماس اپ را نشان می‌دهد');
 env.SHETAB_API_SECRET = savedEnvSecret;
 
 // آزمون پرداخت: در تست آدرس عمومی وجود ندارد، پس مسیر داخلی باید سالم باشد

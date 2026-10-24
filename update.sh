@@ -338,7 +338,7 @@ done
 chown -R root:"$SERVICE_GROUP" "$INSTALL_DIR"
 find "$INSTALL_DIR" -type d -exec chmod 0750 {} \;
 find "$INSTALL_DIR" -type f -exec chmod 0640 {} \;
-chmod 0750 "$INSTALL_DIR/update.sh" "$INSTALL_DIR/install.sh" 2>/dev/null || true
+chmod 0750 "$INSTALL_DIR/update.sh" "$INSTALL_DIR/install.sh" "$INSTALL_DIR/scripts/check-shetab.sh" 2>/dev/null || true
 
 # ---------------------------------------------------------------------------
 # systemd (فقط اگر واقعاً تغییر کرده باشد)
