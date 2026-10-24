@@ -22,6 +22,30 @@ node design/serve.mjs          # http://localhost:4180/
 | **C — شیشهٔ نور** | `variants/c.css` | کارت‌های شفاف با بلور و نور آبی پس‌زمینه |
 | **D — نئون** | `variants/d.css` | زمینهٔ تیره، شبکهٔ محو، لبه و عددهای نئون |
 
+## اسکرین‌شات‌ها
+
+`design/screens/*.jpg` — تصاویر واقعی گرفته‌شده با Chromium (بدون مرورگر سیستمی):
+
+| فایل | صحنه |
+| --- | --- |
+| `01-admin-overview.jpg` | نمای مدیر، بالای «نمای کلی» |
+| `02-admin-orders.jpg` | نمای مدیر، صفحهٔ سفارش‌ها و فیلترها |
+| `03-customer-home.jpg` | خانهٔ مشتری (کیف پول، میان‌برها، پلن‌ها) |
+| `04-customer-plans.jpg` | پلن‌ها و اشتراک‌های من |
+
+## گرفتن اسکرین‌شات تازه
+
+Chromium این محیط با `@sparticuz/chromium` اجرا می‌شود (نه نصب سیستمی) و
+کتابخانه‌های NSS از همان بستهٔ آماده استخراج می‌شوند:
+
+```bash
+npm i --no-save puppeteer-core @sparticuz/chromium @fontsource/vazirmatn sharp
+# استخراج libnss3 از bin/al2023.tar.br و اجرا با LD_LIBRARY_PATH=…
+```
+
+قالب `design/variants/*.css` داخل `public/miniapp.html` تزریق می‌شود و کنار هم
+در یک صفحهٔ مقایسه با چهار قاب ۳۹۰px عکس گرفته می‌شود.
+
 ## قاعده
 
 همان قاعدهٔ نسخهٔ اصلی: **هیچ متنی نباید به خط دوم برود** و چیدمان در ۳۲۰–۱۹۲۰px

@@ -58,7 +58,7 @@ body::before {
 }
 .period-btn.active { color: #06223d !important; background: linear-gradient(120deg, #e2faff, #8fdcff) !important; box-shadow: 0 12px 24px -14px rgba(150, 230, 255, .95) !important; }
 .avatar { background: linear-gradient(145deg, #f2fdff, #9adcff) !important; color: #062a4d !important; }
-.outline-btn { background: rgba(255, 255, 255, .08) !important; border-color: rgba(255, 255, 255, .2) !important; color: #eaf7ff !important; backdrop-filter: blur(16px); }
+.outline-btn { background: rgba(6, 26, 52, .46) !important; border-color: rgba(255, 255, 255, .24) !important; color: #eaf7ff !important; backdrop-filter: blur(16px); }
 .outline-btn:hover { background: rgba(255, 255, 255, .14) !important; border-color: rgba(255, 255, 255, .34) !important; }
 .link-button { color: #a6e6ff !important; }
 
@@ -93,8 +93,8 @@ body::before {
 
 /* ── دکمه‌ها ───────────────────────────────────────────────────────── */
 .btn-primary {
-  background: linear-gradient(115deg, #e6fbff, #86d9ff 55%, #4aa6f5) !important;
-  color: #052a4a !important;
+  background: linear-gradient(115deg, #b7eeff, #63c6f8 52%, #2f8fe0) !important;
+  color: #04223c !important;
   box-shadow: 0 26px 46px -26px rgba(140, 225, 255, .95), inset 0 1px 0 rgba(255, 255, 255, .8) !important;
 }
 .btn-secondary, .table-action, .order-follow {
@@ -102,9 +102,9 @@ body::before {
   border-color: rgba(255, 255, 255, .2) !important;
   color: #e6f6ff !important;
 }
-.search, .filter-control {
-  background: rgba(255, 255, 255, .09) !important;
-  border-color: rgba(255, 255, 255, .18) !important;
+.search, .filter-control, .panel-select {
+  background-color: rgba(5, 24, 48, .62) !important;
+  border-color: rgba(255, 255, 255, .26) !important;
   color: #f4fcff !important;
   backdrop-filter: blur(14px);
 }
@@ -139,14 +139,15 @@ th { color: #b9d9f2 !important; }
   box-shadow: 0 42px 84px -52px rgba(0, 20, 70, 1), inset 0 1px 0 rgba(255, 255, 255, .45) !important;
 }
 .cv-wallet::before { border-color: rgba(255, 255, 255, .3) !important; }
-.cv-quick-tile, .cv-stat, .cv-sub, .cv-spec {
-  background: rgba(255, 255, 255, .085) !important;
-  border-color: rgba(255, 255, 255, .15) !important;
+.cv-quick-tile, .cv-stat, .cv-sub, .cv-spec, .cv-chip {
+  background: rgba(6, 26, 52, .48) !important;
+  border-color: rgba(255, 255, 255, .2) !important;
+  backdrop-filter: blur(14px);
 }
 .cv-quick-icon { background: rgba(255, 255, 255, .16) !important; border-color: rgba(255, 255, 255, .24) !important; color: #f0fdff !important; }
 .cv-buy, .cv-wallet-charge {
-  background: linear-gradient(115deg, #e6fbff, #86d9ff 55%, #4aa6f5) !important;
-  color: #052a4a !important;
+  background: linear-gradient(115deg, #b7eeff, #63c6f8 52%, #2f8fe0) !important;
+  color: #04223c !important;
   box-shadow: 0 22px 40px -22px rgba(140, 225, 255, .95), inset 0 1px 0 rgba(255, 255, 255, .8) !important;
 }
 .cv-wallet-history { background: rgba(255, 255, 255, .08) !important; border-color: rgba(255, 255, 255, .26) !important; }
@@ -154,3 +155,15 @@ th { color: #b9d9f2 !important; }
 .cv-price { color: #ffffff !important; }
 .cv-bar { background: rgba(255, 255, 255, .16) !important; }
 .cv-bar i { background: linear-gradient(90deg, #ffffff, #7fd8ff) !important; box-shadow: 0 0 14px rgba(180, 240, 255, .9) !important; }
+
+/* ── فلش منوهای کشویی حفظ شود (تم‌های بالا background را بازنویسی می‌کنند) ── */
+select, .panel-select, .filter-control {
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%) !important;
+  background-position: calc(0% + 14px) calc(50% + 1px), calc(0% + 19px) calc(50% + 1px) !important;
+  background-size: 5px 5px, 5px 5px !important;
+  background-repeat: no-repeat, no-repeat !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
