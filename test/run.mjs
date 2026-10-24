@@ -811,8 +811,9 @@ await press(ADMIN, 'a_shcheck');
 const checkReport = lastMsgTo(ADMIN, 'editMessageText');
 assert(String(checkReport.params.text).includes('بررسی اتصال پرداخت خودکار')
   && String(checkReport.params.text).includes('آخرین خبر از اپ')
-  && String(checkReport.params.text).includes('آماده است'),
-  'گزارش بررسی اتصال، وضعیت آدرس/Secret/کارت/سوییچ و آخرین تماس اپ را نشان می‌دهد');
+  && String(checkReport.params.text).includes('آماده است')
+  && String(checkReport.params.text).includes('نسخهٔ سرور') && String(checkReport.params.text).includes(pkgVersion),
+  'گزارش بررسی اتصال، نسخهٔ نصب‌شده و وضعیت آدرس/Secret/کارت/سوییچ و آخرین تماس اپ را نشان می‌دهد');
 
 // 🛰 صندوق درخواست‌های ورودی: ابزار قطعی برای پیام «آدرس API اشتباه است» در اپ
 const reqLog = await kvJson('shetab_reqlog');
@@ -1206,6 +1207,79 @@ const duplicateMiniCheckout = await miniApi('/api/miniapp/checkout', user4Init, 
   body: JSON.stringify({ method: 'manual', panel_id: purchasable.panel_id, plan_id: purchasable.plan_id, request_id: 'miniapp-manual-order-0001' })
 });
 assert(duplicateMiniCheckout.status === 200 && duplicateMiniCheckout.json.order.id === manualMiniOrder.id, 'شناسهٔ idempotency همان سفارش را برمی‌گرداند و سفارش تکراری نمی‌سازد');
+
+// — شارژ کیف پول از داخل Mini App (قبلاً دکمه کاربر را از اپ بیرون می‌فرستاد)
+assert(miniAppSource.includes('/api/miniapp/wallet/topup') && miniAppSource.includes('function openWalletTopup')
+  && miniAppSource.includes('function submitWalletTopup') && miniAppSource.includes('data-topup-method')
+  && !miniAppSource.includes("openCustomerBot('miniapp_wallet')") && !miniAppSource.includes('function openCustomerBot'),
+  'دکمهٔ «شارژ کیف پول» در Mini App پنل داخلی باز می‌کند و دیگر کاربر را به لینک t.me ربات نمی‌فرستد');
+const topupAutoDisabled = await miniApi('/api/miniapp/wallet/topup', user4Init, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ method: 'shetab', amount: 100000, request_id: 'miniapp-topup-auto-off-0001' })
+});
+assert(topupAutoDisabled.status === 403 && topupAutoDisabled.json.error === 'automatic_payment_disabled', 'شارژ خودکار وقتی سوییچ خودکار خاموش است رد می‌شود');
+const topupTooSmall = await miniApi('/api/miniapp/wallet/topup', user4Init, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ method: 'manual', amount: 5000, request_id: 'miniapp-topup-small-0001' })
+});
+assert(topupTooSmall.status === 400 && topupTooSmall.json.error === 'invalid_topup_amount' && topupTooSmall.json.min === 10000, 'مبلغ شارژ کمتر از حداقل رد می‌شود و کف مجاز در پاسخ می‌آید');
+const topupManual = await miniApi('/api/miniapp/wallet/topup', user4Init, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ method: 'manual', amount: 120000, request_id: 'miniapp-topup-manual-0001' })
+});
+const topupManualOrder = topupManual.json && topupManual.json.order;
+assert(topupManual.status === 200 && topupManualOrder && topupManualOrder.type === 'charge' && topupManualOrder.status === 'pending'
+  && topupManual.json.payment && topupManual.json.payment.card_number === '6037991122334455'
+  && topupManual.json.payment.amount_toman >= 120010 && topupManual.json.payment.amount_toman <= 120999
+  && topupManual.json.payment.amount_rial === topupManual.json.payment.amount_toman * 10,
+  'سفارش شارژ دستی از Mini App با کارت و مبلغ یکتا و معادل ریالی ساخته می‌شود');
+const topupManualRepeat = await miniApi('/api/miniapp/wallet/topup', user4Init, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ method: 'manual', amount: 120000, request_id: 'miniapp-topup-manual-0001' })
+});
+const topupManualSecond = await miniApi('/api/miniapp/wallet/topup', user4Init, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ method: 'manual', amount: 120000, request_id: 'miniapp-topup-manual-0002' })
+});
+assert(topupManualRepeat.status === 200 && topupManualRepeat.json.order.id === topupManualOrder.id
+  && topupManualSecond.status === 200 && topupManualSecond.json.order.id === topupManualOrder.id && topupManualSecond.json.reused === true,
+  'شارژ تکراری (حتی با request_id تازه) سفارش دوم نمی‌سازد و همان سفارش باز را برمی‌گرداند');
+// سفارشِ در انتظار نباید هم از ایندکس سفارش‌ها و هم از فهرست pend در «آخرین سفارش‌ها» تکرار شود.
+const summaryWithPending = await miniApi('/api/miniapp/admin/summary?days=30', adminInit);
+const summaryRecentIds = (summaryWithPending.json.recent_orders || []).map((o) => String(o.id));
+assert(summaryWithPending.status === 200
+  && summaryRecentIds.filter((id) => id === String(topupManualOrder.id)).length === 1
+  && new Set(summaryRecentIds).size === summaryRecentIds.length,
+  'سفارش در انتظار در بخش «آخرین سفارش‌ها»ی نمای مدیر فقط یک بار نمایش داده می‌شود');
+const topupAutoEnabledCfg = Object.assign({}, await kvJson('cfg'), { card_auto_enabled: true, card_manual_enabled: true });
+await kv.put('cfg', topupAutoEnabledCfg);
+const balanceBeforeTopup = Number((await kvJson('u:' + U4)).balance || 0);
+const topupAuto = await miniApi('/api/miniapp/wallet/topup', user4Init, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ method: 'shetab', amount: 150000, request_id: 'miniapp-topup-auto-0001' })
+});
+const topupAutoOrder = topupAuto.json && topupAuto.json.order;
+assert(topupAuto.status === 200 && topupAutoOrder && topupAutoOrder.type === 'charge' && topupAuto.json.payment.method === 'shetab'
+  && topupAuto.json.payment.expires_at > Date.now(), 'سفارش شارژ خودکار با مهلت انتظار پیامک بانک ساخته می‌شود');
+const topupPaid = await shetabPost({ amount: topupAuto.json.payment.amount_toman, recipeId: 'TOPUP-REF-1' });
+const topupAfterPay = await kvJson('u:' + U4);
+assert(topupPaid.status === 200 && (await kvJson('o:' + topupAutoOrder.id)).status === 'approved'
+  && Number(topupAfterPay.balance || 0) === balanceBeforeTopup + 150000,
+  'تأیید خودکار واریز، سفارش شارژ را می‌بندد و موجودی کیف پول را دقیقاً به اندازهٔ مبلغ اضافه می‌کند');
+// موجودی آزمون شارژ به حالت اول برمی‌گردد تا تست‌های بعدی که مبلغ دقیق کیف پول را می‌سنجند دست‌نخورده بمانند.
+await kv.put('u:' + U4, Object.assign({}, topupAfterPay, { balance: balanceBeforeTopup }));
+const topupCustomerPayload = await miniApi('/api/miniapp/customer', user4Init);
+assert(topupCustomerPayload.json.wallet_topup && topupCustomerPayload.json.wallet_topup.min === 10000
+  && topupCustomerPayload.json.wallet_topup.max === 50000000 && Array.isArray(topupCustomerPayload.json.wallet_topup.presets),
+  'اطلاعات شارژ (کف، سقف و مبلغ‌های پیشنهادی) به Mini App داده می‌شود');
+env.MINIAPP_ONLY_MODE = 'true';
+const walletStartMark = TG.length;
+await sendText(U4, '/start miniapp_wallet');
+const walletStartMsgs = TG.slice(walletStartMark).filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(U4));
+assert(walletStartMsgs.some((m) => String(m.params.text || '').includes('شارژ کیف پول از داخل خودِ اپ'))
+  && walletStartMsgs.some((m) => ((m.params.reply_markup && m.params.reply_markup.inline_keyboard) || []).flat().some((b) => b.web_app)),
+  'در حالت Mini App-only پیوند قدیمی «شارژ کیف پول» به صفحهٔ استارت نمی‌افتد و مسیر درست را نشان می‌دهد');
+env.MINIAPP_ONLY_MODE = 'false';
 const adminOrderDetail = await miniApi('/api/miniapp/admin/orders/' + manualMiniOrder.id, adminInit);
 const customerCannotReadAdminOrder = await miniApi('/api/miniapp/admin/orders/' + manualMiniOrder.id, user4Init);
 assert(adminOrderDetail.status === 200 && adminOrderDetail.json.order.can_edit_product && customerCannotReadAdminOrder.status === 403, 'ادمین جزئیات سفارش را می‌بیند و کاربر عادی به همان endpoint دسترسی ندارد');

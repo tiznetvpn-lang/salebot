@@ -1322,6 +1322,10 @@
       .cv-refresh:hover { background:rgba(9,42,84,.8); border-color:var(--cv-line-strong); }
       .cv-plan:hover { border-color:rgba(146,214,255,.45); }
     }
+    .topup-presets { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; margin-top:9px; }
+    .topup-presets .outline-btn { padding:9px 4px; font-size:10px; justify-content:center; }
+    .topup-presets .outline-btn.is-active { border-color:rgba(61,156,255,.62); color:#a8d3ff; background:#1b2c45; }
+    @media (max-width:420px) { .topup-presets { grid-template-columns:repeat(2,minmax(0,1fr)); } }
   </style>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -1783,6 +1787,7 @@
     let receiptObjectUrl = '';
     let adminBusy = false;
     let orderRefreshBusy = false;
+    let walletTopupBusy = false;
     let livePollTimer = null;
     let livePollBusy = false;
     let dashboardDrill = null;
@@ -2832,6 +2837,8 @@
         manual_payment_disabled:'پرداخت دستی در حال حاضر غیرفعال است. وضعیت سفارش‌های قبلی همچنان قابل پیگیری است.',
         automatic_payment_disabled:'پرداخت خودکار در حال حاضر فعال نیست؛ روش دیگری را انتخاب کنید.',
         plan_unavailable:'این پلن یا سرور دیگر فعال نیست. فهرست پلن‌ها را تازه‌سازی کنید.',
+        invalid_topup_amount:'مبلغ شارژ خارج از بازهٔ مجاز است؛ مبلغ را اصلاح کنید.',
+        wallet_topup_failed:'ساخت سفارش شارژ انجام نشد. وجهی منتقل نکنید و دوباره تلاش کنید.',
         plan_panel_mismatch:'این پلن برای سرور انتخاب‌شده در دسترس نیست.',
         subscription_not_found:'اشتراک برای تمدید پیدا نشد یا دیگر در دسترس نیست.',
         bank_amount_unavailable:'ساخت مبلغ یکتای انتقال ممکن نشد. سفارش جدیدی نسازید و با پشتیبانی تماس بگیرید.',
@@ -3160,6 +3167,61 @@
       html+=upgrading?'<div class="order-summary-box"><strong>مبلغ کامل پلن جدید</strong><br>تخفیفِ باقیمانده یا کسرِ قیمت پلن قبلی اعمال نمی‌شود. پس از تأیید، حجم و مدت پلن جدید از امروز تنظیم می‌شود؛ معادل ریالی مبلغ نیز پیش از انتقال نمایش داده خواهد شد.</div>':'<div class="order-summary-box"><strong>قبل از پرداخت</strong><br>مبلغ پایهٔ پلن به تومان نمایش داده شده است. اگر بانک مبلغ را به ریال می‌خواهد، معادل ریالی هم پیش از انتقال نشان داده می‌شود.</div>';
       modalBodyElement.innerHTML=html;setModalAction('','');
     }
+    // شارژ کیف پول داخل خودِ اپ. قبلاً این دکمه با لینک t.me کاربر را از اپ بیرون
+    // می‌فرستاد (و در حالت Mini App-only ربات دوباره «استارت» می‌شد).
+    function walletTopupMarkup() {
+      const options=customerData&&customerData.payment_options||{};
+      const info=customerData&&customerData.wallet_topup||{};
+      const presets=Array.isArray(info.presets)&&info.presets.length?info.presets:[50000,100000,200000,500000];
+      const min=Number(info.min||10000),max=Number(info.max||50000000);
+      const balance=Number(customerData&&customerData.customer&&customerData.customer.balance||0);
+      let html='<div class="payment-instructions"><div>موجودی فعلی: <strong>'+money(balance)+'</strong></div>';
+      html+='<div style="margin-top:10px">مبلغ شارژ (تومان) · حداقل '+money(min)+'</div>';
+      html+='<div class="topup-presets">'+presets.map(p=>'<button type="button" class="outline-btn" data-topup-amount="'+Number(p)+'">'+money(Number(p))+'</button>').join('')+'</div>';
+      html+='</div>';
+      html+='<div class="receipt-form"><label for="walletTopupAmount">یا مبلغ دلخواه (تومان)</label><input id="walletTopupAmount" type="text" inputmode="numeric" autocomplete="off" placeholder="مثلاً 150000"></div>';
+      html+='<div class="payment-options">';
+      if(options.automatic)html+='<button class="payment-option" data-topup-method="shetab"><span class="payment-icon">⚡</span><span><strong>پرداخت خودکار</strong><small>مبلغ یکتا؛ با رسیدن پیامک بانک، موجودی خودکار اضافه می‌شود</small></span></button>';
+      if(options.manual)html+='<button class="payment-option" data-topup-method="manual"><span class="payment-icon">▣</span><span><strong>کارت‌به‌کارت دستی</strong><small>نمایش کارت و مبلغ دقیق؛ عکس رسید یا کد پیگیری را همین‌جا بفرستید</small></span></button>';
+      html+='</div>';
+      if(!options.automatic&&!options.manual)html+='<div class="order-state warn">در حال حاضر پرداخت بانکی فعال نیست؛ برای شارژ با پشتیبانی تماس بگیرید.</div>';
+      html+='<small id="walletTopupError" style="color:#ffc4c6;line-height:1.8"></small>';
+      return html;
+    }
+    function openWalletTopup() {
+      if(!liveMode){toast('شارژ کیف پول فقط داخل Mini App تلگرام انجام می‌شود.');return;}
+      activeOrderId='';checkoutContext=null;stopOrderPolling();walletTopupBusy=false;
+      modalTitleElement.textContent='شارژ کیف پول';
+      modalTextElement.textContent='مبلغ و روش پرداخت را انتخاب کنید';
+      modalBodyElement.innerHTML=walletTopupMarkup();
+      setModalAction('','');
+      openModal();
+    }
+    async function submitWalletTopup(method) {
+      if(walletTopupBusy)return;
+      const input=document.getElementById('walletTopupAmount');
+      const errorEl=document.getElementById('walletTopupError');
+      const amount=parseInt(String(input&&input.value||'').replace(/[^\d]/g,''),10);
+      const info=customerData&&customerData.wallet_topup||{};
+      const min=Number(info.min||10000),max=Number(info.max||50000000);
+      if(!Number.isFinite(amount)||amount<min||amount>max){
+        if(errorEl)errorEl.textContent='مبلغ باید بین '+money(min)+' و '+money(max)+' تومان باشد.';
+        return;
+      }
+      walletTopupBusy=true;
+      modalBodyElement.innerHTML='<div class="empty-state">در حال ساخت سفارش شارژ…</div>';
+      try{
+        const result=await api('/api/miniapp/wallet/topup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:amount,method:method,request_id:newRequestId()})});
+        walletTopupBusy=false;
+        if(result&&result.reused)toast('برای این مبلغ یک سفارش باز دارید؛ همان را کامل کنید.');
+        renderOrderDetails(result);
+      }catch(e){
+        walletTopupBusy=false;
+        modalBodyElement.innerHTML=walletTopupMarkup();
+        const box=document.getElementById('walletTopupError');
+        if(box)box.textContent=checkoutErrorText(e.message);
+      }
+    }
     function orderStateMessage(order) {
       if(order.status==='approved'&&order.type==='charge')return {text:'شارژ کیف پول تأیید و ثبت شد؛ موجودی را تازه کنید.',kind:'good'};
       if(order.status==='approved')return {text:'پرداخت تأیید و سفارش تکمیل شد؛ اشتراک آمادهٔ استفاده است.',kind:'good'};
@@ -3244,12 +3306,12 @@
       modalTitleElement.textContent='پیگیری سفارش · #'+activeOrderId;
       modalTextElement.textContent=[order.plan_title,order.panel_name].filter(Boolean).join(' · ')||'وضعیت و اطلاعات پرداخت سفارش';
       const state=orderStateMessage(order);
-      let html=`<div class="order-summary-box"><div>نوع سفارش: <strong>${esc(order.type_label||typeText(order))}</strong></div><div>وضعیت: <strong>${esc(statusText(order))}</strong></div><div>مبلغ پلن: <strong>${money(order.amount||0)}</strong></div><div>روش پرداخت: <strong>${esc(order.payment_method==='manual'?'کارت‌به‌کارت دستی':order.payment_method==='shetab'?'کارت‌به‌کارت خودکار':order.payment_method==='wallet'?'کیف پول':'نامشخص')}</strong></div><div>زمان ثبت: <strong>${esc(fmtDate(order.created_at))}</strong></div></div>`;
+      let html=`<div class="order-summary-box"><div>نوع سفارش: <strong>${esc(order.type_label||typeText(order))}</strong></div><div>وضعیت: <strong>${esc(statusText(order))}</strong></div><div>${order.type==='charge'?'مبلغ شارژ':'مبلغ پلن'}: <strong>${money(order.amount||0)}</strong></div><div>روش پرداخت: <strong>${esc(order.payment_method==='manual'?'کارت‌به‌کارت دستی':order.payment_method==='shetab'?'کارت‌به‌کارت خودکار':order.payment_method==='wallet'?'کیف پول':'نامشخص')}</strong></div><div>زمان ثبت: <strong>${esc(fmtDate(order.created_at))}</strong></div></div>`;
       html+=`<div class="order-state ${state.kind}">${esc(state.text)}</div>`;
       if(payment&&order.status==='pending'){
         const exact=Number(payment.amount_toman||order.pay_amount||order.amount||0);
         const rialAmount=String(Math.round(Number(payment.amount_rial||exact*10)));
-        html+='<div class="payment-instructions"><div>مبلغ پایهٔ پلن: <strong>'+money(order.amount||0)+'</strong></div><div>مبلغ دقیق انتقال: <strong class="payment-amount">'+money(exact)+'</strong></div>';
+        html+='<div class="payment-instructions"><div>'+(order.type==='charge'?'مبلغ شارژ درخواستی':'مبلغ پایهٔ پلن')+': <strong>'+money(order.amount||0)+'</strong></div><div>مبلغ دقیق انتقال: <strong class="payment-amount">'+money(exact)+'</strong></div>';
         if(payment.card_number)html+='<div style="margin-top:10px">شماره کارت</div><div class="copy-line"><code>'+esc(payment.card_number)+'</code><button type="button" data-copy-text="'+esc(payment.card_number)+'">کپی شماره کارت</button></div>';
         html+='<div style="margin-top:12px">مبلغ انتقال به ریال</div><div class="copy-line"><code>'+fmt(rialAmount)+' ریال</code><button type="button" data-copy-text="'+rialAmount+'">کپی مبلغ ریالی</button></div>';
         if(payment.card_holder)html+='<div style="margin-top:8px">به‌نام: <strong>'+esc(payment.card_holder)+'</strong></div>';
@@ -3392,11 +3454,6 @@
       if(tg&&typeof tg.openLink==='function'){tg.openLink(parsed.toString());return true;}
       window.open(parsed.toString(),'_blank','noopener,noreferrer');return true;
     }
-    function openCustomerBot(payload) {
-      const user=String(botUsername||'').replace(/^@/,'').trim();
-      if(!user){toast('نام کاربری ربات تنظیم نشده؛ این بخش را از داخل تلگرام باز کنید.');return;}
-      openTelegramTarget('https://t.me/'+user+(payload?'?start='+encodeURIComponent(payload):''));
-    }
     function openCustomerSupport() {
       const handle=String(supportUsername||'').replace(/^@/,'').trim();
       if(!handle){toast('شناسهٔ پشتیبانی هنوز توسط مدیریت تنظیم نشده است.');return;}
@@ -3490,7 +3547,7 @@
       }catch(_){toast('به‌روزرسانی انجام نشد؛ دوباره تلاش کنید.');}
       finally{setTimeout(()=>button.classList.remove('busy'),700);}
     });
-    document.getElementById('customerWalletCharge').addEventListener('click',()=>openCustomerBot('miniapp_wallet'));
+    document.getElementById('customerWalletCharge').addEventListener('click',openWalletTopup);
     document.getElementById('customerWalletHistory').addEventListener('click',()=>{setCustomerTab('history');window.scrollTo({top:0,behavior:'smooth'});});
     document.getElementById('referralCopyLink').addEventListener('click',()=>copyReferralLink());
     document.getElementById('referralShareLink').addEventListener('click',()=>shareReferralLink());
@@ -3549,6 +3606,8 @@
       const quickTile=e.target.closest('[data-customer-quick]');if(quickTile){handleCustomerQuick(quickTile.dataset.customerQuick);return;}
       const follow=e.target.closest('[data-track-order]');if(follow){openOrderTracking(follow.dataset.trackOrder);return;}
       const method=e.target.closest('[data-pay-method]');if(method&&!method.disabled){startCheckout(method.dataset.payMethod);return;}
+      const topupAmount=e.target.closest('[data-topup-amount]');if(topupAmount){const input=document.getElementById('walletTopupAmount');if(input){input.value=String(topupAmount.dataset.topupAmount||'');try{input.focus();}catch(_){}}document.querySelectorAll('[data-topup-amount]').forEach(b=>b.classList.toggle('is-active',b===topupAmount));return;}
+      const topupMethod=e.target.closest('[data-topup-method]');if(topupMethod&&!topupMethod.disabled){submitWalletTopup(topupMethod.dataset.topupMethod);return;}
       const retry=e.target.closest('[data-retry-checkout]');if(retry&&checkoutContext){startCheckout(checkoutContext.method);return;}
       const openUrl=e.target.closest('[data-open-url]');if(openUrl){openExternal(openUrl.dataset.openUrl);return;}
       const copy=e.target.closest('[data-copy-text]');if(copy){copyValue(copy.dataset.copyText);return;}

@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.14-ubuntu26.16';
+const VERSION = '1.8.15-ubuntu26.17';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -6029,6 +6029,13 @@ async function onMessage(env, m, origin) {
       // انتساب امن یک‌بارهٔ عضو جدید به معرف؛ ثبت امتیاز نیز رویداد idempotent دارد.
       if (payload.startsWith('ref_')) await attachNewReferral(env, u, payload.slice(4));
       await clearState(env, u.tg_id);
+      // پیوندهای قدیمی «شارژ کیف پول» نباید به صفحهٔ استارت بیفتند؛ همان‌جا مسیر درست را بگویید.
+      if (payload === 'miniapp_wallet') {
+        await sendMiniAppEntry(env, chatId, origin,
+          '💰 شارژ کیف پول از داخل خودِ اپ انجام می‌شود.\n' +
+          'در اپ: بخش کیف پول → «شارژ کیف پول» → انتخاب مبلغ → پرداخت کارت‌به‌کارت (خودکار یا دستی).');
+        return;
+      }
       await showMiniAppOnlyStart(env, chatId, origin);
       return;
     }
@@ -6286,6 +6293,7 @@ async function adminShetabCheck(env, chatId, messageId, origin) {
 
   const t = '🔍 <b>بررسی اتصال پرداخت خودکار</b>\n\n' +
     '🌐 آدرس: ' + (url ? '<code>' + esc(url) + '</code>' : '❌ تنظیم نشده') + '\n' +
+    '🧩 نسخهٔ سرور: <code>v' + esc(VERSION) + '</code>\n' +
     '🔑 Secret: ' + (secret ? '<code>' + esc(secret.slice(0, 6)) + '…</code> · ' + faNum(secret.length) + ' کاراکتر ✅' : '❌ ساخته نشده') + '\n' +
     '💳 کارت: ' + (cfg.card_number ? '<code>•••• ' + esc(String(cfg.card_number).slice(-4)) + '</code> به‌نام ' + esc(cfg.card_holder || '—') : '❌ ثبت نشده') + '\n' +
     '⚡ سوییچ خودکار: ' + (cfg.card_auto_enabled === true ? 'روشن ✅' : 'خاموش ⛔') + '\n' +
@@ -7012,13 +7020,23 @@ async function miniAppAdminSummary(env, days) {
   const latestUsers = userIndex.items.filter((u) => Number(u.joined_at || 0) >= from && Number(u.joined_at || 0) <= now).length;
   const recentResult = await miniAppOrderRows(env, { limit: 8, index_limit: 40, days: 0 });
   const pending = [];
+  const pendingSeen = new Set();
   for (const id of (pendingIds || []).slice(-8).reverse()) {
     const o = await getOrder(env, id);
-    if (o && o.status === 'pending') pending.push(o);
+    if (!o || o.status !== 'pending') continue;
+    // pend ممکن است یک شناسه را تکراری داشته باشد؛ ردیف تکراری در داشبورد نباید بسازد.
+    if (pendingSeen.has(String(o.id))) continue;
+    pendingSeen.add(String(o.id));
+    pending.push(o);
   }
   // سفارش‌های معلق را در ردیف‌های اخیر هم نشان بده؛ دادهٔ رسید/شماره کارت هیچ‌وقت به API نمی‌رود.
   const recentOrders = recentResult.items.slice(0, 8);
+  // همین سفارش از ایندکس order_idx هم در recentResult می‌آید؛ بدون این مجموعه، یک سفارش
+  // در انتظار دو بار پشت سر هم در «آخرین سفارش‌ها» دیده می‌شد.
+  const recentIds = new Set(recentOrders.map((o) => String(o.id)));
   for (const o of pending) {
+    if (recentIds.has(String(o.id))) continue;
+    recentIds.add(String(o.id));
     recentOrders.unshift({
       id: String(o.id), tg_id: String(o.tg_id), name: String(o.first_name || o.username || ('کاربر ' + o.tg_id)),
       username: String(o.username || ''), tg: o.username ? '@' + o.username : String(o.tg_id),
@@ -7477,6 +7495,12 @@ async function miniAppCustomerData(env, user) {
     payment_options: {
       manual: cfg.card_manual_enabled !== false && !!cfg.card_number,
       automatic: cfg.card_auto_enabled === true && !!await resolveShetabSecret(env) && !!cfg.card_number
+    },
+    wallet_topup: {
+      min: MINIAPP_TOPUP_MIN, max: MINIAPP_TOPUP_MAX,
+      presets: MINIAPP_TOPUP_PRESETS.slice(),
+      manual: cfg.card_manual_enabled !== false && !!cfg.card_number,
+      automatic: cfg.card_auto_enabled === true && !!await resolveShetabSecret(env) && !!cfg.card_number
     }
   };
 }
@@ -7494,6 +7518,25 @@ async function findMiniAppPendingOrder(env, tgId, type, panelId, planId, subSid)
     if (!order || order.status !== 'pending' || String(order.tg_id) !== String(tgId) || String(order.plan_id) !== String(planId)) continue;
     if (type === 'buy' && order.type === 'buy' && String(order.panel_id) === String(panelId)) return order;
     if (type === 'renew' && order.type === 'renew' && String(order.sub_sid) === String(subSid)) return order;
+  }
+  return null;
+}
+
+// شارژ کیف پول از داخل Mini App: همان قواعدِ سفارش‌های دیگر، ولی بدون پلن/سرور.
+const MINIAPP_TOPUP_MIN = 10000;
+const MINIAPP_TOPUP_MAX = 50000000;
+const MINIAPP_TOPUP_PRESETS = [50000, 100000, 200000, 500000];
+
+async function findMiniAppPendingCharge(env, tgId, method, amount) {
+  const rawPending = await kvGet(env, 'pend', []);
+  const pending = Array.isArray(rawPending) ? rawPending : [];
+  for (const id of pending.slice(-100).reverse()) {
+    const order = await getOrder(env, id);
+    if (!order || order.status !== 'pending' || order.type !== 'charge') continue;
+    if (String(order.tg_id) !== String(tgId)) continue;
+    if (String(order.payment_method || '') !== String(method)) continue;
+    if (Number(order.amount || 0) !== Number(amount)) continue;
+    return order;
   }
   return null;
 }
@@ -7802,6 +7845,59 @@ async function miniAppCreateCheckout(env, user, body) {
   return { data: await miniAppOrderPayload(env, order), status: 200 };
 }
 
+
+// ایجاد سفارش «شارژ کیف پول» از داخل Mini App؛ پیش از این نسخه دکمهٔ شارژ کاربر را
+// به چت ربات می‌فرستاد و در حالت Mini App-only به بن‌بست می‌رسید.
+async function miniAppCreateWalletTopup(env, user, body) {
+  const data = body && typeof body === 'object' ? body : {};
+  const method = String(data.method || '');
+  const requestId = miniAppRequestId(data.request_id);
+  const amount = parseMoney(data.amount);
+  if (!requestId) return { data: { ok: false, error: 'invalid_request_id' }, status: 400 };
+  if (!['manual', 'shetab'].includes(method)) return { data: { ok: false, error: 'invalid_payment_method' }, status: 400 };
+  if (!Number.isSafeInteger(amount) || amount < MINIAPP_TOPUP_MIN || amount > MINIAPP_TOPUP_MAX) {
+    return { data: { ok: false, error: 'invalid_topup_amount', min: MINIAPP_TOPUP_MIN, max: MINIAPP_TOPUP_MAX }, status: 400 };
+  }
+  const cfg = await getCfg(env);
+  if (method === 'manual' && (cfg.card_manual_enabled === false || !cfg.card_number)) {
+    return { data: { ok: false, error: 'manual_payment_disabled' }, status: 403 };
+  }
+  if (method === 'shetab' && (cfg.card_auto_enabled !== true || !await resolveShetabSecret(env) || !cfg.card_number)) {
+    return { data: { ok: false, error: 'automatic_payment_disabled' }, status: 403 };
+  }
+
+  const idemKey = 'miniapp_topup_idem:' + String(user.tg_id) + ':' + requestId;
+  const previous = await kvGet(env, idemKey, null);
+  if (previous && previous.order_id) {
+    const previousOrder = await getOrder(env, previous.order_id);
+    if (previousOrder && String(previousOrder.tg_id) === String(user.tg_id)) {
+      return { data: await miniAppOrderPayload(env, previousOrder), status: 200 };
+    }
+  }
+
+  // سفارش شارژ باز با همان مبلغ و روش دوباره استفاده می‌شود تا مشتری دو سفارش و دو مبلغ یکتا نسازد.
+  const openOrder = await findMiniAppPendingCharge(env, user.tg_id, method, amount);
+  if (openOrder) {
+    await kvPut(env, idemKey, { order_id: String(openOrder.id) }, 86400);
+    const response = await miniAppOrderPayload(env, openOrder);
+    response.reused = true;
+    return { data: response, status: 200 };
+  }
+
+  const orderId = uid(8);
+  let payAmount;
+  try { payAmount = await reserveShetabAmount(env, amount, orderId); }
+  catch (e) { return { data: { ok: false, error: 'bank_amount_unavailable' }, status: 503 }; }
+  const order = await newOrder(env, {
+    id: orderId, tg_id: user.tg_id, username: user.username, first_name: user.first_name,
+    type: 'charge', plan_id: '', panel_id: '', sub_sid: null, plan_name: 'شارژ کیف پول',
+    amount: amount, pay_amount: payAmount,
+    payment_method: method, payment_status: method === 'manual' ? 'awaiting_receipt' : 'waiting',
+    payment_card_number: String(cfg.card_number).replace(/\s/g, ''), payment_card_holder: String(cfg.card_holder || '')
+  });
+  await kvPut(env, idemKey, { order_id: String(order.id) }, 86400);
+  return { data: await miniAppOrderPayload(env, order), status: 200 };
+}
 
 function miniAppAdminSettingsView(cfg, env, secretReady) {
   return {
@@ -8718,6 +8814,18 @@ async function miniAppApi(request, env, url) {
       free_subscription_creation_failed: 502
     }[result.error] || 409);
     return miniAppJson(result, status);
+  }
+  if (path === '/api/miniapp/wallet/topup') {
+    if (request.method !== 'POST') return miniAppJson({ ok: false, error: 'method_not_allowed' }, 405);
+    let body;
+    try { body = await request.json(); }
+    catch (e) { return miniAppJson({ ok: false, error: 'invalid_json' }, 400); }
+    try {
+      const result = await miniAppCreateWalletTopup(env, user, body);
+      return miniAppJson(result.data, result.status);
+    } catch (e) {
+      return miniAppJson({ ok: false, error: 'wallet_topup_failed' }, 500);
+    }
   }
   if (path === '/api/miniapp/checkout') {
     if (request.method !== 'POST') return miniAppJson({ ok: false, error: 'method_not_allowed' }, 405);
