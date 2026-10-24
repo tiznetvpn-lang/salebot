@@ -2967,7 +2967,9 @@
       </article>
       <article class="panel kv-backup-panel" id="kvBackupPanel" data-sgroup="backup" style="margin-top:14px">
         <div class="panel-head"><div><h3>بکاپ و ریستور کامل KV</h3></div></div>
+        <div class="domain-grid" id="kvBackupMeta"><div class="empty-state">وضعیت بکاپ خودکار در حال بارگذاری…</div></div>
         <div class="kv-backup-actions">
+          <button class="btn-secondary" id="kvBackupSend" type="button"><svg class="bi bi-dl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 19.5h15"/></svg><span>بکاپ و ارسال فوری به تلگرام</span></button>
           <button class="btn-primary" id="kvBackupDownload" type="button"><svg class="bi bi-dl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 19.5h15"/></svg><span>دریافت بکاپ دستی</span></button>
           <label class="outline-btn kv-restore-file-label" for="kvRestoreFile">انتخاب فایل بکاپ</label>
           <input id="kvRestoreFile" type="file" accept=".gz,application/gzip,application/x-gzip" aria-label="انتخاب فایل بکاپ gzip">
@@ -5232,8 +5234,40 @@
     const phoneInputEl=document.getElementById('customerPhoneInput');
     if(phoneInputEl)phoneInputEl.addEventListener('keydown',(ev)=>{if(ev.key==='Enter'){ev.preventDefault();savePhoneFromCard();}});
     renderButtonLook(null);
+    async function loadBackupStatus(){
+      const grid=document.getElementById('kvBackupMeta');
+      if(!grid)return;
+      try{
+        const model=await api('/api/miniapp/admin/backup-status');
+        const last=model.last_at?fmtDate(model.last_at):'هنوز ارسال نشده';
+        const next=model.last_at?fmtDate(Number(model.last_at)+Number(model.every_hours||3)*3600000):'—';
+        grid.innerHTML=
+          '<div class="domain-row"><span class="domain-label">بکاپ خودکار</span><span class="domain-value fa">هر '+esc(fmt(model.every_hours||3))+' ساعت → چت مدیر</span><span class="domain-badge good">فعال</span></div>'
+          +'<div class="domain-row"><span class="domain-label">آخرین بکاپ</span><span class="domain-value fa">'+esc(last)+'</span></div>'
+          +'<div class="domain-row"><span class="domain-label">بکاپ بعدی</span><span class="domain-value fa">'+esc(next)+'</span></div>'
+          +'<div class="domain-row"><span class="domain-label">گیرندگان</span><span class="domain-value fa">'+esc(fmt(model.admins||0))+' مدیر</span></div>';
+      }catch(_){grid.innerHTML='<div class="empty-state">وضعیت بکاپ خوانده نشد.</div>';}
+    }
+    async function sendBackupNow(btn){
+      const status=document.getElementById('kvBackupStatus');
+      if(btn)btn.disabled=true;
+      if(status)status.textContent='در حال ساخت و ارسال بکاپ…';
+      try{
+        const data=await api('/api/miniapp/admin/backup-send',{method:'POST'});
+        if(status)status.textContent='✅ بکاپ برای '+fmt(data.delivered||0)+' مدیر ارسال شد — '+fmt(data.entries||0)+' رکورد';
+      }catch(error){
+        if(status)status.textContent=error.message==='already_sent'
+          ? '⏳ یک بکاپ تازه ارسال شده؛ یک دقیقه بعد دوباره تلاش کنید.'
+          : (error.message==='restore_in_progress' ? 'ریستور در جریان است؛ بکاپ موقتاً متوقف است.' : '❌ ارسال ناموفق: '+(error.message||'خطای شبکه'));
+      }finally{
+        if(btn)btn.disabled=false;
+        loadBackupStatus().catch(()=>{});
+      }
+    }
     const domainCheckBtn=document.getElementById('domainCheck');
     if(domainCheckBtn)domainCheckBtn.addEventListener('click',()=>loadDomainStatus(true));
+    const kvBackupSendBtn=document.getElementById('kvBackupSend');
+    if(kvBackupSendBtn)kvBackupSendBtn.addEventListener('click',()=>sendBackupNow(kvBackupSendBtn));
     const btnLookSaveEl=document.getElementById('btnLookSave');
     if(btnLookSaveEl)btnLookSaveEl.addEventListener('click',()=>saveButtonLook());
     // مینی‌اپ نمی‌تواند شناسهٔ ایموجی پریمیومی را بخواند؛ با یک لمس ادمین به حالت گرفتن در چت می‌رود.
@@ -5251,6 +5285,7 @@
         tab.setAttribute('aria-selected',on?'true':'false');
       });
       if(name==='domain'&&!domainStatusLoaded){domainStatusLoaded=true;loadDomainStatus(false).catch(()=>{});}
+      if(name==='backup'){loadBackupStatus().catch(()=>{});}
     }
     let domainStatusLoaded=false;
     function domainRow(label,value,cls,fa){

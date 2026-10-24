@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.26-ubuntu26.28';
+const VERSION = '1.8.27-ubuntu26.29';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -5235,14 +5235,17 @@ async function adminAgentsView(env, chatId, messageId) {
 async function adminBackupNow(env, chatId, messageId) {
   let result = null;
   let error = '';
-  try { result = await sendKvBackup(env, Date.now()); }
+  try { result = await sendKvBackup(env, Date.now(), { manual: true }); }
   catch (e) { error = String(e.message || e); }
+  const lastAt = Number(await kvGet(env, KV_BACKUP_LAST_KEY, 0) || 0);
+  const footer = '\n\n🕒 آخرین بکاپ: <b>' + (lastAt ? fmtDate(lastAt) : 'هنوز ارسال نشده') + '</b>' +
+    '\n⏱ بکاپ خودکار: هر ۳ ساعت، مستقیم در همین چت.';
   let text;
-  if (error) text = '❌ بکاپ انجام نشد: <code>' + esc(error) + '</code>';
-  else if (result && result.skipped === 'already_sent') text = '⏳ بکاپ تازه ارسال شده است؛ برای جلوگیری از ارسال تکراری کمی بعد دوباره تلاش کنید.';
-  else if (result && result.skipped) text = '⏳ بکاپ در حال اجراست؛ چند لحظه بعد دوباره تلاش کنید.';
-  else if (result) text = '✅ بکاپ KV ساخته و برای ادمین (<b>' + faNum(result.delivered) + '</b> نفر) ارسال شد.\n📦 ' + faNum(result.entries) + ' رکورد · <code>' + esc(result.filename) + '</code>';
-  else text = '❌ بکاپ انجام نشد.';
+  if (error) text = '❌ بکاپ انجام نشد: <code>' + esc(error) + '</code>' + footer;
+  else if (result && result.skipped === 'already_sent') text = '⏳ بکاپ ' + (result.last_at ? fmtDate(result.last_at) : 'چند لحظه پیش') + ' ارسال شده؛ برای جلوگیری از ارسال تکراری یک دقیقه صبر کنید.' + footer;
+  else if (result && result.skipped) text = '⏳ بکاپ در حال اجراست؛ چند لحظه بعد دوباره تلاش کنید.' + footer;
+  else if (result) text = '✅ بکاپ KV ساخته و برای ادمین (<b>' + faNum(result.delivered) + '</b> نفر) ارسال شد.\n📦 ' + faNum(result.entries) + ' رکورد · <code>' + esc(result.filename) + '</code>' + footer;
+  else text = '❌ بکاپ انجام نشد.' + footer;
   const rows = [[BTN('◀️ تنظیمات', 'a_set')]];
   if (messageId) { try { await editMsg(env, chatId, messageId, text, KB(rows)); return; } catch (e) {} }
   await msg(env, chatId, text, KB(rows));
@@ -7398,6 +7401,14 @@ async function onMessage(env, m, origin) {
   if (text === '/login' || text === '/web' || text === '/app') {
     await clearState(env, u.tg_id);
     await sendWebLoginCode(env, chatId, u);
+    return;
+  }
+
+  // بکاپ فوری از داخل چت: /backup
+  if (/^\/backup(@\w+)?$/i.test(text)) {
+    if (!isAdmin(env, u.tg_id)) { await msg(env, chatId, '⛔ این دستور فقط برای مدیران است.', mainBotReplyMarkup()); return; }
+    await clearState(env, u.tg_id);
+    await adminBackupNow(env, chatId, null);
     return;
   }
 
@@ -10556,6 +10567,30 @@ async function miniAppApi(request, env, url) {
     if (path === '/api/miniapp/admin/domain' && request.method === 'GET') {
       return miniAppJson(await miniAppAdminDomainReport(env, url, request), 200);
     }
+    if (path === '/api/miniapp/admin/backup-status' && request.method === 'GET') {
+      const lastAt = Number(await kvGet(env, KV_BACKUP_LAST_KEY, 0) || 0);
+      return miniAppJson({
+        ok: true,
+        version: VERSION,
+        cron: KV_BACKUP_CRON,
+        every_hours: 3,
+        last_at: lastAt,
+        admins: adminIds(env).length,
+        manual_cooldown_seconds: 60
+      }, 200);
+    }
+    if (path === '/api/miniapp/admin/backup-send' && request.method === 'POST') {
+      try {
+        const result = await sendKvBackup(env, Date.now(), { manual: true });
+        const lastAt = Number(await kvGet(env, KV_BACKUP_LAST_KEY, 0) || 0);
+        if (result && result.skipped) {
+          return miniAppJson({ ok: false, error: result.skipped, last_at: Number(result.last_at || lastAt) }, 409);
+        }
+        return miniAppJson({ ok: true, delivered: result.delivered, entries: result.entries, filename: result.filename, last_at: lastAt }, 200);
+      } catch (error) {
+        return miniAppJson({ ok: false, error: String((error && error.message) || 'backup_failed') }, 500);
+      }
+    }
     if (path === '/api/miniapp/admin/orders' && request.method === 'GET') {
       const daysRaw = url.searchParams.get('days');
       const days = daysRaw === '0' || daysRaw === 'all' ? 0 : miniAppPeriod(daysRaw, 30);
@@ -11520,7 +11555,8 @@ async function createKvBackupFile(env, generatedAt, maxCompressedBytes, excluded
   return { blob: blob, filename: 'tiznetvpn-kv-backup-' + stamp + '.json.gz', entries: items.length, items: items, createdAt: createdAt };
 }
 
-async function sendKvBackup(env, scheduledTime) {
+async function sendKvBackup(env, scheduledTime, options) {
+  const opts = options || {};
   const nowValue = Number(scheduledTime);
   const now = Number.isFinite(nowValue) && nowValue > 0 ? nowValue : Date.now();
   const restoreLock = await kvGet(env, KV_RESTORE_LOCK_KEY, null);
@@ -11528,7 +11564,9 @@ async function sendKvBackup(env, scheduledTime) {
   const recipients = adminIds(env);
   if (!recipients.length) throw new Error('kv_backup_admins_unconfigured');
   const lastSent = Number(await kvGet(env, KV_BACKUP_LAST_KEY, 0) || 0);
-  if (lastSent && now - lastSent < KV_BACKUP_MIN_INTERVAL_MS) return { skipped: 'already_sent' };
+  // ارسال دستی فقط ۶۰ ثانیه فاصله می‌خواهد؛ ارسال زمان‌بندی‌شده همان بازهٔ ایمنی ۲.۵ ساعته را دارد.
+  const minGap = opts.manual ? 60 * 1000 : KV_BACKUP_MIN_INTERVAL_MS;
+  if (lastSent && now - lastSent < minGap) return { skipped: 'already_sent', last_at: lastSent };
   const lock = await kvGet(env, KV_BACKUP_LOCK_KEY, null);
   const lockAt = Number(lock && lock.started_at || 0);
   if (lockAt && now - lockAt < 30 * 60 * 1000) return { skipped: 'already_running' };
@@ -11555,7 +11593,11 @@ async function scheduledHandler(event, env) {
   const cron = String(event && event.cron || '');
   if (cron === KV_BACKUP_CRON) {
     try { await sendKvBackup(env, event && event.scheduledTime); }
-    catch (e) { try { await notifyAdmins(env, '⚠️ تهیه یا ارسال بکاپ KV انجام نشد. پیکربندی Admin IDs و دسترسی Telegram را بررسی کنید.'); } catch (e2) {} }
+    catch (e) {
+      try { await notifyAdmins(env, '⚠️ تهیه یا ارسال بکاپ KV انجام نشد. پیکربندی Admin IDs و دسترسی Telegram را بررسی کنید.'); } catch (e2) {}
+      // خطا را بالا می‌دهیم تا systemd واحد را failed نشان دهد و لاگ قابل پیگیری باشد.
+      throw e;
+    }
     return;
   }
   if (cron === SHETAB_CRON) {

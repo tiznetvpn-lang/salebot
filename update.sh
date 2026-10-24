@@ -363,12 +363,34 @@ if [[ -d /run/systemd/system ]] && command -v systemctl >/dev/null 2>&1; then
     fi
   done < <(find "$INSTALL_DIR/systemd" -maxdepth 1 -type f \( -name '*.service' -o -name '*.timer' \))
   (( UNIT_CHANGED )) && systemctl daemon-reload || true
-  # تایمر تازهٔ نگه‌داری پرداخت خودکار: روی نصب‌های قبلی هم فعال شود.
-  if [[ -f /etc/systemd/system/tiznetvpn-shetab.timer ]]; then
-    if ! systemctl is-enabled tiznetvpn-shetab.timer >/dev/null 2>&1; then
-      systemctl enable --now tiznetvpn-shetab.timer >/dev/null 2>&1 \
-        && say 'تایمر نگه‌داری پرداخت خودکار فعال شد: tiznetvpn-shetab.timer' \
-        || warn 'فعال‌سازی tiznetvpn-shetab.timer ناموفق بود؛ دستی اجرا کنید: sudo systemctl enable --now tiznetvpn-shetab.timer'
+  # همهٔ تایمرهای پروژه باید فعال باشند؛ پیش‌تر فقط تایمر شتاب روشن می‌شد و
+  # بکاپ ۳ساعتهٔ تلگرام روی نصب‌های قدیمی خاموش می‌ماند.
+  TIMERS_ENABLED=''
+  TIMERS_FAILED=''
+  for timer in tiznetvpn-backup.timer tiznetvpn-reminders.timer tiznetvpn-shetab.timer tiznetvpn-dbbackup.timer; do
+    [[ -f "/etc/systemd/system/$timer" ]] || continue
+    if systemctl is-enabled "$timer" >/dev/null 2>&1; then
+      TIMERS_ENABLED="$TIMERS_ENABLED $timer"
+      continue
+    fi
+    if systemctl enable --now "$timer" >/dev/null 2>&1; then
+      say "تایمر فعال شد: $timer"
+      TIMERS_ENABLED="$TIMERS_ENABLED $timer"
+    else
+      TIMERS_FAILED="$TIMERS_FAILED $timer"
+    fi
+  done
+  if [[ -n "$TIMERS_FAILED" ]]; then
+    warn "این تایمرها فعال نشدند:$TIMERS_FAILED — دستی: sudo systemctl enable --now$(printf ' %s' $TIMERS_FAILED)"
+  fi
+  [[ -n "$TIMERS_ENABLED" ]] && say "تایمرهای فعال:$TIMERS_ENABLED"
+  # اولین بکاپ تلگرام بلافاصله ارسال می‌شود؛ نه اینکه تا مرز سه‌ساعتگی صبر شود.
+  if [[ -f /etc/systemd/system/tiznetvpn-backup.service ]] && systemctl is-enabled tiznetvpn-backup.timer >/dev/null 2>&1; then
+    say 'ارسال یک بکاپ فوری به چت مدیر...'
+    if systemctl start tiznetvpn-backup.service >/dev/null 2>&1; then
+      say 'فایل بکاپ برای مدیران تلگرام ارسال شد.'
+    else
+      warn 'اجرای بکاپ فوری ناموفق بود؛ گزارش: journalctl -u tiznetvpn-backup.service -n 50 --no-pager'
     fi
   fi
   # زمان‌بندی تایمر تغییر کرده؟ ری‌استارت تا برنامهٔ جدید فوراً اعمال شود.

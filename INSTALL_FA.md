@@ -257,7 +257,7 @@ sudo -u tiznetvpn env ENV_FILE=/etc/tiznetvpn/tiznetvpn.env \
 
 ## مرحلهٔ ۱۰ — فعال‌کردن timerها و بکاپ محلی
 
-پس از تنظیم Bot Token و ادمین‌ها، timerها را فعال کنید (تایمر بکاپ فقط با تأیید `SWITCH` در نصب فعال می‌شود؛ اگر رد کردید، این دستور را بزنید):
+پس از تنظیم Bot Token و ادمین‌ها، timerها را فعال کنید. از نسخهٔ 1.8.27 دستور `update.sh` خودش همهٔ تایمرها را روشن می‌کند و یک بکاپ فوری هم می‌فرستد؛ اگر خواستید دستی:
 
 ```bash
 sudo systemctl enable --now \
@@ -269,7 +269,7 @@ sudo systemctl list-timers --all | grep tiznetvpn
 ```
 
 - `tiznetvpn-reminders.timer`: روزانه 05:30 UTC.
-- `tiznetvpn-backup.timer`: هر ۳ ساعت (00:00، 03:00، …، 21:00 UTC — یعنی ۰۳:۳۰، ۰۶:۳۰، … به‌وقت تهران) بکاپ فشردهٔ KV را به چت مدیران می‌فرستد.
+- `tiznetvpn-backup.timer`: هر ۳ ساعت (00:00، 03:00، …، 21:00 UTC — یعنی ۰۳:۳۰، ۰۶:۳۰، … به‌وقت تهران) بکاپ فشردهٔ KV را به چت همهٔ مدیران می‌فرستد. برای اینکه همین حالا یکی برسد: در چت `/backup` بزنید، یا مینی‌اپ → تنظیمات → تب **پشتیبان** → «بکاپ و ارسال فوری به تلگرام».
 - `tiznetvpn-dbbackup.timer`: روزانه 02:15 UTC یک snapshot SQLite در `/var/backups/tiznetvpn` می‌سازد و فایل‌های بیش از ۱۴ روز را حذف می‌کند.
 - `tiznetvpn-shetab.timer`: هر ۱۰ دقیقه سفارش‌های کارت‌به‌کارت خودکارِ بی‌پاسخ را منقضی می‌کند و سلامت اتصال اپ Shetab را می‌سنجد.
 
@@ -279,6 +279,15 @@ sudo systemctl list-timers --all | grep tiznetvpn
 sudo systemctl start tiznetvpn-dbbackup.service
 sudo ls -lh /var/backups/tiznetvpn
 ```
+
+برای اجرای دستی بکاپ KV در تلگرام (بدون روشن‌کردن تایمر):
+
+```bash
+sudo systemctl start tiznetvpn-backup.service
+sudo journalctl -u tiznetvpn-backup.service -n 30 --no-pager
+```
+
+اگر فایل بکاپ به چت نیامد: اول `systemctl is-enabled tiznetvpn-backup.timer` را چک کنید (باید `enabled` باشد)، بعد لاگ بالا را ببینید. پیام «kv_backup_delivery_failed» یعنی تلگرام در دسترس نبوده یا `ADMIN_IDS` خالی است؛ خروجی ناموفق حالا واحد systemd را هم `failed` می‌کند.
 
 برای مشاهدهٔ لاگ timerها:
 
@@ -426,6 +435,7 @@ sudo bash /opt/tiznetvpn/update.sh
 | شاخه یا تگ مشخص | `sudo bash /opt/tiznetvpn/update.sh --ref v1.8.1` |
 | بدون پرسش تأیید (cron/اسکریپت) | `sudo bash /opt/tiznetvpn/update.sh --yes` |
 | به‌روزرسانی + ترمیم دامنه و HTTPS | `sudo bash /opt/tiznetvpn/update.sh --yes --domain bot.tiznet.site` |
+| روشن‌کردن تایمرها + بکاپ فوری | `sudo bash /opt/tiznetvpn/update.sh --yes` (از 1.8.27 خودکار) |
 | بازگشت به آخرین بکاپ کد | `sudo bash /opt/tiznetvpn/update.sh --rollback` |
 
 > مخزن خصوصی: بار اول اسکریپت توکن را با ورودی مخفی می‌پرسد و در `/etc/tiznetvpn/update.env` با مجوز `0600` ذخیره می‌کند؛ از آن به بعد همان یک خط کافی است. برای اجرای غیرتعاملی، همان فایل را از قبل بسازید.
