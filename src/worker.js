@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.22-ubuntu26.24';
+const VERSION = '1.8.23-ubuntu26.25';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -4135,14 +4135,14 @@ function helpText() {
 }
 
 function appsText() {
-  return '📥 <b>دانلود اپ Hiddify برای اتصال به تیزنت VPN</b>\n\n' +
-    '🤖 <b>اندروید:</b>\n' +
-    '• گوگل‌پلی: <code>https://play.google.com/store/apps/details?id=app.hiddify.com</code>\n\n' +
-    '🍎 <b>آیفون:</b>\n' +
-    '• اپ‌استور: <code>https://apps.apple.com/us/app/hiddify-proxy-vpn/id6596777532</code>\n\n' +
-    '💻 <b>ویندوز:</b>\n' +
-    '• مایکروسافت‌استور: <code>https://apps.microsoft.com/detail/9pdfnl3qv2s5</code>\n\n' +
-    '📦 <b>همه نسخه‌ها (گیت‌هاب):</b>\n' +
+  return '📥 <b>دانلود اپ Hiddify</b>\n\n' +
+    '🤖 <b>اندروید</b> — گوگل‌پلی:\n' +
+    '<code>https://play.google.com/store/apps/details?id=app.hiddify.com</code>\n\n' +
+    '🍏 <b>آیفون</b> — اپ‌استور:\n' +
+    '<code>https://apps.apple.com/us/app/hiddify-proxy-vpn/id6596777532</code>\n\n' +
+    '🪟 <b>ویندوز</b> — مایکروسافت‌استور:\n' +
+    '<code>https://apps.microsoft.com/detail/9pdfnl3qv2s5</code>\n\n' +
+    '📦 <b>همهٔ سیستم‌عامل‌ها</b> — گیت‌هاب:\n' +
     '<code>https://github.com/hiddify/hiddify-app/releases</code>';
 }
 
