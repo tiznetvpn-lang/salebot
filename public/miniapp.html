@@ -1522,7 +1522,12 @@
           </div>
           <div class="settings-toggles">
             <label class="toggle-row"><input id="settingManualEnabled" type="checkbox"><span class="switch-ui"></span><span><strong>پرداخت دستی کارت‌به‌کارت</strong><small>ارسال رسید برای بررسی ادمین؛ مسیر fallback حفظ می‌شود.</small></span></label>
-            <label class="toggle-row"><input id="settingAutoEnabled" type="checkbox"><span class="switch-ui"></span><span><strong>پرداخت خودکار بانکی</strong><small id="settingAutoHelp">Secret لازم فقط در Cloudflare تنظیم می‌شود؛ مقدار آن در UI نمایش داده نمی‌شود.</small></span></label>
+            <label class="toggle-row"><input id="settingAutoEnabled" type="checkbox"><span class="switch-ui"></span><span><strong>پرداخت خودکار بانکی</strong><small id="settingAutoHelp">برای فعال‌سازی، شماره کارت را ثبت کنید و روی سرور دستور update.sh را اجرا کنید تا Secret ساخته شود.</small></span></label>
+            <div class="settings-wide copy-line" style="margin-top:4px">
+              <span>آدرس سرور برای اپ شتاب</span>
+              <code id="settingShetabEndpoint">—</code>
+              <button type="button" id="settingShetabCopy">کپی آدرس</button>
+            </div>
           </div>
           <div class="free-settings-block">
             <div class="panel-head"><div><h3>اشتراک رایگان</h3><p>مدیر می‌تواند صدور را فعال/غیرفعال و حجم، روز، پنل و سیاست دریافت را تنظیم کند.</p></div></div>
@@ -2057,7 +2062,7 @@
       const texts={
         invalid_bot_username:'نام کاربری ربات معتبر نیست.',invalid_support_username:'شناسهٔ پشتیبانی معتبر نیست.',
         invalid_card_number:'شمارهٔ کارت باید بین ۱۲ تا ۱۹ رقم باشد.',invalid_commission:'کمیسیون باید عددی بین صفر تا ۹۰ باشد.',
-        invalid_min_withdraw:'حداقل برداشت معتبر نیست.',automatic_payment_not_configured:'برای فعال‌سازی پرداخت خودکار، تنظیمات لازم را فقط در Cloudflare بررسی کنید.',
+        invalid_min_withdraw:'حداقل برداشت معتبر نیست.',automatic_payment_not_configured:'پرداخت خودکار هنوز آماده نیست: شماره کارت را ثبت کنید و روی سرور «sudo bash /opt/tiznetvpn/update.sh --yes» را اجرا کنید تا Secret ساخته شود.',
         invalid_free_subscription_volume:'حجم اشتراک رایگان باید بین صفر و یک میلیون گیگ باشد.',invalid_free_subscription_days:'مدت اشتراک رایگان باید بین ۱ تا ۳۶۵۰ روز باشد.',invalid_free_subscription_policy:'سیاست دریافت اشتراک رایگان معتبر نیست.',free_subscription_policy_required:'پیش از فعال‌کردن اشتراک رایگان، یک سیاست دریافت انتخاب کنید.',free_subscription_panel_unavailable:'برای اشتراک رایگان، یک پنل فعال و کامل انتخاب کنید.',invalid_free_subscription_panel:'شناسهٔ پنل اشتراک رایگان معتبر نیست.',
         backup_create_failed:'ساخت بکاپ KV ناموفق بود؛ حجم داده یا اتصال Worker را بررسی کنید.',backup_download_link_failed:'لینک موقت دانلود بکاپ ساخته نشد؛ دوباره تلاش کنید.',backup_too_large:'حجم فایل بکاپ از حد مجاز بیشتر است.',invalid_restore_upload:'فایل ارسالی معتبر نیست.',backup_file_required:'فایل بکاپ gzip را انتخاب کنید.',invalid_backup_file:'قالب فایل با بکاپ تیزنت سازگار نیست یا فایل خراب است.',restore_confirmation_required:'برای ریستور کامل، تأیید نهایی لازم است.',restore_busy:'یک ریستور دیگر در حال اجراست؛ کمی صبر کنید.',backup_busy:'یک بکاپ زمان‌بندی‌شده در حال اجراست؛ کمی صبر کنید.',restore_safety_backup_failed:'بکاپ ایمنی وضعیت فعلی ساخته نشد؛ هیچ داده‌ای تغییر نکرد.',restore_safety_backup_delivery_failed:'بکاپ ایمنی به حساب مدیر ارسال نشد؛ هیچ داده‌ای تغییر نکرد.',restore_failed_rolled_back:'ریستور ناموفق بود؛ وضعیت قبلی از بکاپ ایمنی بازیابی شد.',restore_failed_rollback_failed:'ریستور و بازیابی خودکار هر دو خطا دادند؛ بکاپ ایمنی را از چت مدیر دریافت کنید.',restore_failed:'ریستور ناموفق بود؛ وضعیت قبلی تغییر نکرد یا به‌صورت خودکار بازیابی شد.' ,
         invalid_panel_name:'نام سرور را وارد کنید.',invalid_panel_api_url:'آدرس API باید HTTPS و بدون اطلاعات ورود باشد.',
@@ -2082,7 +2087,7 @@
       set('settingCardNumber',settings.card_number||'');set('settingCardHolder',settings.card_holder||'');
       set('settingCommission',settings.commission||0);set('settingMinWithdraw',settings.min_withdraw||0);set('settingWelcome',settings.welcome||'');
       const manual=document.getElementById('settingManualEnabled');if(manual)manual.checked=!!settings.card_manual_enabled;
-      const auto=document.getElementById('settingAutoEnabled');if(auto){auto.checked=!!settings.card_auto_enabled;auto.disabled=!settings.automatic_ready&&!settings.card_auto_enabled;}
+      const auto=document.getElementById('settingAutoEnabled');if(auto){auto.checked=!!settings.card_auto_enabled;auto.disabled=false;}
       const freeEnabled=document.getElementById('settingFreeEnabled');if(freeEnabled)freeEnabled.checked=!!settings.free_subscription_enabled;
       set('settingFreeGb',settings.free_subscription_gb==null?1:settings.free_subscription_gb);
       set('settingFreeDays',settings.free_subscription_days==null?1:settings.free_subscription_days);
@@ -2094,7 +2099,12 @@
         if(selected)panelSelect.value=selected;
         else if(Array.isArray(panels))panelSelect.value='';
       }
-      const help=document.getElementById('settingAutoHelp');if(help)help.textContent=settings.automatic_ready?'اتصال پرداخت خودکار آماده است؛ در صورت نیاز Secret را فقط در Cloudflare تغییر دهید.':'برای فعال‌سازی، Secret پرداخت خودکار را در Cloudflare بگذارید؛ مقدار آن اینجا نمایش داده نمی‌شود.';
+      const help=document.getElementById('settingAutoHelp');
+      if(help)help.textContent=settings.automatic_ready
+        ? 'اتصال آماده است. آدرس سرور برای اپ: '+String(settings.shetab_endpoint||'—')
+        : 'برای فعال‌سازی: شماره کارت را همین‌جا ثبت کنید و روی سرور «sudo bash /opt/tiznetvpn/update.sh --yes» را اجرا کنید تا Secret ساخته شود.';
+      const endpoint=document.getElementById('settingShetabEndpoint');
+      if(endpoint){endpoint.textContent=String(settings.shetab_endpoint||'—');}
       const status=document.getElementById('settingsConnectionStatus');if(status)status.textContent='Worker متصل';
     }
     async function loadSettings() {
@@ -3193,6 +3203,32 @@
       try{const data=await api('/api/miniapp/subscriptions/'+encodeURIComponent(sid)+'/qr');modalBodyElement.innerHTML=subscriptionQrMarkup(data.delivery);}
       catch(e){modalBodyElement.innerHTML='<div class="order-state warn">'+esc(checkoutErrorText(e.message))+'</div>';}
     }
+    // فرم رسید؛ هم برای کارت‌به‌کارت دستی و هم برای «تأیید نشد» مسیر خودکار.
+    function receiptFormMarkup() {
+      return '<form class="receipt-form" id="receiptForm" enctype="multipart/form-data">'
+        +'<label for="receiptFile">عکس رسید (اختیاری، JPG یا PNG)</label>'
+        +'<input id="receiptFile" name="receipt" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png">'
+        +'<label for="receiptReference">شماره پیگیری / شناسه واریز (اختیاری)</label>'
+        +'<input id="receiptReference" name="reference" type="text" maxlength="100" placeholder="در صورت نداشتن عکس رسید">'
+        +'<button class="btn-primary" type="submit">ارسال رسید برای تأیید ادمین</button>'
+        +'<small id="receiptError" style="color:#ffc4c6;line-height:1.8"></small></form>';
+    }
+    // وضعیت انتظار برای پیامک بانک؛ بدون ساعت جاواسکریپتی، هر ۱۵ ثانیه همراه با
+    // به‌روزرسانی خودکار سفارش بازمحاسبه می‌شود (بدون تایمر اضافه یا نشتی).
+    function shetabWaitMarkup(payment) {
+      const expires=Number(payment&&payment.expires_at);
+      if(!Number.isFinite(expires)||expires<=0)return '';
+      const remain=expires-Date.now();
+      let text;
+      if(remain<=0)text='زمان انتظار خودکار تمام شده است؛ اگر واریز کرده‌اید دوباره پرداخت نکنید و با پشتیبانی تماس بگیرید.';
+      else{
+        const minutes=Math.ceil(remain/60000);
+        text=minutes<=1?'در انتظار پیامک بانک · کمتر از یک دقیقه دیگر':('در انتظار پیامک بانک · حدود '+minutes+' دقیقه دیگر');
+      }
+      return '<div class="order-state warn" id="shetabWait">'
+        +'<span aria-hidden="true">⏳</span><span>'+esc(text)
+        +'</span></div><div class="mini-note" style="margin-top:6px">پس از این زمان سفارش خودکار بسته می‌شود تا مبلغ یکتا برای سفارش‌های دیگر آزاد شود.</div>';
+    }
     function renderOrderDetails(data) {
       if(!data||!data.order)return;
       const order=data.order,payment=data.payment||null;
@@ -3217,9 +3253,16 @@
         if(payment.card_number)html+='<div style="margin-top:10px">شماره کارت</div><div class="copy-line"><code>'+esc(payment.card_number)+'</code><button type="button" data-copy-text="'+esc(payment.card_number)+'">کپی شماره کارت</button></div>';
         html+='<div style="margin-top:12px">مبلغ انتقال به ریال</div><div class="copy-line"><code>'+fmt(rialAmount)+' ریال</code><button type="button" data-copy-text="'+rialAmount+'">کپی مبلغ ریالی</button></div>';
         if(payment.card_holder)html+='<div style="margin-top:8px">به‌نام: <strong>'+esc(payment.card_holder)+'</strong></div>';
-        if(payment.method==='shetab')html+='<div class="mini-note" style="margin-top:10px">مبلغ دقیق را دقیقاً به تومان یا معادل ریالی بالا منتقل کنید. اتصال بانکی، پرداخت را خودکار تأیید می‌کند؛ تا مشخص‌شدن وضعیت دوباره واریز نکنید.</div>';
+        if(payment.method==='shetab'){
+          html+='<div class="mini-note" style="margin-top:10px">مبلغ دقیق را دقیقاً به تومان یا معادل ریالی بالا منتقل کنید. اتصال بانکی، پرداخت را خودکار تأیید می‌کند؛ تا مشخص‌شدن وضعیت دوباره واریز نکنید.</div>';
+          html+=shetabWaitMarkup(payment);
+          if(payment.can_switch_to_receipt){
+            html+='<div style="margin-top:12px"><button type="button" class="payment-option" data-show-receipt="1"><span class="payment-icon">🧾</span><span><strong>پرداخت انجام شد ولی تأیید نشد؟</strong><small>رسید یا کد پیگیری همین واریز را برای ادمین بفرستید؛ سفارش تکراری ساخته نمی‌شود.</small></span></button></div>';
+            html+='<div id="shetabReceiptWrap" hidden>'+receiptFormMarkup()+'</div>';
+          }
+        }
         if(payment.method==='manual'&&!payment.receipt_submitted){
-          html+='<form class="receipt-form" id="receiptForm" enctype="multipart/form-data"><label for="receiptFile">عکس رسید (اختیاری، JPG یا PNG)</label><input id="receiptFile" name="receipt" type="file" accept="image/jpeg,image/png,.jpg,.jpeg,.png"><label for="receiptReference">شماره پیگیری / شناسه واریز (اختیاری)</label><input id="receiptReference" name="reference" type="text" maxlength="100" placeholder="در صورت نداشتن عکس رسید"><button class="btn-primary" type="submit">ارسال رسید برای تأیید ادمین</button><small id="receiptError" style="color:#ffc4c6;line-height:1.8"></small></form>';
+          html+=receiptFormMarkup();
         }else if(payment.method==='manual'&&payment.receipt_submitted){html+='<div class="mini-note" style="margin-top:10px">رسید به ادمین ارسال شده؛ تا تأیید سفارش، وجه دیگری واریز نکنید.</div>';}
         html+='</div>';
       }
@@ -3498,6 +3541,7 @@
       const confirm=e.target.closest('[data-admin-confirm]');if(confirm){handleAdminConfirm();return;}
       const cancel=e.target.closest('[data-admin-cancel]');if(cancel){const ctx=adminModalContext;if(ctx&&(ctx.type==='order'||ctx.type==='manualApprove')&&ctx.order)renderAdminOrder(ctx.order);else if(ctx&&ctx.type==='customer'&&ctx.customer)renderCustomerManager(ctx.customer);else closeModal();return;}
       const receipt=e.target.closest('[data-order-receipt]');if(receipt){loadAdminReceipt(receipt.dataset.orderReceipt);return;}
+      const showReceipt=e.target.closest('[data-show-receipt]');if(showReceipt){const wrap=document.getElementById('shetabReceiptWrap');if(wrap){wrap.hidden=false;showReceipt.hidden=true;try{wrap.scrollIntoView({block:'nearest'});}catch(_){}}return;}
 
       const link=e.target.closest('[data-web-url]');if(link){e.preventDefault();openExternal(link.dataset.webUrl);return;}
       const buy=e.target.closest('[data-buy-panel]');if(buy){openPlanCheckout(buy.dataset.buyPanel,buy.dataset.buyPlan,'');return;}
@@ -3508,6 +3552,7 @@
       const retry=e.target.closest('[data-retry-checkout]');if(retry&&checkoutContext){startCheckout(checkoutContext.method);return;}
       const openUrl=e.target.closest('[data-open-url]');if(openUrl){openExternal(openUrl.dataset.openUrl);return;}
       const copy=e.target.closest('[data-copy-text]');if(copy){copyValue(copy.dataset.copyText);return;}
+      if(e.target.closest('#settingShetabCopy')){const el=document.getElementById('settingShetabEndpoint');if(el)copyValue(el.textContent||'');return;}
       if(e.target.closest('[data-demo-action]')){toast('این فقط پیش‌نمایش طراحی است؛ خرید زنده داخل Mini App تلگرام انجام می‌شود.');return;}
       if(e.target===modalElement)closeModal();
     });

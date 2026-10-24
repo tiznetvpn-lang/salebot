@@ -232,6 +232,47 @@ if (( ! ASSUME_YES )); then
 fi
 
 # ---------------------------------------------------------------------------
+# Secret پرداخت خودکار شتاب
+# ---------------------------------------------------------------------------
+# مقدارهای خالی، کوتیشن‌دار یا دارای فاصله هم «خالی» حساب می‌شوند؛ چون در آن حالت
+# احراز هویت اپ شکست می‌خورد و ادمین فکر می‌کند پرداخت خودکار خراب است.
+current_secret=$(grep -E '^[[:space:]]*(export[[:space:]]+)?SHETAB_API_SECRET=' "$ENV_FILE" 2>/dev/null \
+  | tail -n1 | cut -d= -f2- || true)
+current_secret="${current_secret%$'\r'}"
+current_secret="${current_secret#\"}"; current_secret="${current_secret%\"}"
+current_secret="${current_secret#\'}"; current_secret="${current_secret%\'}"
+current_secret="$(printf '%s' "$current_secret" | tr -d '[:space:]')"
+
+if [[ ${#current_secret} -lt 32 ]]; then
+  SHETAB_NEW_SECRET=''
+  if command -v openssl >/dev/null 2>&1; then
+    SHETAB_NEW_SECRET=$(openssl rand -hex 32 2>/dev/null || true)
+  fi
+  if [[ ${#SHETAB_NEW_SECRET} -lt 32 ]] && command -v node >/dev/null 2>&1; then
+    SHETAB_NEW_SECRET=$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))" 2>/dev/null || true)
+  fi
+  if [[ ${#SHETAB_NEW_SECRET} -ge 32 ]]; then
+    # هر خط قبلی (خالی، کوتیشن‌دار یا تکراری) حذف و یک خط تمیز نوشته می‌شود.
+    TMP_ENV=$(mktemp)
+    grep -vE '^[[:space:]]*(export[[:space:]]+)?SHETAB_API_SECRET=' "$ENV_FILE" > "$TMP_ENV" 2>/dev/null || true
+    printf 'SHETAB_API_SECRET=%s\n' "$SHETAB_NEW_SECRET" >> "$TMP_ENV"
+    cat "$TMP_ENV" > "$ENV_FILE"
+    rm -f "$TMP_ENV"
+    chown root:"$SERVICE_GROUP" "$ENV_FILE" 2>/dev/null || true
+    chmod 0640 "$ENV_FILE" 2>/dev/null || true
+    say 'Secret پرداخت خودکار (SHETAB_API_SECRET) ساخته شد.'
+    printf '         در ربات: تنظیمات → 📲 اتصال اپ شتاب → «📋 کپی Secret»\n'
+    printf '         در ترمینال: sudo grep SHETAB_API_SECRET %s\n' "$ENV_FILE"
+    unset SHETAB_NEW_SECRET
+  else
+    warn 'ساخت Secret پرداخت خودکار ناموفق بود (openssl و node در دسترس نبودند).'
+    warn "دستی اضافه کنید: SHETAB_API_SECRET=<۶۴ کاراکتر تصادفی> در $ENV_FILE"
+  fi
+else
+  say 'Secret پرداخت خودکار از قبل موجود است.'
+fi
+
+# ---------------------------------------------------------------------------
 # بکاپ دیتابیس (قبل از هر تغییری)
 # ---------------------------------------------------------------------------
 say 'ساخت snapshot دیتابیس'
@@ -316,6 +357,14 @@ if [[ -d /run/systemd/system ]] && command -v systemctl >/dev/null 2>&1; then
     fi
   done < <(find "$INSTALL_DIR/systemd" -maxdepth 1 -type f \( -name '*.service' -o -name '*.timer' \))
   (( UNIT_CHANGED )) && systemctl daemon-reload || true
+  # تایمر تازهٔ نگه‌داری پرداخت خودکار: روی نصب‌های قبلی هم فعال شود.
+  if [[ -f /etc/systemd/system/tiznetvpn-shetab.timer ]]; then
+    if ! systemctl is-enabled tiznetvpn-shetab.timer >/dev/null 2>&1; then
+      systemctl enable --now tiznetvpn-shetab.timer >/dev/null 2>&1 \
+        && say 'تایمر نگه‌داری پرداخت خودکار فعال شد: tiznetvpn-shetab.timer' \
+        || warn 'فعال‌سازی tiznetvpn-shetab.timer ناموفق بود؛ دستی اجرا کنید: sudo systemctl enable --now tiznetvpn-shetab.timer'
+    fi
+  fi
   # زمان‌بندی تایمر تغییر کرده؟ ری‌استارت تا برنامهٔ جدید فوراً اعمال شود.
   for timer in $CHANGED_TIMERS; do
     if systemctl is-enabled "$timer" >/dev/null 2>&1; then

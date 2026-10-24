@@ -2312,9 +2312,20 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.8-ubuntu26.10';
+const VERSION = '1.8.10-ubuntu26.12';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
+const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
+const SHETAB_EVENT_TTL = 60 * 86400;           // نگه‌داری رخدادهای بانکی برای پیگیری
+const SHETAB_EVENT_INDEX_CAP = 300;            // حداکثر رخداد در فهرست سریع
+const SHETAB_RATE_WINDOW = 15 * 60;            // پنجرهٔ شمارش تلاش ناموفق (ثانیه)
+const SHETAB_RATE_LIMIT = 25;                  // سقف تلاش ناموفق در هر پنجره
+const SHETAB_SCAN_LIMIT = 120;                 // سقف سفارش‌های باز برای جست‌وجوی پشتیبان
+const SHETAB_STUCK_MS = 30 * 60 * 1000;        // سفارش خودکارِ منتظر بیش از این مدت = نیازمند بررسی
+const SHETAB_SILENCE_MS = 2 * 3600 * 1000;     // اگر اپ این مدت هیچ خبری نداده، گوشی مشکوک است
+const SHETAB_HEARTBEAT_DEDUPE_MS = 6 * 3600 * 1000;
+const SHETAB_TEST_TTL_MS = 2 * 86400 * 1000;   // پاک‌سازی سفارش‌های آزمایشی
+const SHETAB_CRON = '*/10 * * * *';            // هماهنگ با systemd/tiznetvpn-shetab.timer
 const KV_BACKUP_CRON = '0 */3 * * *';           // هر ۳ ساعت (هماهنگ با systemd/tiznetvpn-backup.timer)
 const KV_BACKUP_MIN_INTERVAL_MS = 2.5 * 60 * 60 * 1000; // فاصلهٔ ایمنی کمتر از بازهٔ ۳ ساعت تا ارسال بعدی رد نشود
 const KV_BACKUP_LAST_KEY = 'system:kv_backup_last_at';
@@ -2660,7 +2671,9 @@ const DEFAULT_SETTINGS = {
   free_subscription_gb: 1,
   free_subscription_days: 1,
   free_subscription_panel_id: '',
-  free_subscription_claim_policy: ''
+  free_subscription_claim_policy: '',
+  shetab_secret: '',        // Secret پرداخت خودکار؛ اگر در env نبود، از همین‌جا ساخته می‌شود
+  shetab_secret_created_at: 0
 };
 
 async function getCfg(env) {
@@ -2929,9 +2942,13 @@ function miniAppOnlyMode(env) {
   const value = String((env && env.MINIAPP_ONLY_MODE) == null ? 'true' : env.MINIAPP_ONLY_MODE).trim().toLowerCase();
   return !['0', 'false', 'off', 'no', 'disabled'].includes(value);
 }
-function telegramExtra(env, extra) {
+// ادمین‌ها همیشه به پنل تلگرام دسترسی دارند؛ حالت «فقط Mini App» برای مشتری است.
+function isAdminChat(env, chatId) {
+  return chatId != null && isAdmin(env, chatId);
+}
+function telegramExtra(env, extra, chatId) {
   const safe = Object.assign({}, extra || {});
-  if (miniAppOnlyMode(env) && !isAllowedMiniAppOnlyMarkup(safe.reply_markup)) delete safe.reply_markup;
+  if (miniAppOnlyMode(env) && !isAdminChat(env, chatId) && !isAllowedMiniAppOnlyMarkup(safe.reply_markup)) delete safe.reply_markup;
   return safe;
 }
 
@@ -3030,13 +3047,13 @@ function COPYBTN(text, value) { return { text: text, copy_text: { text: String(v
 async function msg(env, chat_id, text, extra) {
   return tg(env, 'sendMessage', Object.assign({
     chat_id: chat_id, text: text, parse_mode: 'HTML', disable_web_page_preview: true
-  }, telegramExtra(env, extra)));
+  }, telegramExtra(env, extra, chat_id)));
 }
 
 async function editMsg(env, chat_id, message_id, text, extra) {
   try {
-    const safeExtra = telegramExtra(env, extra);
-    if (miniAppOnlyMode(env)) safeExtra.reply_markup = { inline_keyboard: [] };
+    const safeExtra = telegramExtra(env, extra, chat_id);
+    if (miniAppOnlyMode(env) && !isAdminChat(env, chat_id)) safeExtra.reply_markup = { inline_keyboard: [] };
     await tg(env, 'editMessageText', Object.assign({
       chat_id: chat_id, message_id: message_id, text: text,
       parse_mode: 'HTML', disable_web_page_preview: true
@@ -3055,8 +3072,8 @@ async function editMsg(env, chat_id, message_id, text, extra) {
 // پیام سفارش دستی ممکن است متن یا عکسِ رسید باشد؛ برای هر دو نوع، وضعیت اصلی را همان‌جا عوض می‌کنیم.
 async function updateAdminOrderMessage(env, source, text, extra) {
   if (!source || !source.chat || !source.message_id) return false;
-  const safeExtra = telegramExtra(env, extra);
-  if (miniAppOnlyMode(env)) safeExtra.reply_markup = { inline_keyboard: [] };
+  const safeExtra = telegramExtra(env, extra, source.chat.id);
+  if (miniAppOnlyMode(env) && !isAdminChat(env, source.chat.id)) safeExtra.reply_markup = { inline_keyboard: [] };
   const params = Object.assign({ chat_id: source.chat.id, message_id: source.message_id, parse_mode: 'HTML' }, safeExtra);
   const isMedia = !!(source.photo || source.document || source.video || source.animation || source.audio || source.voice);
   try {
@@ -3080,7 +3097,7 @@ async function ansCb(env, id, text, alert) {
 async function sendPhoto(env, chat_id, photo, caption, extra) {
   return tg(env, 'sendPhoto', Object.assign({
     chat_id: chat_id, photo: photo, caption: caption || '', parse_mode: 'HTML'
-  }, telegramExtra(env, extra)));
+  }, telegramExtra(env, extra, chat_id)));
 }
 
 // دریافت رسید مستقیم از Mini App و ارسال امن همان فایل به گفت‌وگوی ادمین‌ها؛ فایل در KV نگهداری نمی‌شود.
@@ -3089,7 +3106,7 @@ async function sendPhotoUpload(env, chat_id, photoFile, filename, caption, extra
   form.append('chat_id', String(chat_id));
   form.append('caption', caption || '');
   form.append('parse_mode', 'HTML');
-  const safeExtra = telegramExtra(env, extra);
+  const safeExtra = telegramExtra(env, extra, chat_id);
   if (safeExtra.reply_markup) form.append('reply_markup', JSON.stringify(safeExtra.reply_markup));
   form.append('photo', photoFile, filename || 'receipt.jpg');
   const r = await fetch('https://api.telegram.org/bot' + env.BOT_TOKEN + '/sendPhoto', { method: 'POST', body: form });
@@ -3958,7 +3975,7 @@ async function showPlanDetail(env, chatId, messageId, u, pid, plid, sid) {
   const rows = [];
   rows.push([BTN(canWallet ? '💰 پرداخت با کیف پول (تحویل فوری ⚡)' : '💰 موجودی کیف پول کافی نیست', canWallet ? pre + 'payw:' + idp + ':' + plid : 'noop')]);
   const cfg = await getCfg(env);
-  if (cfg.card_auto_enabled === true && cfg.card_number && env.SHETAB_API_SECRET) {
+  if (cfg.card_auto_enabled === true && cfg.card_number && await resolveShetabSecret(env)) {
     rows.push([BTN('⚡ کارت‌به‌کارت خودکار (تحویل فوری)', pre + 'payx:' + idp + ':' + plid)]);
   }
   if (cfg.card_manual_enabled !== false && cfg.card_number) {
@@ -4039,7 +4056,7 @@ async function autoCardPayStart(env, chatId, u, kind, a, b) {
     await msg(env, chatId, '❌ کارت‌به‌کارت خودکار توسط ادمین غیرفعال است.', KB([[BTN('◀️ برگشت', 'home')]]));
     return;
   }
-  if (!env.SHETAB_API_SECRET) {
+  if (!await resolveShetabSecret(env)) {
     await msg(env, chatId, '❌ پرداخت خودکار پیکربندی نشده است؛ Secret اتصال Shetab را بررسی کنید.', KB([[BTN('◀️ برگشت', 'home')]]));
     return;
   }
@@ -4967,8 +4984,14 @@ async function adminSettings(env, chatId, messageId) {
   const cfg = await getCfg(env);
   const manualOn = cfg.card_manual_enabled !== false;
   const autoOn = cfg.card_auto_enabled === true;
-  const autoReady = !!env.SHETAB_API_SECRET && !!cfg.card_number;
+  const secret = await resolveShetabSecret(env);
+  const hasSecret = !!secret;
+  const hasCard = !!cfg.card_number;
+  const autoReady = hasSecret && hasCard;
   const autoStatus = autoOn ? (autoReady ? 'روشن ✅' : 'روشن، ولی نیازمند کارت/Secret ⚠️') : 'خاموش ⛔';
+  const autoMissing = [];
+  if (!hasCard) autoMissing.push('شماره کارت (از «💳 کارت»)');
+  if (!hasSecret) autoMissing.push('Secret سرور (با اجرای update.sh ساخته می‌شود)');
   const t = '⚙️ <b>تنظیمات</b>\n\n' +
     '🤖 یوزرنیم ربات: ' + (cfg.bot_username ? '@' + esc(cfg.bot_username) : '—') +
     '\n📞 پشتیبانی: ' + (cfg.support ? '@' + esc(String(cfg.support).replace(/^@/, '')) : '—') +
@@ -4976,12 +4999,15 @@ async function adminSettings(env, chatId, messageId) {
     '\n💸 حداقل برداشت: ' + fmtToman(cfg.min_withdraw) +
     '\n\n💳 کارت‌به‌کارت دستی: ' + (manualOn ? 'روشن ✅' : 'خاموش ⛔') +
     '\n⚡ کارت‌به‌کارت خودکار: ' + autoStatus +
+    (autoMissing.length ? '\n❌ برای فعال‌شدن لازم است: ' + autoMissing.join(' + ') : '') +
     '\n<i>روش خودکار برای خرید و تمدید است؛ روش دستی شامل ارسال رسید و شارژ کیف پول هم می‌شود.</i>';
   const rows = [
     [BTN('🤖 یوزرنیم ربات', 's_bot'), BTN('📞 پشتیبانی', 's_sup')],
     [BTN('🎁 درصد پورسانت', 's_com'), BTN('💸 حداقل برداشت', 's_minwd')],
     [BTN(manualOn ? '⛔ خاموش‌کردن کارت‌به‌کارت دستی' : '✅ روشن‌کردن کارت‌به‌کارت دستی', 's_pay_manual')],
     [BTN(autoOn ? '⛔ خاموش‌کردن کارت‌به‌کارت خودکار' : '✅ روشن‌کردن کارت‌به‌کارت خودکار', 's_pay_auto')],
+    [BTN('📲 اتصال اپ شتاب', 'a_shapp'), BTN('🧪 آزمون پرداخت خودکار', 'a_shtest')],
+    [BTN('📜 رویدادهای بانکی', 'a_shlog')],
     [BTN('◀️ پنل مدیریت', 'admin')]
   ];
   if (messageId) await editMsg(env, chatId, messageId, t, KB(rows));
@@ -5005,7 +5031,8 @@ async function onCallback(env, q, origin) {
   }
 
   // دکمه‌های inline قدیمی ممکن است در پیام‌های قبلی هنوز دیده شوند؛ در حالت Mini App فقط پاسخ خنثی می‌دهیم.
-  if (miniAppOnlyMode(env)) {
+  // استثنا: ادمین همیشه باید به پنل تلگرام دسترسی داشته باشد.
+  if (miniAppOnlyMode(env) && !admEarly) {
     await ansCb(env, q.id, 'جهت خرید وارد اپ فروش شوید.');
     if (q.message && q.message.chat && q.message.message_id != null) {
       try { await tg(env, 'editMessageReplyMarkup', { chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: [] } }); } catch (e) {}
@@ -5432,17 +5459,177 @@ async function onCallback(env, q, origin) {
     await adminSettings(env, chatId, messageId);
     return;
   }
+  if (data === 'a_shgen') {
+    if (!await needAdmin()) return;
+    const cfgGen = await getCfg(env);
+    if (await resolveShetabSecret(env)) {
+      await ansCb(env, q.id, 'Secret از قبل ساخته شده است.');
+      await adminShetabApp(env, chatId, messageId, origin);
+      return;
+    }
+    const fresh = generateShetabSecret();
+    cfgGen.shetab_secret = fresh;
+    cfgGen.shetab_secret_created_at = Date.now();
+    await saveCfg(env, cfgGen);
+    await ansCb(env, q.id, 'Secret ساخته شد ✅');
+    await adminShetabApp(env, chatId, messageId, origin);
+    return;
+  }
+  if (data === 'a_shapp') {
+    if (!await needAdmin()) return;
+    await ansCb(env, q.id);
+    await adminShetabApp(env, chatId, messageId, origin);
+    return;
+  }
+  if (data === 'a_shtest') {
+    if (!await needAdmin()) return;
+    await ansCb(env, q.id, 'در حال اجرای آزمون…');
+    let r;
+    try { r = await shetabSelfTest(env); }
+    catch (e) {
+      r = { ok: false, verified: 'none', base: '', publicStatus: 0, publicError: String((e && e.message) || e).slice(0, 200), internal: null };
+    }
+    let t;
+    if (r.verified === 'public') {
+      t = '✅ <b>آزمون پرداخت خودکار موفق بود</b>\n\n' +
+        'مسیر کامل تست شد: درخواست HTTPS از همین سرور به آدرس عمومی → Secret → تطبیق مبلغ یکتا → ثبت پرداخت.\n' +
+        'یعنی اپ روی گوشی هم همین مسیر را با موفقیت طی می‌کند.\n\n' +
+        '🌐 آدرس: <code>' + esc(r.base) + '</code>\n' +
+        '🕒 زمان: ' + fmtDate(Date.now()) + '\n\n' +
+        '<i>سفارش آزمایشی پس از تست پاک شد و هیچ سرویسی ساخته نشد.</i>';
+    } else if (r.verified === 'internal') {
+      t = '⚠️ <b>منطق پرداخت سالم است، اما آدرس عمومی از خود سرور در دسترس نیست</b>\n\n' +
+        'بخش داخلی (Secret، مبلغ یکتا، تطبیق سفارش، ثبت پرداخت) با موفقیت آزموده شد.\n' +
+        (r.base ? '🌐 آدرس عمومی: <code>' + esc(r.base) + '</code>\n' : '') +
+        (r.publicError ? '🔌 خطای اتصال: <code>' + esc(r.publicError) + '</code>\n' : '') +
+        (r.publicStatus ? '📡 کد پاسخ عمومی: <code>' + String(r.publicStatus) + '</code>\n' : '') +
+        '\nاین معمولاً یعنی DNS داخلی/NAT یا فایروال اجازهٔ برگشت به دامنهٔ خودی را نمی‌دهد؛ از گوشی واقعی تست کنید.';
+    } else {
+      const det = [];
+      if (r.base) det.push('🌐 آدرس: <code>' + esc(r.base) + '</code>');
+      if (r.publicStatus) det.push('📡 کد پاسخ عمومی: <code>' + String(r.publicStatus) + '</code>');
+      if (r.publicError) det.push('🔌 خطای اتصال: <code>' + esc(r.publicError) + '</code>');
+      if (r.internal && r.internal.status) det.push('🧪 آزمون داخلی: <code>HTTP ' + String(r.internal.status) + '</code>');
+      if (r.internal && r.internal.error) det.push('🧪 خطای داخلی: <code>' + esc(r.internal.error) + '</code>');
+      const bodyMsg = (r.publicPayload && r.publicPayload.message) || (r.internal && r.internal.body && r.internal.body.message) || '';
+      if (bodyMsg) det.push('💬 پاسخ سرور: <code>' + esc(String(bodyMsg).slice(0, 160)) + '</code>');
+      t = '❌ <b>آزمون پرداخت خودکار ناموفق بود</b>\n\n' + det.join('\n') +
+        '\n\n<b>موارد رایج:</b>\n' +
+        '• Secret در اپ با فایل env یکی نیست\n' +
+        '• دامنه/DNS یا گواهی SSL مشکل دارد\n' +
+        '• شمارهٔ کارت فروشگاه ثبت نشده است\n' +
+        '• اپ روی گوشی به آدرس اشتباه می‌فرستد';
+    }
+    await shetabSay(env, chatId, messageId, t,
+      KB([[BTN('🔁 اجرای دوباره', 'a_shtest')], [BTN('📜 رویدادهای بانکی', 'a_shlog')], [BTN('◀️ تنظیمات', 'a_set')]]));
+    return;
+  }
+  if (data === 'a_shlog') {
+    if (!await needAdmin()) return;
+    await ansCb(env, q.id);
+    await adminShetabEvents(env, chatId, messageId);
+    return;
+  }
+  if (data.startsWith('a_shev:')) {
+    if (!await needAdmin()) return;
+    await ansCb(env, q.id);
+    const evt = await shetabGetEvent(env, data.slice(7));
+    if (!evt) { await shetabSay(env, chatId, messageId, '❌ این رخداد پیدا نشد یا منقضی شده است.', KB([[BTN('📜 رویدادهای بانکی', 'a_shlog')]])); return; }
+    const near = await shetabPendingCandidates(env, [Number(evt.amount || 0), Number(evt.amount || 0) / 10], 5);
+    const rows = [];
+    let t = '🔗 <b>وصل‌کردن واریز به سفارش</b>\n\n' +
+      '💵 مبلغ واریز: <b>' + fmtToman(evt.amount || 0) + '</b>' +
+      '\n🧾 کد پیگیری: <code>' + esc(String(evt.ref || '—').slice(0, 40)) + '</code>' +
+      '\n🕒 ' + fmtDate(evt.at) + '\n\n';
+    if (!near.length) {
+      t += 'هیچ سفارش بازی برای وصل‌کردن وجود ندارد.\n<i>اگر مبلغ را به کارت فروشگاه برگردانده‌اید، این رخداد را نادیده بگیرید.</i>';
+      rows.push([BTN('🙈 نادیده گرفتن', 'a_shx:' + evt.id)]);
+    } else {
+      t += 'یک سفارش را انتخاب کنید (نزدیک‌ترین مبلغ‌ها اول):';
+      for (const c of near) {
+        const diff = Number(c.pay_amount) - Number(evt.amount || 0);
+        const diffText = diff === 0 ? 'مبلغ دقیقاً برابر' : (diff > 0 ? faNum(Math.abs(diff)) + ' تومان کمتر واریز شده' : faNum(Math.abs(diff)) + ' تومان بیشتر واریز شده');
+        rows.push([BTN(fmtToman(c.pay_amount) + ' · ' + (diff === 0 ? '✓' : (diff > 0 ? '−' : '+') + faNum(Math.abs(diff))), 'a_shl:' + evt.id + ':' + c.id)]);
+      }
+      rows.push([BTN('🙈 نادیده گرفتن', 'a_shx:' + evt.id)]);
+    }
+    rows.push([BTN('◀️ رویدادها', 'a_shlog')]);
+    await shetabSay(env, chatId, messageId, t, KB(rows));
+    return;
+  }
+  if (data.startsWith('a_shl:')) {
+    if (!await needAdmin()) return;
+    const rest = data.slice(6);
+    const sep = rest.indexOf(':');
+    if (sep < 1) { await ansCb(env, q.id, 'درخواست نامعتبر', true); return; }
+    const evtId = rest.slice(0, sep);
+    const orderId = rest.slice(sep + 1);
+    const evt = await shetabGetEvent(env, evtId);
+    const order = await getOrder(env, orderId);
+    if (!evt || !order) { await ansCb(env, q.id, 'رخداد یا سفارش پیدا نشد', true); await shetabSay(env, chatId, messageId, '❌ رخداد یا سفارش پیدا نشد.', KB([[BTN('📜 رویدادهای بانکی', 'a_shlog')]])); return; }
+    await ansCb(env, q.id);
+    const diff = Number(order.pay_amount == null ? order.amount : order.pay_amount) - Number(evt.amount || 0);
+    const t = '⚠️ <b>تأیید نهایی وصل‌کردن واریز</b>\n\n' +
+      '💵 مبلغ واریزشده: <b>' + fmtToman(evt.amount || 0) + '</b>' +
+      '\n🧾 کد پیگیری: <code>' + esc(String(evt.ref || '—').slice(0, 40)) + '</code>' +
+      '\n\n🧾 سفارش: <code>' + order.id + '</code>' +
+      '\n📦 ' + esc(order.plan_name || '—') + ' · ' + esc(order.panel_name || '—') +
+      '\n💵 مبلغ سفارش: ' + fmtToman(order.pay_amount == null ? order.amount : order.pay_amount) +
+      '\n' + (diff === 0 ? '✅ مبلغ دقیقاً برابر است.' : '⚠️ اختلاف: ' + faNum(Math.abs(diff)) + ' تومان ' + (diff > 0 ? 'کمتر' : 'بیشتر') + ' واریز شده است.') +
+      '\n👤 مشتری: <code>' + esc(order.tg_id) + '</code>' +
+      '\n\n<b>با تأیید، سرویس همین حالا ساخته/تمدید می‌شود.</b>';
+    await shetabSay(env, chatId, messageId, t, KB([
+      [BTN('✅ تأیید و تحویل', 'a_shly:' + evt.id + ':' + order.id)],
+      [BTN('◀️ بازگشت', 'a_shev:' + evt.id)]
+    ]));
+    return;
+  }
+  if (data.startsWith('a_shly:')) {
+    if (!await needAdmin()) return;
+    const rest = data.slice(7);
+    const sep = rest.indexOf(':');
+    if (sep < 1) { await ansCb(env, q.id, 'درخواست نامعتبر', true); return; }
+    const evtId = rest.slice(0, sep);
+    const orderId = rest.slice(sep + 1);
+    const evt = await shetabGetEvent(env, evtId);
+    const order = await getOrder(env, orderId);
+    if (!evt || !order) { await ansCb(env, q.id, 'رخداد یا سفارش پیدا نشد', true); return; }
+    await ansCb(env, q.id, 'در حال تحویل…');
+    const result = await shetabAttachPayment(env, evt, order, from.id);
+    if (!result.ok) {
+      await shetabSay(env, chatId, messageId, '❌ ' + esc(result.error || 'انجام نشد'), KB([[BTN('📜 رویدادهای بانکی', 'a_shlog')]]));
+      return;
+    }
+    await shetabSay(env, chatId, messageId,
+      (result.fulfilled ? '✅ <b>واریز به سفارش وصل شد و سرویس تحویل داده شد.</b>' : '⚠️ <b>واریز ثبت شد، اما تحویل با خطا روبه‌رو شد.</b>') +
+      '\n🧾 سفارش: <code>' + order.id + '</code>\n💵 مبلغ: ' + fmtToman(evt.amount || 0),
+      KB([[BTN('🔍 مشاهده سفارش', 'a_ord:' + order.id)], [BTN('📜 رویدادها', 'a_shlog')]]));
+    return;
+  }
+  if (data.startsWith('a_shx:')) {
+    if (!await needAdmin()) return;
+    await ansCb(env, q.id);
+    const evt = await shetabGetEvent(env, data.slice(5));
+    if (evt) {
+      evt.kind = 'ignored';
+      evt.resolved_at = Date.now();
+      evt.resolved_by = String(from.id);
+      await shetabSaveEvent(env, evt);
+    }
+    await shetabSay(env, chatId, messageId, '🙈 این رخداد نادیده گرفته شد.', KB([[BTN('📜 رویدادهای بانکی', 'a_shlog')]]));
+    return;
+  }
   if (data === 's_pay_auto') {
     if (!await needAdmin()) return;
     const cfg = await getCfg(env);
-    if (cfg.card_auto_enabled !== true && !env.SHETAB_API_SECRET) {
-      await ansCb(env, q.id, 'اول Secret با نام SHETAB_API_SECRET را در Cloudflare تنظیم کنید.', true);
-      await adminSettings(env, chatId, messageId);
+    if (cfg.card_auto_enabled !== true && !await resolveShetabSecret(env)) {
+      await ansCb(env, q.id, 'Secret سرور هنوز ساخته نشده است؛ راهنمای اتصال را ببینید.', true);
+      await adminShetabApp(env, chatId, messageId, origin);
       return;
     }
     if (cfg.card_auto_enabled !== true && !cfg.card_number) {
-      await ansCb(env, q.id, 'اول شماره کارت را در بخش کارت ثبت کنید.', true);
-      await adminSettings(env, chatId, messageId);
+      await ansCb(env, q.id, 'اول شماره کارت فروشگاه را ثبت کنید.', true);
+      await adminCards(env, chatId, messageId);
       return;
     }
     cfg.card_auto_enabled = cfg.card_auto_enabled !== true;
@@ -5788,7 +5975,8 @@ async function onMessage(env, m, origin) {
 
   const u = await ensureUser(env, from);
   if (u.referral_join_eligible === true && u.referral_join_rewarded !== true) await ensureReferralJoinAward(env, u);
-  if (isAdmin(env, from.id)) {
+  const isAdminUser = isAdmin(env, from.id);
+  if (isAdminUser) {
     if (u.banned) { u.banned = false; await saveUser(env, u); } // ادمین هیچ‌وقت مسدود نمی‌شود
   } else if (u.banned) {
     await msg(env, chatId, '⛔ شما مسدود هستید.');
@@ -5798,7 +5986,7 @@ async function onMessage(env, m, origin) {
   const text = (m.text || '').trim();
   await ensureMiniAppMenuButton(env, u, chatId, origin);
 
-  if (miniAppOnlyMode(env)) {
+  if (miniAppOnlyMode(env) && !isAdminUser) {
     if (/^\/start(?:@\w+)?(?:\s|$)/.test(text)) {
       const payload = text.split(/\s+/)[1] || '';
       // پیوند نمایندگی یک‌بارمصرف است؛ نقش در KV ثبت می‌شود و Mini App همان‌جا دسترسی می‌دهد.
@@ -5957,6 +6145,284 @@ async function cronReminders(env) {
     } catch (e) { /* خطای تکی، ادامه */ }
   }
   return checked;
+}
+
+// ── نگه‌داری پرداخت خودکار: آزادسازی سفارش منقضی، هشدار سکوت گوشی، پاک‌سازی آزمون‌ها ──
+async function cronShetab(env) {
+  const now = Date.now();
+  const cfg = await getCfg(env);
+  const pending = await kvGet(env, 'pend', []);
+  let expired = 0;
+  let waiting = 0;
+  for (const id of pending) {
+    const o = await getOrder(env, id);
+    if (!o || o.status !== 'pending') continue;
+    const age = now - Number(o.created_at || 0);
+    if (o.test === true) {
+      if (age > SHETAB_TEST_TTL_MS) {
+        o.status = 'cancelled'; o.closed_reason = 'test_cleanup'; o.cancelled_at = now; o.cancelled_by = 'system';
+        await saveOrder(env, o);
+      }
+      continue;
+    }
+    if (o.payment_method !== 'shetab') continue;
+    if (age < SHETAB_ORDER_TTL_MS) {
+      if (age > SHETAB_STUCK_MS) waiting++;
+      continue;
+    }
+    o.status = 'cancelled';
+    o.closed_reason = 'auto_expired';
+    o.cancelled_at = now;
+    o.cancelled_by = 'system';
+    await saveOrder(env, o);
+    if (o.pay_amount != null) { try { await kvDel(env, 'shetab_amt:' + o.pay_amount); } catch (e) {} }
+    expired++;
+    try {
+      await msg(env, o.tg_id,
+        '⏳ <b>سفارش پرداخت‌نشده بسته شد</b>\n\n🧾 سفارش: <code>' + o.id + '</code>' +
+        '\n💵 مبلغ یکتا: ' + fmtToman(o.pay_amount == null ? o.amount : o.pay_amount) +
+        '\n\nاین مبلغ آزاد شد تا سفارش‌های جدید معطل نمانند. اگر واریز کرده‌اید و هنوز تأیید نشده، رسید یا کد پیگیری را برای پشتیبانی بفرستید.',
+        KB([[BTN('🛒 خرید مجدد', 'buy')], [BTN('📞 پشتیبانی', 'sup')]]));
+    } catch (e) {}
+  }
+  // گوشی فقط وقتی پیامک می‌فرستد که پولی رسیده باشد؛ پس سکوت به‌تنهایی یعنی «خریدی نبوده».
+  // هشدار فقط وقتی معنا دارد که مشتری‌ها منتظر مانده‌اند و از اپ هم خبری نیست.
+  if (cfg.card_auto_enabled === true && waiting > 0) {
+    const last = await kvGet(env, 'shetab_last_event', null);
+    const lastAt = last && last.at ? Number(last.at) : 0;
+    const silent = !lastAt || (now - lastAt) > SHETAB_SILENCE_MS;
+    if (silent) {
+      const dedupe = Number(await kvGet(env, 'shetab_hb_alert', 0) || 0);
+      if (now - dedupe > SHETAB_HEARTBEAT_DEDUPE_MS) {
+        await kvPut(env, 'shetab_hb_alert', now, 7 * 86400);
+        await notifyAdmins(env,
+          '📵 <b>اتصال پرداخت خودکار مشکوک است</b>\n\n' +
+          faNum(waiting) + ' سفارش خودکار بیش از ۳۰ دقیقه در انتظار تأیید مانده و در ' +
+          (lastAt ? 'بیش از ۲ ساعت گذشته' : 'هیچ‌وقت') + ' هیچ خبری از اپ Shetab نرسیده است.\n\n' +
+          'بررسی کنید: گوشی روشن و به اینترنت وصل است؟ اپ Shetab باز است؟ سیم‌کارت فعال است؟\n' +
+          '<i>اگر مشتری واقعاً واریز نکرده باشد، این هشدار طبیعی است.</i>');
+      }
+    }
+  }
+  return { expired: expired, waiting: waiting };
+}
+
+// ── ابزارهای مدیریتی پرداخت خودکار: آزمون، وصل‌کردن واریز، گزارش ──────────────
+// آدرس عمومی فروشگاه؛ همان چیزی که باید در اپ Shetab وارد شود.
+function shopBaseUrl(env, origin) {
+  const pub = String(env.PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '');
+  if (pub) return pub;
+  const mini = String(env.MINIAPP_URL || '').trim();
+  if (mini) {
+    try { return new URL(mini).origin; } catch (e) {}
+  }
+  return String(origin || '').trim().replace(/\/+$/, '');
+}
+
+function shetabEndpointUrl(env, origin) {
+  const base = shopBaseUrl(env, origin);
+  return base ? base + '/wp-json/webdide-cv/v1/confirm' : '';
+}
+
+// صفحهٔ «اتصال اپ شتاب»: ادمین باید بداند کدام مقدار را کجا وارد کند.
+async function adminShetabApp(env, chatId, messageId, origin) {
+  const cfg = await getCfg(env);
+  const url = shetabEndpointUrl(env, origin);
+  const secret = await resolveShetabSecret(env);
+  const hasSecret = !!secret;
+  const hasCard = !!cfg.card_number;
+  const t = '📲 <b>اتصال اپ Shetab Verification</b>\n\n' +
+    'این دو مقدار را <b>داخل خودِ اپ روی گوشی</b> وارد می‌کنید (تنظیمات اپ → Server/API):\n\n' +
+    '🌐 <b>Server URL</b>\n<code>' + esc(url || '— آدرس عمومی تنظیم نشده —') + '</code>\n\n' +
+    '🔑 <b>API Secret</b>\n' +
+    (hasSecret
+      ? '<code>' + esc(secret.slice(0, 6)) + '…</code> (' + faNum(secret.length) + ' کاراکتر — فقط برای تطبیق)\n' +
+        '<i>مقدار کامل نمایش داده نمی‌شود؛ روی دکمهٔ «📋 کپی Secret» بزنید و همان را در اپ جای‌گذاری کنید.</i>'
+      : '❌ <b>هنوز ساخته نشده.</b> روی دکمهٔ «🔑 ساخت Secret همین‌جا» بزنید؛ ربات یک کلید امن می‌سازد و همین صفحه دکمهٔ کپی آن را نشان می‌دهد. (نیازی به دستور ترمینال نیست.)') +
+    '\n\n━━━━━━━━━━━━━━\n' +
+    '✅ کارت بانکی: ' + (hasCard ? 'ثبت شده' : '❌ ثبت نشده — از «💳 کارت» شماره کارت را وارد کنید') + '\n' +
+    '🔑 Secret: ' + (hasSecret ? 'آماده' : '❌ ساخته نشده') + '\n' +
+    '⚡ روشن‌بودن پرداخت خودکار: ' + (cfg.card_auto_enabled === true ? 'روشن ✅' : 'خاموش ⛔ — از «⚙️ تنظیمات» روشن کنید') + '\n' +
+    (hasCard && hasSecret && cfg.card_auto_enabled !== true
+      ? '<i>همهٔ پیش‌نیازها آماده است؛ فقط سوییچ «⚡ کارت‌به‌کارت خودکار» در تنظیمات را روشن کنید.</i>\n'
+      : '') +
+    '\n' +
+    '⚠️ <b>مهم:</b> شمارهٔ کارتی که در ربات ثبت می‌کنید باید <b>همان کارتی</b> باشد که اپ روی گوشی پیامک‌هایش را می‌خواند؛ اپ شمارهٔ کارت مقصد را نمی‌فرستد و فقط مبلغ و کد پیگیری را گزارش می‌کند.\n\n' +
+    'پس از واردکردن URL و Secret در اپ، دکمهٔ «🧪 آزمون پرداخت خودکار» را بزنید. اگر سبز شد، اتصال کامل است.';
+  const rows = [];
+  if (hasSecret) rows.push([COPYBTN('📋 کپی Secret', secret)]);
+  else rows.push([BTN('🔑 ساخت Secret همین‌جا', 'a_shgen')]);
+  if (url) rows.push([COPYBTN('📋 کپی آدرس سرور', url)]);
+  rows.push([BTN('🧪 آزمون پرداخت خودکار', 'a_shtest')]);
+  rows.push([BTN('💳 شماره کارت', 'a_cards'), BTN('📜 رویدادهای بانکی', 'a_shlog')]);
+  rows.push([BTN('◀️ تنظیمات', 'a_set')]);
+  if (messageId) await editMsg(env, chatId, messageId, t, KB(rows));
+  else await msg(env, chatId, t, KB(rows));
+}
+
+function fmtDate(ts) {
+  const n = Number(ts);
+  if (!Number.isFinite(n) || n <= 0) return '—';
+  try {
+    return new Date(n).toLocaleString('fa-IR', {
+      timeZone: 'Asia/Tehran', dateStyle: 'short', timeStyle: 'short'
+    });
+  } catch (e) {
+    return new Date(n).toISOString().slice(0, 16).replace('T', ' ');
+  }
+}
+
+// ویرایش پیام تکی؛ اگر پیام در دسترس نباشد (callback بدون message) پیام تازه می‌فرستد.
+async function shetabSay(env, chatId, messageId, text, extra) {
+  if (messageId != null) {
+    try { await editMsg(env, chatId, messageId, text, extra); return; } catch (e) {}
+  }
+  try { await msg(env, chatId, text, extra); } catch (e) {}
+}
+
+async function shetabMakeTestOrder(env) {
+  // سفارش آزمون عمداً بدون newOrder ساخته می‌شود تا در اعلان ادمین، فهرست سفارش‌های
+  // مشتری و آمار فروش ثبت نشود؛ فقط همان کلیدهایی نوشته می‌شوند که مسیر واقعی
+  // پرداخت می‌خواند (ایندکس مبلغ و خود سفارش).
+  const orderId = 'tst' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
+  const payAmount = await reserveShetabAmount(env, 1000, orderId);
+  const now = Date.now();
+  await kvPut(env, 'o:' + orderId, {
+    id: orderId, tg_id: '0', username: 'selftest', first_name: 'آزمون پرداخت',
+    type: 'buy', panel_id: '', plan_id: '', plan_name: 'آزمون پرداخت خودکار', panel_name: 'آزمون',
+    amount: 1000, pay_amount: payAmount, payment_method: 'shetab',
+    payment_status: 'waiting', status: 'pending', test: true,
+    created_at: now, updated_at: now
+  });
+  return { orderId: orderId, payAmount: payAmount };
+}
+
+async function shetabDropTestOrder(env, test) {
+  try { await kvDel(env, 'o:' + test.orderId); } catch (e) {}
+  try { await kvDel(env, 'shetab_amt:' + test.payAmount); } catch (e) {}
+  try {
+    const p = await kvGet(env, 'pend', []);
+    if (p.includes(test.orderId)) await kvPut(env, 'pend', p.filter((x) => x !== test.orderId));
+  } catch (e) {}
+}
+
+async function shetabSelfTest(env) {
+  const base = String(env.PUBLIC_BASE_URL || env.MINIAPP_URL || '').trim().replace(/\/+$/, '');
+  const secret = await resolveShetabSecret(env);
+  if (!secret) return { ok: false, error: 'Secret پرداخت خودکار ساخته نشده است؛ از «📲 اتصال اپ شتاب» بسازید.' };
+  const cfg = await getCfg(env);
+  if (!cfg.card_number) return { ok: false, error: 'شماره کارت فروشگاه هنوز ثبت نشده است.' };
+  const path = '/wp-json/webdide-cv/v1/confirm';
+  const headers = { 'Content-Type': 'application/json', Authorization: secret };
+
+  // مرحلهٔ ۱ — مسیر عمومی (DNS + SSL + nginx + worker): همان کاری که اپ روی گوشی می‌کند.
+  let publicTest = null;
+  let publicStatus = 0;
+  let publicPayload = null;
+  let publicError = '';
+  if (base) {
+    try {
+      publicTest = await shetabMakeTestOrder(env);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15000);
+      const response = await fetch(base + path, {
+        method: 'POST', headers,
+        body: JSON.stringify({ amount: publicTest.payAmount, recipeId: 'SELFTEST-' + publicTest.orderId }),
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+      publicStatus = response.status;
+      try { publicPayload = await response.json(); } catch (e) { publicPayload = null; }
+      const latest = await getOrder(env, publicTest.orderId);
+      publicTest.passed = !!(latest && latest.payment_status === 'paid' && latest.test_passed_at && publicStatus === 200);
+    } catch (e) {
+      publicError = String((e && e.message) || e).slice(0, 200);
+    } finally {
+      if (publicTest) await shetabDropTestOrder(env, publicTest);
+    }
+  }
+
+  // مرحلهٔ ۲ — اگر مسیر عمومی از خود سرور قابل دسترس نبود (NAT داخلی/DNS)، منطق
+  // داخلی را مستقیم می‌آزماییم تا ادمین بداند مشکل شبکه است یا منطق پرداخت.
+  let internal = null;
+  const needInternal = !base || (!publicTest || publicTest.passed !== true);
+  if (needInternal) {
+    const test = await shetabMakeTestOrder(env);
+    try {
+      const req = new Request('https://internal.local' + path, {
+        method: 'POST', headers, body: JSON.stringify({ amount: test.payAmount, recipeId: 'SELFTEST-' + test.orderId })
+      });
+      const res = await shetabConfirm(req, env, 'Payment confirmed successfully.');
+      let body = null;
+      try { body = await res.json(); } catch (e) { body = null; }
+      const latest = await getOrder(env, test.orderId);
+      internal = {
+        status: res.status, body: body,
+        passed: !!(latest && latest.payment_status === 'paid' && latest.test_passed_at && res.status === 200)
+      };
+    } catch (e) {
+      internal = { status: 0, body: null, passed: false, error: String((e && e.message) || e).slice(0, 200) };
+    } finally {
+      await shetabDropTestOrder(env, test);
+    }
+  }
+
+  const publicPassed = !!(publicTest && publicTest.passed);
+  const internalPassed = !!(internal && internal.passed);
+  return {
+    ok: publicPassed || internalPassed,
+    verified: publicPassed ? 'public' : (internalPassed ? 'internal' : 'none'),
+    base: base, publicStatus: publicStatus, publicPayload: publicPayload,
+    publicError: publicError, internal: internal
+  };
+}
+
+async function shetabAttachPayment(env, evt, order, adminId) {
+  if (!order) return { ok: false, error: 'سفارش پیدا نشد.' };
+  if (order.status !== 'pending') return { ok: false, error: 'این سفارش دیگر باز نیست.' };
+  if (order.payment_status === 'paid') return { ok: false, error: 'این سفارش قبلاً پرداخت‌شده ثبت شده است.' };
+  const amount = Number(evt.amount || 0);
+  order.payment_status = 'paid';
+  order.payment_received_at = Number(evt.at) || Date.now();
+  order.payment_ref = String(evt.ref || '') || null;
+  order.reported_amount = amount;
+  order.manual_approval = true;
+  order.manual_approved_by = String(adminId || '');
+  order.manual_approval_note = 'وصل‌کردن واریز بی‌صاحب ' + String(evt.id || '');
+  await saveOrder(env, order);
+  const result = await shetabFulfill(env, order);
+  evt.kind = 'attached';
+  evt.resolved_at = Date.now();
+  evt.resolved_by = String(adminId || '');
+  evt.resolved_order_id = order.id;
+  await shetabSaveEvent(env, evt);
+  try {
+    await msg(env, order.tg_id,
+      '✅ واریز شما به سفارش <code>' + order.id + '</code> وصل شد و سرویس تحویل داده شد.',
+      KB([[BTN('📦 اشتراک‌های من', 'mysubs')]]));
+  } catch (e) {}
+  return { ok: true, fulfilled: result.fulfilled };
+}
+
+function shetabEventLabel(kind) {
+  const map = { paid: 'پرداخت تأییدشده', orphan: 'واریز بی‌صاحب', ambiguous: 'واریز مبهم', duplicate: 'تکراری', test: 'آزمون', attached: 'وصل‌شده' };
+  return map[String(kind || '')] || String(kind || 'رخداد');
+}
+
+async function adminShetabEvents(env, chatId, messageId) {
+  const index = await kvGet(env, 'shetab_evt_index', []);
+  const rows = [];
+  for (const id of index.slice(0, 10)) {
+    const evt = await shetabGetEvent(env, id);
+    if (!evt) continue;
+    const icon = evt.kind === 'paid' ? '✅' : evt.kind === 'orphan' ? '💰' : evt.kind === 'ambiguous' ? '⚠️' : evt.kind === 'attached' ? '🔗' : '•';
+    rows.push(icon + ' ' + fmtDate(evt.at) + ' · ' + fmtToman(evt.amount || 0) + ' · ' + shetabEventLabel(evt.kind) + (evt.ref ? ' · <code>' + esc(String(evt.ref).slice(0, 24)) + '</code>' : ''));
+  }
+  const t = '📜 <b>رویدادهای اخیر بانکی</b>\n\n' + (rows.length ? rows.join('\n') : 'هنوز رویدادی ثبت نشده است.') +
+    '\n\n<i>هر درخواست معتبر اپ در این فهرست ثبت می‌شود؛ پرداخت‌های بی‌صاحب از همین‌جا قابل وصل‌کردن‌اند.</i>';
+  const kb = KB([[BTN('🧪 آزمون پرداخت خودکار', 'a_shtest')], [BTN('◀️ تنظیمات', 'a_set')]]);
+  if (messageId) await editMsg(env, chatId, messageId, t, kb);
+  else await msg(env, chatId, t, kb);
 }
 
 /* ====================== درگاه پیامک Shetab Verification ====================== */
@@ -6687,7 +7153,7 @@ async function miniAppCustomerData(env, user) {
     support: String(cfg.support || ''),
     payment_options: {
       manual: cfg.card_manual_enabled !== false && !!cfg.card_number,
-      automatic: cfg.card_auto_enabled === true && !!env.SHETAB_API_SECRET && !!cfg.card_number
+      automatic: cfg.card_auto_enabled === true && !!await resolveShetabSecret(env) && !!cfg.card_number
     }
   };
 }
@@ -6772,7 +7238,13 @@ async function miniAppOrderPayload(env, order) {
       amount_rial: rialFromToman(payAmount),
       method: method,
       requires_receipt: method === 'manual' && !order.receipt_submitted_at,
-      receipt_submitted: !!order.receipt_submitted_at
+      receipt_submitted: !!order.receipt_submitted_at,
+      // شمارش معکوس انتظار برای پیامک بانک؛ پس از این زمان سفارش خودکار منقضی می‌شود.
+      expires_at: method === 'shetab' && order.status === 'pending'
+        ? Number(order.created_at || 0) + SHETAB_ORDER_TTL_MS
+        : null,
+      can_switch_to_receipt: method === 'shetab' && order.status === 'pending'
+        && String(order.payment_status || '') !== 'paid' && !order.receipt_submitted_at
     } : null,
     delivery: delivery
   };
@@ -6823,11 +7295,15 @@ async function miniAppSubmitReceipt(request, env, user, orderId) {
   let order = id ? await getOrder(env, id) : null;
   if (!order || String(order.tg_id) !== String(user.tg_id)) return { data: { ok: false, error: 'order_not_found' }, status: 404 };
   if (order.status === 'approved' || order.payment_status === 'paid') return { data: await miniAppOrderPayload(env, order), status: 200 };
-  if (order.status !== 'pending' || order.payment_method !== 'manual') return { data: { ok: false, error: 'manual_order_not_open' }, status: 409 };
+  if (order.status !== 'pending') return { data: { ok: false, error: 'manual_order_not_open' }, status: 409 };
+  if (order.payment_method !== 'manual' && order.payment_method !== 'shetab') return { data: { ok: false, error: 'manual_order_not_open' }, status: 409 };
   if (order.receipt_submitted_at) return { data: await miniAppOrderPayload(env, order), status: 200 };
   if (order.payment_status === 'review_uploading' && Date.now() - Number(order.receipt_upload_attempt_at || 0) < 45000) {
     return { data: { ok: false, error: 'receipt_processing' }, status: 409 };
   }
+  // مسیر خودکار جواب نداد → همان سفارش (نه سفارش تازه) به روش دستی تبدیل می‌شود تا
+  // مشتری سفارش تکراری نسازد و مبلغ رزروشده هم برای تطبیق بعدی حفظ شود.
+  const convertingFromShetab = order.payment_method === 'shetab';
   const contentLength = Number(request.headers.get('content-length') || 0);
   if (contentLength > 6 * 1024 * 1024) return { data: { ok: false, error: 'receipt_too_large' }, status: 413 };
   let form;
@@ -6849,6 +7325,11 @@ async function miniAppSubmitReceipt(request, env, user, orderId) {
   order.receipt_text = reference || (photo ? 'تصویر رسید از Mini App پیوست شد' : null);
   order.receipt_upload_attempt_at = Date.now();
   order.payment_status = 'review_uploading';
+  if (convertingFromShetab) {
+    order.payment_method = 'manual';
+    order.converted_from_shetab_at = Date.now();
+    order.shetab_amount_reserved = Number(order.pay_amount || 0);
+  }
   await saveOrder(env, order);
   let fileId = null;
   try { fileId = await notifyMiniAppReceipt(env, order, photo, filename); }
@@ -6864,6 +7345,16 @@ async function miniAppSubmitReceipt(request, env, user, orderId) {
     latest.payment_status = 'review';
     await saveOrder(env, latest);
     await recordCustomerActivity(env, user.tg_id, 'receipt_submitted', { order_id: order.id, amount: order.amount });
+    if (latest.converted_from_shetab_at) {
+      try {
+        await notifyAdmins(env,
+          '🧾 <b>رسید دستی برای سفارش خودکار</b>\n\n' +
+          'مشتری می‌گوید پیامک بانک تأیید نشده و رسید فرستاده است.\n' +
+          '🧾 سفارش: <code>' + latest.id + '</code>\n💵 مبلغ: ' + fmtToman(order.amount) +
+          '\n🆔 مبلغ یکتای واریز: ' + fmtToman(latest.shetab_amount_reserved || latest.pay_amount || 0),
+          KB([[BTN('🔍 مشاهده سفارش', 'a_ord:' + latest.id)]]));
+      } catch (e) {}
+    }
   }
   return { data: await miniAppOrderPayload(env, latest), status: 200 };
 }
@@ -6916,7 +7407,7 @@ async function miniAppCreateCheckout(env, user, body) {
   }
 
   if (method === 'manual' && (cfg.card_manual_enabled === false || !cfg.card_number)) return { data: { ok: false, error: 'manual_payment_disabled' }, status: 403 };
-  if (method === 'shetab' && (cfg.card_auto_enabled !== true || !env.SHETAB_API_SECRET || !cfg.card_number)) return { data: { ok: false, error: 'automatic_payment_disabled' }, status: 403 };
+  if (method === 'shetab' && (cfg.card_auto_enabled !== true || !await resolveShetabSecret(env) || !cfg.card_number)) return { data: { ok: false, error: 'automatic_payment_disabled' }, status: 403 };
 
   if (method === 'wallet') {
     const fresh = await getUser(env, user.tg_id) || user;
@@ -6989,7 +7480,7 @@ async function miniAppCreateCheckout(env, user, body) {
 }
 
 
-function miniAppAdminSettingsView(cfg, env) {
+function miniAppAdminSettingsView(cfg, env, secretReady) {
   return {
     ok: true,
     settings: {
@@ -6999,7 +7490,8 @@ function miniAppAdminSettingsView(cfg, env) {
       min_withdraw: Number(cfg.min_withdraw || 0),
       card_manual_enabled: cfg.card_manual_enabled !== false,
       card_auto_enabled: cfg.card_auto_enabled === true,
-      automatic_ready: !!env.SHETAB_API_SECRET && !!cfg.card_number,
+      automatic_ready: !!secretReady && !!cfg.card_number,
+      shetab_endpoint: shetabEndpointUrl(env, ''),
       free_subscription_enabled: cfg.free_subscription_enabled === true,
       free_subscription_gb: Number.isFinite(Number(cfg.free_subscription_gb)) ? Number(cfg.free_subscription_gb) : 1,
       free_subscription_days: Number.isInteger(Number(cfg.free_subscription_days)) ? Number(cfg.free_subscription_days) : 1,
@@ -7054,7 +7546,7 @@ async function miniAppAdminUpdateSettings(env, body) {
     if (has(key) && typeof data[key] !== 'boolean') return { data: { ok: false, error: 'invalid_' + key }, status: 400 };
     if (has(key)) cfg[key] = data[key];
   }
-  if (has('card_auto_enabled') && cfg.card_auto_enabled === true && !autoWasEnabled && (!env.SHETAB_API_SECRET || !cfg.card_number)) {
+  if (has('card_auto_enabled') && cfg.card_auto_enabled === true && !autoWasEnabled && (!await resolveShetabSecret(env) || !cfg.card_number)) {
     return { data: { ok: false, error: 'automatic_payment_not_configured' }, status: 409 };
   }
   if (has('free_subscription_enabled')) {
@@ -7096,7 +7588,7 @@ async function miniAppAdminUpdateSettings(env, body) {
   }
   if (has('card_number') && !cfg.card_number) cfg.card_auto_enabled = false;
   await saveCfg(env, cfg);
-  return { data: miniAppAdminSettingsView(cfg, env), status: 200 };
+  return { data: miniAppAdminSettingsView(cfg, env, !!(await resolveShetabSecret(env))), status: 200 };
 }
 
 function miniAppAdminPanelView(panel, fallbackId) {
@@ -8091,7 +8583,7 @@ async function miniAppApi(request, env, url) {
     }
     if (path === '/api/miniapp/admin/settings') {
       if (request.method === 'GET') {
-        const view = miniAppAdminSettingsView(await getCfg(env), env);
+        const view = miniAppAdminSettingsView(await getCfg(env), env, !!(await resolveShetabSecret(env)));
         const panels = await getPanels(env);
         view.panels = Object.entries(panels || {}).map(([id, panel]) => ({ id: String(panel.id || id), name: String(panel.name || ''), enabled: isRecordEnabled(panel) })).sort((a,b) => a.name.localeCompare(b.name, 'fa'));
         return miniAppJson(view, 200);
@@ -8185,66 +8677,159 @@ async function readShetabPayload(request) {
   catch (e) { return Object.fromEntries(new URLSearchParams(text)); }
 }
 
+function shetabClientKey(request) {
+  const raw = request.headers.get('cf-connecting-ip') || request.headers.get('x-real-ip')
+    || (request.headers.get('x-forwarded-for') || '').split(',')[0] || '';
+  return cleanText(raw).trim().slice(0, 60) || 'unknown';
+}
+
+// مقدار Secret ممکن است با فاصله، کوتیشن یا کاراکتر نامرئی در فایل env ذخیره شده باشد؛
+// این تابع همان چیزی را می‌دهد که کاربر در اپ تایپ می‌کند تا احراز هویت بی‌دلیل رد نشود.
+function normalizeShetabSecret(value) {
+  let text = String(value == null ? '' : value);
+  text = text.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+  if (text.length >= 2 && text[0] === text[text.length - 1] && (text[0] === '"' || text[0] === "'")) {
+    text = text.slice(1, -1).trim();
+  }
+  return text;
+}
+
+// ترتیب اولویت: مقدار env (اگر ادمین روی سرور گذاشته) بعد Secret ساخته‌شده در خود ربات.
+// این کار باعث می‌شود راه‌اندازی دیگر به دستور ترمینال وابسته نباشد.
+async function resolveShetabSecret(env) {
+  const fromEnv = normalizeShetabSecret(env && env.SHETAB_API_SECRET);
+  if (fromEnv) return fromEnv;
+  try {
+    const cfg = await getCfg(env);
+    return normalizeShetabSecret(cfg && cfg.shetab_secret);
+  } catch (e) {
+    return '';
+  }
+}
+
+function generateShetabSecret() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// هر درخواست معتبر اپ در KV ثبت می‌شود؛ هیچ واریزی بی‌رد نمی‌ماند.
+async function shetabLogEvent(env, entry) {
+  const id = 'sh' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const record = Object.assign({ id: id, at: Date.now() }, entry || {});
+  try {
+    await kvPut(env, 'shetab_evt:' + id, record, SHETAB_EVENT_TTL);
+    const index = await kvGet(env, 'shetab_evt_index', []);
+    const next = [id].concat(index.filter((x) => x !== id)).slice(0, SHETAB_EVENT_INDEX_CAP);
+    await kvPut(env, 'shetab_evt_index', next);
+  } catch (e) {}
+  return record;
+}
+
+async function shetabGetEvent(env, id) {
+  const key = String(id || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 30);
+  if (!key) return null;
+  return await kvGet(env, 'shetab_evt:' + key, null);
+}
+
+async function shetabSaveEvent(env, evt) {
+  if (!evt || !evt.id) return;
+  try { await kvPut(env, 'shetab_evt:' + evt.id, evt, SHETAB_EVENT_TTL); } catch (e) {}
+}
+
+async function shetabTouch(env, kind) {
+  try { await kvPut(env, 'shetab_last_event', { at: Date.now(), kind: String(kind || 'event') }, 400 * 86400); } catch (e) {}
+}
+
+// تلاش‌های ناموفق احراز هویت: اول هشدار امنیتی، بعد محدودیت نرخ.
+async function shetabNoteAuthFailure(request, env) {
+  const key = 'shetab_rl:' + shetabClientKey(request);
+  const now = Date.now();
+  let rec = null;
+  try { rec = await kvGet(env, key, null); } catch (e) {}
+  const fresh = !!(rec && Number(rec.first_at) > 0 && now - Number(rec.first_at) < SHETAB_RATE_WINDOW * 1000);
+  const first = fresh ? Number(rec.first_at) : now;
+  const count = (fresh ? Number(rec.count || 0) : 0) + 1;
+  try { await kvPut(env, key, { first_at: first, count: count }, SHETAB_RATE_WINDOW); } catch (e) {}
+  if (count === SHETAB_RATE_LIMIT) {
+    await notifyAdmins(env, '🔐 <b>هشدار امنیتی پرداخت خودکار</b>\n\n' +
+      'تعداد درخواست‌های ناموفق با Secret اشتباه به سقف رسید (' + faNum(count) + ' مورد در ۱۵ دقیقه).\n' +
+      'یا Secret داخل اپ Shetab با مقدار سرور هم‌خوان نیست، یا کسی در حال حدس‌زدن آن است.\n' +
+      '<i>از این پس درخواست‌ها موقتاً مسدود می‌شوند.</i>');
+  }
+  return count;
+}
+
+// نزدیک‌ترین سفارش‌های باز به مبلغ واریزشده (برای وصل‌کردن دستی پرداخت بی‌صاحب).
+async function shetabPendingCandidates(env, amounts, limit) {
+  const wanted = (amounts || []).map(Number).filter((n) => Number.isSafeInteger(n) && n > 0);
+  const pending = await kvGet(env, 'pend', []);
+  const out = [];
+  for (const id of pending.slice(-SHETAB_SCAN_LIMIT)) {
+    let o = null;
+    try { o = await getOrder(env, id); } catch (e) { o = null; }
+    if (!o || o.status !== 'pending') continue;
+    const pay = Number(o.pay_amount == null ? o.amount : o.pay_amount);
+    let distance = null;
+    for (const a of wanted) distance = distance == null ? Math.abs(pay - a) : Math.min(distance, Math.abs(pay - a));
+    out.push({
+      id: String(o.id), type: String(o.type || ''), tg_id: String(o.tg_id || ''),
+      amount: Number(o.amount || 0), pay_amount: pay, method: String(o.payment_method || ''),
+      distance: distance == null ? Number.MAX_SAFE_INTEGER : distance, created_at: Number(o.created_at || 0)
+    });
+  }
+  out.sort((a, b) => (a.distance - b.distance) || (b.created_at - a.created_at));
+  return out.slice(0, Number(limit) || 5);
+}
+
+// ابتدا ایندکس سریع مبلغ یکتا، سپس اسکن محدود سفارش‌های باز (حفظ سقف subrequest).
 async function findShetabOrderByAmount(env, amount) {
+  const reservation = await kvGet(env, 'shetab_amt:' + amount, null);
+  if (reservation && reservation.order_id) {
+    const o = await getOrder(env, reservation.order_id);
+    if (o && o.status === 'pending' && o.payment_method === 'shetab' && Number(o.pay_amount) === Number(amount)) return [o];
+  }
   const pending = await kvGet(env, 'pend', []);
   const matches = [];
-  for (const id of pending) {
+  for (const id of pending.slice(-SHETAB_SCAN_LIMIT)) {
     const o = await getOrder(env, id);
     if (o && o.status === 'pending' && o.payment_method === 'shetab' && Number(o.pay_amount) === Number(amount)) matches.push(o);
   }
-  if (matches.length) return matches;
-  const reservation = await kvGet(env, 'shetab_amt:' + amount, null);
-  if (!reservation || !reservation.order_id) return [];
-  const o = await getOrder(env, reservation.order_id);
-  if (o && o.payment_method === 'shetab' && Number(o.pay_amount) === Number(amount)) return [o];
-  return [];
+  return matches;
 }
 
-async function shetabConfirm(request, env, successMessage) {
-  if (request.method !== 'POST') return shetabJson({ success: false, message: 'POST required' }, 405);
-  if (!env.SHETAB_API_SECRET) return shetabJson({ success: false, message: 'Endpoint is not configured' }, 503);
-  const auth = request.headers.get('authorization') || request.headers.get('x-api-key') || '';
-  const token = auth.replace(/^\s*Bearer\s+/i, '').trim();
-  if (!constantTimeEqual(token, env.SHETAB_API_SECRET)) return shetabJson({ success: false, message: 'Unauthorized' }, 401);
-
-  let payload;
-  try { payload = await readShetabPayload(request); }
-  catch (e) { return shetabJson({ success: false, message: 'Invalid payload' }, 400); }
-  const receivedAmount = parseMoney(payload && payload.amount);
-  if (!Number.isSafeInteger(receivedAmount) || receivedAmount <= 0) {
-    return shetabJson({ success: false, message: 'A positive numeric amount is required' }, 400);
-  }
-  const recipeRaw = payload.recipeId || payload.recipe_id || payload.reference || payload.transaction_id || payload.ref || '';
-  const recipeId = cleanText(recipeRaw).slice(0, 100);
-  const candidates = [receivedAmount];
-  // نسخه‌های قدیمی بعضی اپ‌ها مبلغ را ریال می‌فرستند؛ پس از تلاش دقیق به تومان تبدیل می‌کنیم.
-  if (receivedAmount % 10 === 0) candidates.push(receivedAmount / 10);
-  let order = null;
-  let matchedAmount = receivedAmount;
-  for (const amount of candidates) {
-    const matches = await findShetabOrderByAmount(env, amount);
-    if (matches.length > 1) return shetabJson({ success: false, message: 'Ambiguous payment amount; manual review required' }, 409);
-    if (matches.length === 1) { order = matches[0]; matchedAmount = amount; break; }
-  }
-  if (!order) return shetabJson({ success: false, message: 'No pending order matches this amount' }, 404);
-
-  if (order.payment_status === 'paid') {
-    if (recipeId && order.payment_ref && recipeId !== order.payment_ref) {
+// پاسخ دوبارهٔ اپ به یک پرداختِ قبلاً ثبت‌شده. اپ پیامک‌ها را ممکن است چند بار بفرستد؛
+// این‌جا از رزروِ مبلغ (که خودمان هنگام تأیید «paid_at» می‌گذاریم) استفاده می‌کنیم تا
+// تکرارِ همان تراکنش به «واریز بی‌صاحب» تبدیل نشود و به مشتری/ادمین هشدار نادرست نرود.
+async function shetabReplayMatch(env, amounts, recipeId) {
+  for (const amount of amounts) {
+    const reservation = await kvGet(env, 'shetab_amt:' + Number(amount), null);
+    if (!reservation || !reservation.paid_at || !reservation.order_id) continue;
+    const o = await getOrder(env, reservation.order_id);
+    if (!o || o.payment_status !== 'paid') continue;
+    if (Number(o.pay_amount) !== Number(amount)) continue;
+    if (recipeId && o.payment_ref && recipeId !== o.payment_ref) {
+      // مبلغ یکتاست، پس یعنی پول تازه‌ای رسیده که سفارش دیگری برایش نیست.
+      await shetabLogEvent(env, { kind: 'duplicate', amount: Number(amount), ref: recipeId, order_id: o.id });
       for (const adminId of adminIds(env)) {
-        try { await msg(env, adminId, '⚠️ <b>تراکنش تکراری/اضافی احتمالی</b>\nمبلغ ' + fmtToman(matchedAmount) + ' برای سفارش <code>' + order.id + '</code> قبلاً ثبت شده؛ کد پیگیری جدید: <code>' + esc(recipeId) + '</code>. لطفاً رسیدگی کنید.'); } catch (e) {}
+        try {
+          await msg(env, adminId,
+            '⚠️ <b>واریز تکراری برای یک سفارش</b>\n\n' +
+            '💵 مبلغ: <b>' + fmtToman(amount) + '</b>\n' +
+            '🧾 سفارش: <code>' + o.id + '</code> (قبلاً پرداخت‌شده)\n' +
+            '🆔 کد پیگیری تازه: <code>' + esc(recipeId) + '</code>\n\n' +
+            'این مبلغ یکتا بود و سفارش دیگری برایش وجود ندارد؛ اگر پول واقعاً دوباره واریز شده باید برگردانده یا به سفارش دیگری وصل شود.',
+            KB([[BTN('📜 رویدادهای بانکی', 'a_shlog')]]));
+        } catch (e) {}
       }
     }
-    return shetabJson({ success: true, message: successMessage, already_processed: true, order_id: order.id }, 200);
+    return o;
   }
-  if (order.status !== 'pending') return shetabJson({ success: false, message: 'Order is no longer pending' }, 409);
+  return null;
+}
 
-  order.payment_status = 'paid';
-  order.payment_received_at = Date.now();
-  order.payment_ref = recipeId || null;
-  order.reported_amount = receivedAmount;
-  await saveOrder(env, order);
-  await kvPut(env, 'shetab_amt:' + order.pay_amount, { order_id: order.id, paid_at: Date.now() }, SHETAB_AMOUNT_TTL);
-
+// تحویل پس از تأیید پرداخت؛ خطای تحویل پول را از بین نمی‌برد و همه را خبر می‌کند.
+async function shetabFulfill(env, order) {
   let fulfilled = true;
   let fulfillmentError = '';
   try { await approveOrder(env, order); }
@@ -8268,9 +8853,109 @@ async function shetabConfirm(request, env, successMessage) {
         KB([[BTN('📞 پشتیبانی', 'sup')]]));
     } catch (e2) {}
   }
+  return { fulfilled: fulfilled, error: fulfillmentError };
+}
+
+async function shetabConfirm(request, env, successMessage) {
+  if (request.method !== 'POST') return shetabJson({ success: false, message: 'POST required' }, 405);
+  const secret = await resolveShetabSecret(env);
+  if (!secret) return shetabJson({ success: false, message: 'Endpoint is not configured' }, 503);
+  const auth = request.headers.get('authorization') || request.headers.get('x-api-key') || '';
+  const token = auth.replace(/^\s*Bearer\s+/i, '').trim();
+  if (!constantTimeEqual(token, secret)) {
+    const attempts = await shetabNoteAuthFailure(request, env);
+    if (attempts > SHETAB_RATE_LIMIT) return shetabJson({ success: false, message: 'Too many failed attempts; retry later' }, 429);
+    return shetabJson({ success: false, message: 'Unauthorized' }, 401);
+  }
+
+  let payload;
+  try { payload = await readShetabPayload(request); }
+  catch (e) { return shetabJson({ success: false, message: 'Invalid payload' }, 400); }
+  const receivedAmount = parseMoney(payload && payload.amount);
+  if (!Number.isSafeInteger(receivedAmount) || receivedAmount <= 0) {
+    return shetabJson({ success: false, message: 'A positive numeric amount is required' }, 400);
+  }
+  const recipeRaw = payload.recipeId || payload.recipe_id || payload.reference || payload.transaction_id || payload.ref || '';
+  const recipeId = cleanText(recipeRaw).slice(0, 100);
+  await shetabTouch(env, 'confirm');
+
+  const candidates = [receivedAmount];
+  // نسخه‌های قدیمی بعضی اپ‌ها مبلغ را ریال می‌فرستند؛ پس از تلاش دقیق به تومان تبدیل می‌کنیم.
+  if (receivedAmount % 10 === 0) candidates.push(receivedAmount / 10);
+  let order = null;
+  let matchedAmount = receivedAmount;
+  let ambiguous = false;
+  for (const amount of candidates) {
+    const matches = await findShetabOrderByAmount(env, amount);
+    if (matches.length > 1) { ambiguous = true; break; }
+    if (matches.length === 1) { order = matches[0]; matchedAmount = amount; break; }
+  }
+  if (ambiguous) {
+    await shetabLogEvent(env, { kind: 'ambiguous', amount: receivedAmount, ref: recipeId });
+    await notifyAdmins(env,
+      '⚠️ <b>واریز مبهم؛ تأیید خودکار انجام نشد</b>\n\n' +
+      '💵 مبلغ: <b>' + fmtToman(receivedAmount) + '</b>\n' +
+      '🧾 کد پیگیری: <code>' + esc(recipeId || '—') + '</code>\n\n' +
+      'بیش از یک سفارش باز با این مبلغ وجود دارد؛ برای جلوگیری از تحویل اشتباه، خودکار تأیید نشد.',
+      KB([[BTN('📜 رویدادهای بانکی', 'a_shlog')]]));
+    return shetabJson({ success: false, message: 'Ambiguous payment amount; manual review required' }, 409);
+  }
+  if (!order) {
+    const replay = await shetabReplayMatch(env, candidates, recipeId);
+    if (replay) {
+      return shetabJson({ success: true, message: successMessage, already_processed: true, order_id: replay.id }, 200);
+    }
+    const evt = await shetabLogEvent(env, { kind: 'orphan', amount: receivedAmount, ref: recipeId });
+    const near = await shetabPendingCandidates(env, candidates, 3);
+    const hint = near.length
+      ? '\n\nنزدیک‌ترین سفارش‌های باز:\n' + near.map((c) => '• <code>' + esc(c.id) + '</code> · ' + fmtToman(c.pay_amount) + ' (' + faNum(c.distance) + ' تومان اختلاف)').join('\n')
+      : '\n\nهیچ سفارش بازی وجود ندارد؛ احتمالاً سفارش منقضی شده است.';
+    await notifyAdmins(env,
+      '💰 <b>واریز بدون سفارش منطبق</b>\n\n' +
+      '💵 مبلغ: <b>' + fmtToman(receivedAmount) + '</b>\n' +
+      '🧾 کد پیگیری: <code>' + esc(recipeId || '—') + '</code>\n' +
+      '🕒 ' + fmtDate(Date.now()) +
+      '\n\nاین پول به هیچ سفارش بازی وصل نشد؛ ممکن است مشتری مبلغ را اشتباه واریز کرده یا سفارشش منقضی شده باشد.' + hint,
+      KB([[BTN('🔗 وصل‌کردن به سفارش', 'a_shev:' + evt.id)]]));
+    return shetabJson({ success: false, message: 'No pending order matches this amount' }, 404);
+  }
+
+  if (order.payment_status === 'paid') {
+    if (recipeId && order.payment_ref && recipeId !== order.payment_ref) {
+      await shetabLogEvent(env, { kind: 'duplicate', amount: receivedAmount, ref: recipeId, order_id: order.id });
+      for (const adminId of adminIds(env)) {
+        try { await msg(env, adminId, '⚠️ <b>تراکنش تکراری/اضافی احتمالی</b>\nمبلغ ' + fmtToman(matchedAmount) + ' برای سفارش <code>' + order.id + '</code> قبلاً ثبت شده؛ کد پیگیری جدید: <code>' + esc(recipeId) + '</code>. لطفاً رسیدگی کنید.'); } catch (e) {}
+      }
+    }
+    return shetabJson({ success: true, message: successMessage, already_processed: true, order_id: order.id }, 200);
+  }
+  if (order.status !== 'pending') return shetabJson({ success: false, message: 'Order is no longer pending' }, 409);
+
+  // سفارش آزمایشی: فقط مسیر پرداخت آزموده می‌شود و هیچ سرویسی ساخته نمی‌شود.
+  if (order.test === true) {
+    order.payment_status = 'paid';
+    order.payment_received_at = Date.now();
+    order.payment_ref = recipeId || null;
+    order.reported_amount = receivedAmount;
+    order.test_passed_at = Date.now();
+    await saveOrder(env, order);
+    await shetabLogEvent(env, { kind: 'test', amount: receivedAmount, ref: recipeId, order_id: order.id });
+    return shetabJson({ success: true, message: successMessage, test: true, order_id: order.id }, 200);
+  }
+
+  order.payment_status = 'paid';
+  order.payment_received_at = Date.now();
+  order.payment_ref = recipeId || null;
+  order.reported_amount = receivedAmount;
+  await saveOrder(env, order);
+  await kvPut(env, 'shetab_amt:' + order.pay_amount, { order_id: order.id, paid_at: Date.now() }, SHETAB_AMOUNT_TTL);
+  await shetabLogEvent(env, { kind: 'paid', amount: receivedAmount, ref: recipeId, order_id: order.id });
+
+  const result = await shetabFulfill(env, order);
+  const fulfilled = result.fulfilled;
   if (fulfilled) {
     for (const adminId of adminIds(env)) {
-      try { await msg(env, adminId, '✅ پرداخت خودکار و تحویل سفارش <code>' + order.id + '</code> انجام شد. مبلغ پلن: ' + fmtToman(order.amount) + '.'); } catch (e) {}
+      try { await msg(env, adminId, '✅ پرداخت خودکار و تحویل سفارش <code>' + order.id + '</code> انجام شد. مبلغ پلن: ' + fmtToman(order.amount) + '.' + (order.receipt_submitted_at ? '\n🧾 توجه: برای این سفارش قبلاً رسید دستی هم ارسال شده بود.' : '')); } catch (e) {}
     }
   }
   // پس از ثبت پرداخت، پاسخ موفق می‌دهیم تا اپ با retry باعث تحویل دوباره نشود.
@@ -8355,13 +9040,14 @@ async function fetchHandler(request, env) {
   if (shetabPath === '/wp-json/webdide-cv/v1/confirm' || shetabPath === '/api/shetab-verify') {
     // GET یک health-check بدون اثر مالی است؛ تأیید واقعی واریز فقط با POST انجام می‌شود.
     if (request.method === 'GET') {
-      if (!env.SHETAB_API_SECRET) return shetabJson({ success: false, message: 'Endpoint is not configured' }, 503);
+      const secret = await resolveShetabSecret(env);
+      if (!secret) return shetabJson({ success: false, message: 'Endpoint is not configured' }, 503);
       const authorization = request.headers.get('authorization');
       const apiKey = request.headers.get('x-api-key');
       const hasCredential = authorization !== null || apiKey !== null;
       const auth = authorization || apiKey || '';
       const token = auth.replace(/^\s*Bearer\s+/i, '').trim();
-      if (hasCredential && !constantTimeEqual(token, env.SHETAB_API_SECRET)) return shetabJson({ success: false, message: 'Unauthorized' }, 401);
+      if (hasCredential && !constantTimeEqual(token, secret)) return shetabJson({ success: false, message: 'Unauthorized' }, 401);
       return shetabJson({ success: true, message: 'Shetab endpoint is online', version: VERSION }, 200);
     }
     if (request.method !== 'POST') return shetabJson({ success: false, message: 'POST required' }, 405);
@@ -8650,12 +9336,19 @@ async function sendKvBackup(env, scheduledTime) {
 }
 
 async function scheduledHandler(event, env) {
-  if (String(event && event.cron || '') === KV_BACKUP_CRON) {
+  const cron = String(event && event.cron || '');
+  if (cron === KV_BACKUP_CRON) {
     try { await sendKvBackup(env, event && event.scheduledTime); }
     catch (e) { try { await notifyAdmins(env, '⚠️ تهیه یا ارسال بکاپ KV انجام نشد. پیکربندی Admin IDs و دسترسی Telegram را بررسی کنید.'); } catch (e2) {} }
     return;
   }
+  if (cron === SHETAB_CRON) {
+    try { await cronShetab(env); } catch (e) {}
+    return;
+  }
   try { await cronReminders(env); } catch (e) {}
+  // روی نصب‌های قدیمی که تایمر اختصاصی Shetab را ندارند، این کار هم همان‌جا انجام می‌شود.
+  try { await cronShetab(env); } catch (e) {}
 }
 
 const APP = { fetch: fetchHandler, scheduled: scheduledHandler };

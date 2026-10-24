@@ -207,6 +207,11 @@ async function sendText(tgid, text) {
 async function press(tgid, data) {
   await upd({ callback_query: { id: 'q' + (qSeq++), from: { id: tgid, first_name: 'U' + tgid, username: 'u' + tgid }, message: { message_id: 50, chat: { id: tgid, type: 'private' } }, data } });
 }
+function lookupButtons(msg) {
+  const rows = msg && msg.params && msg.params.reply_markup && msg.params.reply_markup.inline_keyboard;
+  return Array.isArray(rows) ? rows.flat() : [];
+}
+function fmtTomanForTest(n) { return Number(n || 0).toLocaleString('en-US') + ' تومان'; }
 function lastMsgTo(tgid, method = 'sendMessage') {
   const f = TG.filter((x) => x.method === method && String(x.params.chat_id) === String(tgid));
   return f[f.length - 1];
@@ -639,6 +644,178 @@ const rialJson = await rialResp.json();
 assert(rialResp.status === 200 && rialJson.payment_confirmed && rialJson.message === 'Shetab verify is verified' && (await kvJson('o:' + autoId2)).status === 'approved', 'مسیر Laravel/PowerPs با فرم URL-encoded، Authorization خام و تبدیل ریال به تومان پرداخت را تأیید می‌کند');
 const autoRenewLedger = await kvJson('ledger:sale:' + autoId2);
 assert(autoRenewLedger && autoRenewLedger.type === 'renew' && autoRenewLedger.payment_method === 'shetab', 'تمدید خودکار در دفتر فروش ثبت شد');
+// — دفتر رویداد، واریز بی‌صاحب و وصل‌کردن دستی (فاز ۱ تا ۳)
+await press(U3, 'buy');
+await press(U3, 'bp:' + pid);
+await press(U3, `bl:${pid}:${plid}`);
+await press(U3, `payx:${pid}:${plid}`);
+const pendForAttach = await kvJson('pend');
+const attachId = pendForAttach.slice().reverse().find((id) => {
+  const raw = kv.m.get('o:' + id); if (!raw) return false;
+  const o = JSON.parse(raw); return o.tg_id === U3 && o.status === 'pending' && o.payment_method === 'shetab';
+});
+const attachOrderBefore = await kvJson('o:' + attachId);
+const evtIndexBefore = (await kvJson('shetab_evt_index')) || [];
+const orphanAmount = Number(attachOrderBefore.pay_amount) + 5000;
+const orphanResp = await shetabPost({ amount: orphanAmount, recipeId: 'ORPHAN-001' });
+const orphanJson = await orphanResp.json();
+const evtIndexAfter = (await kvJson('shetab_evt_index')) || [];
+const orphanEvtId = evtIndexAfter[0];
+const orphanEvt = await kvJson('shetab_evt:' + orphanEvtId);
+const orphanAlert = lastMsgTo(ADMIN);
+assert(orphanResp.status === 404 && orphanJson.success === false && evtIndexAfter.length === evtIndexBefore.length + 1
+  && orphanEvt && orphanEvt.kind === 'orphan' && Number(orphanEvt.amount) === orphanAmount
+  && String(orphanAlert.params.text).includes('واریز بدون سفارش منطبق')
+  && JSON.stringify(orphanAlert.params.reply_markup).includes('a_shev:' + orphanEvtId),
+  'واریز بدون سفارش منطبق در دفتر رویداد ثبت و همراه مبلغ و دکمهٔ وصل‌کردن به ادمین هشدار داده شد');
+
+await press(ADMIN, 'a_shev:' + orphanEvtId);
+const attachPick = lastMsgTo(ADMIN, 'editMessageText');
+await press(ADMIN, `a_shl:${orphanEvtId}:${attachId}`);
+const attachConfirm = lastMsgTo(ADMIN, 'editMessageText');
+const hBeforeAttach = hUsers.size;
+await press(ADMIN, `a_shly:${orphanEvtId}:${attachId}`);
+const attachDone = lastMsgTo(ADMIN, 'editMessageText');
+const attachedOrder = await kvJson('o:' + attachId);
+const attachedEvt = await kvJson('shetab_evt:' + orphanEvtId);
+assert(String(attachPick.params.text).includes('وصل‌کردن واریز به سفارش') && String(attachPick.params.text).includes('انتخاب کنید')
+  && lookupButtons(attachPick).some((b) => b.callback_data === `a_shl:${orphanEvtId}:${attachId}`),
+  'فهرست سفارش‌های باز برای وصل‌کردن واریز بی‌صاحب با اختلاف مبلغ نمایش داده شد');
+assert(String(attachConfirm.params.text).includes('تأیید نهایی وصل‌کردن واریز') && String(attachConfirm.params.text).includes('اختلاف'),
+  'پیش از تأیید نهایی، مبلغ واریز و اختلاف با سفارش دوباره نمایش داده می‌شود');
+assert(attachedOrder.status === 'approved' && attachedOrder.payment_status === 'paid' && attachedOrder.manual_approval === true
+  && attachedEvt.kind === 'attached' && attachedEvt.resolved_order_id === attachId && hUsers.size === hBeforeAttach + 1
+  && String(attachDone.params.text).includes('وصل شد و سرویس تحویل داده شد')
+  && lastMsgTo(U3).params.text.includes('واریز شما به سفارش'),
+  'ادمین واریز بی‌صاحب را به سفارش وصل کرد، سرویس ساخته شد و مشتری و ادمین هر دو خبر گرفتند');
+
+await press(ADMIN, 'a_shlog');
+const eventLogMsg = lastMsgTo(ADMIN, 'editMessageText');
+assert(String(eventLogMsg.params.text).includes('رویدادهای اخیر بانکی')
+  && String(eventLogMsg.params.text).includes(fmtTomanForTest(orphanAmount))
+  && String(eventLogMsg.params.text).includes('واریز بی‌صاحب')
+  && lookupButtons(eventLogMsg).some((b) => b.callback_data === 'a_shtest'),
+  'گزارش رویدادهای بانکی مبلغ/نوع آخرین رخدادها را با دسترسی به آزمون پرداخت نشان می‌دهد');
+
+await press(ADMIN, 'a_shapp');
+const appGuide = lastMsgTo(ADMIN, 'editMessageText');
+const appGuideButtons = lookupButtons(appGuide);
+const secretCopy = appGuideButtons.find((b) => b.copy_text);
+assert(String(appGuide.params.text).includes('اتصال اپ Shetab Verification')
+  && String(appGuide.params.text).includes('/wp-json/webdide-cv/v1/confirm')
+  && !!secretCopy && secretCopy.copy_text.text === 'shetab-test-secret'
+  && appGuideButtons.some((b) => b.copy_text && b.copy_text.text === 'https://t.test/wp-json/webdide-cv/v1/confirm')
+  && appGuideButtons.some((b) => b.callback_data === 'a_shtest'),
+  'صفحهٔ اتصال اپ آدرس دقیق سرور و دکمهٔ کپی Secret را بدون نمایش خودِ Secret نشان می‌دهد');
+
+// Secret ممکن است با فاصله/کوتیشن در env ذخیره شده باشد؛ نباید احراز هویت را بشکند.
+const quotedSecret = '"  shetab-test-secret  "';
+env.SHETAB_API_SECRET = quotedSecret;
+const quotedAuth = await shetabPost({ amount: 987654, recipeId: 'QUOTED-SECRET' }, 'shetab-test-secret');
+assert(quotedAuth.status === 404 && !String(await quotedAuth.text()).includes('Unauthorized'),
+  'Secret دارای فاصله یا کوتیشن در env هنگام تطبیق نادیده گرفته می‌شود');
+env.SHETAB_API_SECRET = 'shetab-test-secret';
+
+// اگر Secret هیچ‌جا نباشد، ادمین با یک دکمه در خود ربات می‌سازد و اپ با همان کار می‌کند.
+const savedEnvSecret = env.SHETAB_API_SECRET;
+const cfgBeforeGen = await kvJson('cfg') || {};
+await kv.put('cfg', Object.assign({}, cfgBeforeGen, { shetab_secret: '', shetab_secret_created_at: 0 }));
+delete env.SHETAB_API_SECRET;
+await press(ADMIN, 'a_shapp');
+const appGuideNoSecret = lastMsgTo(ADMIN, 'editMessageText');
+assert(String(appGuideNoSecret.params.text).includes('هنوز ساخته نشده')
+  && lookupButtons(appGuideNoSecret).some((b) => b.callback_data === 'a_shgen'),
+  'بدون Secret، صفحهٔ اتصال اپ دکمهٔ ساخت را نشان می‌دهد');
+await press(ADMIN, 'a_shgen');
+const appGuideGenerated = lastMsgTo(ADMIN, 'editMessageText');
+const cfgAfterGen = await kvJson('cfg');
+const generatedSecret = String(cfgAfterGen.shetab_secret || '');
+const generatedCopy = lookupButtons(appGuideGenerated).find((b) => b.copy_text);
+assert(/^[0-9a-f]{64}$/.test(generatedSecret) && cfgAfterGen.shetab_secret_created_at > 0
+  && !!generatedCopy && generatedCopy.copy_text.text === generatedSecret
+  && String(appGuideGenerated.params.text).includes('کاراکتر'),
+  'ربات Secret امن ۶۴ کاراکتری می‌سازد و دکمهٔ کپی همان مقدار را نشان می‌دهد');
+const generatedAuthProbe = await shetabPost({ amount: 123457, recipeId: 'BOT-MADE-SECRET' }, generatedSecret);
+assert(generatedAuthProbe.status === 404 && !String(await generatedAuthProbe.text()).includes('Unauthorized'),
+  'Secret ساخته‌شده در ربات همان چیزی است که اپ برای احراز هویت استفاده می‌کند');
+const wrongAfterGenerated = await shetabPost({ amount: 123457, recipeId: 'BOT-MADE-SECRET' }, 'shetab-test-secret');
+assert(wrongAfterGenerated.status === 401, 'Secret قدیمی env وقتی مقدار معتبری در ربات ثبت شده دیگر پذیرفته نمی‌شود');
+env.SHETAB_API_SECRET = savedEnvSecret;
+
+// آزمون پرداخت: در تست آدرس عمومی وجود ندارد، پس مسیر داخلی باید سالم باشد
+const hBeforeSelfTest = hUsers.size;
+const evtIndexBeforeTest = ((await kvJson('shetab_evt_index')) || []).length;
+await press(ADMIN, 'a_shtest');
+const selfTestMsg = lastMsgTo(ADMIN, 'editMessageText');
+const evtIndexAfterTest = ((await kvJson('shetab_evt_index')) || []).length;
+assert(String(selfTestMsg.params.text).includes('منطق پرداخت سالم است') && !String(selfTestMsg.params.text).includes('ناموفق بود')
+  && hUsers.size === hBeforeSelfTest && evtIndexAfterTest === evtIndexBeforeTest + 1,
+  'آزمون پرداخت خودکار مسیر داخلی را می‌آزماید، سفارش آزمایشی را پاک می‌کند و سرویس واقعی نمی‌سازد');
+
+// محدودیت نرخ: Secret اشتباه، هشدار امنیتی و سپس ۴۲۹
+await kv.delete('shetab_rl:unknown');
+const rlStatuses = [];
+for (let i = 0; i < 30; i++) {
+  const r = await shetabPost({ amount: 1000 + i, recipeId: 'RL-' + i }, 'wrong-secret-' + i);
+  rlStatuses.push(r.status);
+  if (r.status === 429) break;
+}
+const rlAlert = TG.slice().reverse().find((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN) && String(x.params.text).includes('هشدار امنیتی پرداخت خودکار'));
+assert(rlStatuses.filter((x) => x === 401).length === 25 && rlStatuses[rlStatuses.length - 1] === 429 && !!rlAlert,
+  'پس از ۲۵ درخواست ناموفق، هشدار امنیتی ارسال و درخواست‌های بعدی با ۴۲۹ مسدود می‌شوند');
+
+// انقضای سفارش خودکار: ۴۵ دقیقه بدون تأیید بانک، سفارش بسته و مبلغ یکتا آزاد می‌شود
+await press(U3, 'buy');
+await press(U3, 'bp:' + pid);
+await press(U3, `bl:${pid}:${plid}`);
+await press(U3, `payx:${pid}:${plid}`);
+const pendForExpiry = await kvJson('pend');
+const expiryId = pendForExpiry.slice().reverse().find((id) => {
+  const raw = kv.m.get('o:' + id); if (!raw) return false;
+  const o = JSON.parse(raw); return o.tg_id === U3 && o.status === 'pending' && o.payment_method === 'shetab';
+});
+const expiryOrder = await kvJson('o:' + expiryId);
+expiryOrder.created_at = Date.now() - 46 * 60 * 1000;
+await kv.put('o:' + expiryId, expiryOrder);
+await APP.scheduled({ cron: '*/10 * * * *', scheduledTime: Date.now() }, env, {});
+const expiredOrder = await kvJson('o:' + expiryId);
+const expiryReservation = await kvJson('shetab_amt:' + expiryOrder.pay_amount);
+assert(expiredOrder.status === 'cancelled' && expiredOrder.closed_reason === 'auto_expired' && expiredOrder.payment_status === 'waiting'
+  && expiryReservation === null && String(lastMsgTo(U3).params.text).includes('سفارش پرداخت‌نشده بسته شد')
+  && !(await kvJson('pend')).includes(expiryId),
+  'سفارش خودکار بدون تأیید بانک پس از ۴۵ دقیقه بسته، از فهرست بازها حذف و مبلغ یکتا آزاد می‌شود');
+const lateAfterExpiry = await shetabPost({ amount: expiryOrder.pay_amount, recipeId: 'LATE-AFTER-EXPIRY' });
+assert(lateAfterExpiry.status === 404, 'پرداخت دیرهنگام برای سفارش منقضی، خودکار تأیید نمی‌شود و به ادمین هشدار می‌رسد');
+
+// — Mini App: شمارش معکوس انتظار بانک و تبدیل همان سفارش به رسید دستی
+await press(U3, 'buy');
+await press(U3, 'bp:' + pid);
+await press(U3, `bl:${pid}:${plid}`);
+await press(U3, `payx:${pid}:${plid}`);
+const pendForConvert = await kvJson('pend');
+const convertId = pendForConvert.slice().reverse().find((id) => {
+  const raw = kv.m.get('o:' + id); if (!raw) return false;
+  const o = JSON.parse(raw); return o.tg_id === U3 && o.status === 'pending' && o.payment_method === 'shetab';
+});
+const u3InitData = await signedInitData(U3);
+const trackShemab = await miniApi('/api/miniapp/orders/' + convertId, u3InitData);
+assert(trackShemab.status === 200 && trackShemab.json.payment && Number(trackShemab.json.payment.expires_at) > Number(trackShemab.json.order.created_at)
+  && trackShemab.json.payment.can_switch_to_receipt === true && trackShemab.json.payment.method === 'shetab',
+  'Mini App برای سفارش خودکار مهلت شمارش معکوس و گزینهٔ ارسال رسید را برمی‌گرداند');
+const convertForm = new FormData();
+convertForm.append('reference', 'CONVERT-REF-1');
+const convertResp = await miniApi('/api/miniapp/orders/' + convertId + '/receipt', u3InitData, { method: 'POST', body: convertForm });
+const convertedOrder = await kvJson('o:' + convertId);
+const convertNotice = TG.slice().reverse().find((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN) && String(x.params.text).includes('رسید دستی برای سفارش خودکار'));
+assert(convertResp.status === 200 && convertedOrder.status === 'pending' && convertedOrder.payment_method === 'manual'
+  && convertedOrder.payment_status === 'review' && convertedOrder.converted_from_shetab_at > 0
+  && Number(convertedOrder.shetab_amount_reserved) === Number(convertedOrder.pay_amount) && !!convertNotice,
+  'دکمهٔ «رسید می‌فرستم» همان سفارش خودکار را (بدون ساخت سفارش تکراری) به رسید دستی تبدیل و به ادمین اطلاع می‌دهد');
+const hBeforeLateConverted = hUsers.size;
+const lateConverted = await shetabPost({ amount: convertedOrder.pay_amount, recipeId: 'LATE-CONVERTED' });
+assert(lateConverted.status === 404 && hUsers.size === hBeforeLateConverted && (await kvJson('o:' + convertId)).status === 'pending',
+  'پس از تبدیل به رسید دستی، واریز دیرهنگام بانکی سرویس دوم نمی‌سازد و برای بررسی به ادمین می‌رسد');
+
 await press(ADMIN, 'a_set');
 await press(ADMIN, 's_pay_auto');
 assert((await kvJson('cfg')).card_auto_enabled === false, 'ادمین کارت‌به‌کارت خودکار را خاموش کرد');
@@ -916,7 +1093,21 @@ const noKeyboardNoticeStart = TG.length;
 env.MINIAPP_ONLY_MODE = 'true';
 await globalThis.__adminNotifyOrder(env, manualMiniOrder);
 const miniOnlyAdminAlert = TG.slice(noKeyboardNoticeStart).find(x => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN));
-assert(miniOnlyAdminAlert && !miniOnlyAdminAlert.params.reply_markup, 'اعلان سفارش در حالت Mini App-only به مدیران می‌رسد اما دکمهٔ legacy ندارد');
+assert(miniOnlyAdminAlert && !!miniOnlyAdminAlert.params.reply_markup?.inline_keyboard?.length, 'در حالت Mini App-only اعلان سفارش با دکمه‌های ادمین به مدیر می‌رسد تا پنل تلگرام کار کند');
+// در حالت Mini App-only مشتری به اپ هدایت می‌شود، اما ادمین باید کل پنل تلگرام را داشته باشد.
+const cfgBeforeMiniOnlyToggle = (await kvJson('cfg')).card_auto_enabled === true;
+const miniOnlyAnswerStart = TG.length;
+await press(ADMIN, 'a_set');
+const miniOnlySettings = lastMsgTo(ADMIN, 'editMessageText');
+await press(ADMIN, 's_pay_auto');
+const miniOnlyAnswers = TG.slice(miniOnlyAnswerStart).filter(x => x.method === 'answerCallbackQuery').map(x => x.params.text || '').join(' | ');
+const cfgAfterMiniOnlyToggle = (await kvJson('cfg')).card_auto_enabled === true;
+assert(!!miniOnlySettings && miniOnlySettings.params.reply_markup.inline_keyboard.flat().some(b => b.callback_data === 'a_shapp')
+  && cfgAfterMiniOnlyToggle === !cfgBeforeMiniOnlyToggle
+  && miniOnlyAnswers.includes('کارت‌به‌کارت خودکار'),
+  'در حالت Mini App-only ادمین تنظیمات را باز و سوییچ کارت‌به‌کارت خودکار را عوض می‌کند');
+await press(ADMIN, 's_pay_auto');
+assert((await kvJson('cfg')).card_auto_enabled === cfgBeforeMiniOnlyToggle, 'حالت قبلی سوییچ کارت‌به‌کارت خودکار پس از آزمون برگشت داده شد');
 env.MINIAPP_ONLY_MODE = 'false';
 assert(manualMiniCheckout.json.payment && manualMiniCheckout.json.payment.card_number === '6037991122334455' && manualMiniCheckout.json.payment.amount_toman >= manualMiniOrder.amount + 10 && manualMiniCheckout.json.payment.amount_toman <= manualMiniOrder.amount + 999 && manualMiniCheckout.json.payment.amount_rial === manualMiniCheckout.json.payment.amount_toman * 10, 'پرداخت Mini App شماره کارت و مبلغ یکتا با معادل ریالی را روشن برمی‌گرداند');
 const duplicateMiniCheckout = await miniApi('/api/miniapp/checkout', user4Init, {
