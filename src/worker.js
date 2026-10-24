@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.4-ubuntu26.6';
+const VERSION = '1.8.5-ubuntu26.7';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const KV_BACKUP_CRON = '0 */3 * * *';           // هر ۳ ساعت (هماهنگ با systemd/tiznetvpn-backup.timer)
@@ -3128,12 +3128,55 @@ function qrPngJoin(parts) {
   for (const part of parts) { out.set(part, offset); offset += part.length; }
   return out;
 }
+function qrAdler32(bytes) {
+  let a = 1, b = 0;
+  for (let i = 0; i < bytes.length; i++) {
+    a = (a + bytes[i]) % 65521;
+    b = (b + a) % 65521;
+  }
+  return ((b << 16) | a) >>> 0;
+}
+// zlib stream built from stored (uncompressed) deflate blocks: works even when CompressionStream is unavailable.
+function qrZlibStored(bytes) {
+  const blocks = Math.max(1, Math.ceil(bytes.length / 65535));
+  const out = new Uint8Array(2 + blocks * 5 + bytes.length + 4);
+  out[0] = 0x78; out[1] = 0x01; // zlib header (deflate, 32K window, no dictionary)
+  let offset = 2, read = 0;
+  for (let block = 0; block < blocks; block++) {
+    const size = Math.min(65535, bytes.length - read);
+    out[offset++] = block === blocks - 1 ? 1 : 0; // BFINAL + BTYPE=00 (stored)
+    out[offset++] = size & 255; out[offset++] = (size >>> 8) & 255;
+    out[offset++] = (~size) & 255; out[offset++] = ((~size) >>> 8) & 255;
+    out.set(bytes.subarray(read, read + size), offset);
+    offset += size; read += size;
+  }
+  const adler = qrAdler32(bytes);
+  out[offset++] = (adler >>> 24) & 255; out[offset++] = (adler >>> 16) & 255;
+  out[offset++] = (adler >>> 8) & 255; out[offset++] = adler & 255;
+  return out;
+}
+async function qrDeflate(raw) {
+  try {
+    if (typeof CompressionStream === 'function') {
+      const compressedStream = new Blob([raw]).stream().pipeThrough(new CompressionStream('deflate'));
+      const compressed = new Uint8Array(await new Response(compressedStream).arrayBuffer());
+      if (compressed.length > 8) return compressed;
+    }
+  } catch (e) {}
+  return qrZlibStored(raw);
+}
 async function subscriptionQrPng(link) {
   const value = String(link || '').trim();
-  if (!value || value.length > 2400) throw new Error('invalid_qr_payload');
-  const qr = qrcode(0, 'M');
+  if (!value || value.length > 2900) throw new Error('invalid_qr_payload');
+  let qr = qrcode(0, 'M');
   qr.addData(value, 'Byte');
-  qr.make();
+  try { qr.make(); }
+  catch (e) {
+    // Long links can exceed the capacity of error-correction level M; retry with L before giving up.
+    qr = qrcode(0, 'L');
+    qr.addData(value, 'Byte');
+    qr.make();
+  }
   const modules = qr.getModuleCount();
   if (!modules || modules > 177) throw new Error('qr_payload_too_large');
   const scale = 8, quiet = 4, width = (modules + quiet * 2) * scale;
@@ -3148,9 +3191,7 @@ async function subscriptionQrPng(link) {
       raw[rowOffset + 1 + x] = moduleY >= 0 && moduleX >= 0 && qr.isDark(moduleY, moduleX) ? 0 : 255;
     }
   }
-  const compressor = new CompressionStream('deflate');
-  const compressedStream = new Blob([raw]).stream().pipeThrough(compressor);
-  const compressed = new Uint8Array(await new Response(compressedStream).arrayBuffer());
+  const compressed = await qrDeflate(raw);
   const header = new Uint8Array(13);
   qrPngU32(header, 0, width); qrPngU32(header, 4, width);
   header[8] = 8;  // 8-bit grayscale
@@ -3169,6 +3210,14 @@ function qrPngBase64(bytes) {
 async function subscriptionQrDataUrl(link) {
   const png = await subscriptionQrPng(link);
   return 'data:image/png;base64,' + qrPngBase64(png);
+}
+// QR is a nicety: never let QR generation break subscription delivery.
+async function safeQrDataUrl(link) {
+  try {
+    const value = String(link || '');
+    if (!value) return '';
+    return await subscriptionQrDataUrl(value);
+  } catch (e) { return ''; }
 }
 async function deliverSubscriptionWithQr(env, chatId, caption, link, extra) {
   try {
@@ -3460,7 +3509,7 @@ async function issueFreeSubscription(env, user, source) {
     try {
       await notifyAdmins(env, '🎁 <b>اشتراک رایگان صادر شد</b>\n👤 <code>' + esc(tgId) + '</code>\n🖥 ' + esc(panel.name || 'سرور') + '\n📊 ' + (gb === 0 ? 'نامحدود' : fmtGB(gb)) + ' · ⏳ ' + faNum(days) + ' روز');
     } catch (e) {}
-    return { ok: true, sid: sid, link: link, panel_name: String(panel.name || 'سرور'), gb: gb, days: days };
+    return { ok: true, sid: sid, link: link, qr_data_url: await safeQrDataUrl(link), panel_name: String(panel.name || 'سرور'), gb: gb, days: days };
   } catch (e) {
     if (sid) {
       try { await kvDel(env, 's:' + sid); } catch (e2) {}
@@ -3506,7 +3555,10 @@ async function issueReferralFreeSubscription(env, user, source) {
       workingUser.referral_free_rewards_claimed = Math.max(previousClaimed, claimIndex);
       await saveUser(env, workingUser);
       const existingSub = existingEvent.sid ? await getSub(env, existingEvent.sid) : null;
-      if (existingSub && existingSub.uuid) return { ok: true, kind: 'referral_reward', sid: String(existingSub.sid), link: userLink(panel, existingSub.uuid), panel_name: String(panel.name || ''), gb: 3, days: 3, duplicate: true };
+      if (existingSub && existingSub.uuid) {
+        const existingLink = userLink(panel, existingSub.uuid);
+        return { ok: true, kind: 'referral_reward', sid: String(existingSub.sid), link: existingLink, qr_data_url: await safeQrDataUrl(existingLink), panel_name: String(panel.name || ''), gb: 3, days: 3, duplicate: true };
+      }
       return { ok: false, error: 'referral_reward_already_claimed' };
     }
     created = await hCreateUser(panel, {
@@ -3529,7 +3581,7 @@ async function issueReferralFreeSubscription(env, user, source) {
     await recordCustomerActivity(env, tgId, 'referral_free_subscription_granted', { kind: String(source || 'unknown'), sid: sid }, 'referral-free-' + sid);
     const link = userLink(panel, created.uuid);
     try { await notifyAdmins(env, '🎁 <b>هدیهٔ دعوت صادر شد</b>\n👤 <code>' + esc(tgId) + '</code>\n🖥 ' + esc(panel.name || 'سرور') + '\n📊 ۳ گیگ · ⏳ ۳ روز'); } catch (e) {}
-    return { ok: true, kind: 'referral_reward', sid: sid, link: link, panel_name: String(panel.name || 'سرور'), gb: 3, days: 3, rewards_remaining: Math.max(0, state.available - 1) };
+    return { ok: true, kind: 'referral_reward', sid: sid, link: link, qr_data_url: await safeQrDataUrl(link), panel_name: String(panel.name || 'سرور'), gb: 3, days: 3, rewards_remaining: Math.max(0, state.available - 1) };
   } catch (e) {
     if (sid) { try { await kvDel(env, 's:' + sid); } catch (e2) {} }
     if (savedUser && workingUser) {
