@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.13-ubuntu26.15';
+const VERSION = '1.8.14-ubuntu26.16';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -5465,6 +5465,12 @@ async function onCallback(env, q, origin) {
     await adminShetabCheck(env, chatId, messageId, origin);
     return;
   }
+  if (data === 'a_shqr') {
+    if (!await needAdmin()) return;
+    await ansCb(env, q.id);
+    await adminShetabQr(env, chatId, messageId, origin);
+    return;
+  }
   if (data === 'a_shreq') {
     if (!await needAdmin()) return;
     await ansCb(env, q.id);
@@ -6336,6 +6342,31 @@ async function adminShetabReqLog(env, chatId, messageId, origin) {
   else await msg(env, chatId, t, KB(rows));
 }
 
+// «📷 QR آدرس»: فیلد آدرس در اپ دکمهٔ اسکن QR دارد؛ اسکن، تایپ و پیستِ خراب را حذف می‌کند.
+async function adminShetabQr(env, chatId, messageId, origin) {
+  const url = shetabEndpointUrl(env, origin);
+  if (!url) {
+    await shetabSay(env, chatId, messageId,
+      '❌ اول آدرس عمومی سرور را تنظیم کنید (PUBLIC_BASE_URL)، بعد QR ساخته می‌شود.',
+      KB([[BTN('◀️ بازگشت', 'a_shapp')]]));
+    return;
+  }
+  const caption = '📷 <b>QR آدرس اپ شتاب</b>\n\n' +
+    'در اپ، داخل فیلد «آدرس گیرنده» روی آیکن QR بزنید و <b>همین تصویر</b> را اسکن کنید. ' +
+    'با اسکن، تایپ و پیست (و کاراکتر نامرئی) کاملاً حذف می‌شود.\n\n' +
+    '<code>' + esc(url) + '</code>\n\n' +
+    '<i>بعد از اسکن: «💾 ذخیره تنظیمات» → «📡 تست اتصال».</i>';
+  try {
+    const png = await subscriptionQrPng(url);
+    await sendPhotoUpload(env, chatId, new Blob([png], { type: 'image/png' }), 'tiznetvpn-shetab-endpoint-qr.png', caption,
+      KB([[BTN('◀️ بازگشت', 'a_shapp'), BTN('🔍 بررسی اتصال', 'a_shcheck')]]));
+  } catch (e) {
+    await shetabSay(env, chatId, messageId,
+      'ساخت QR ناموفق بود؛ آدرس را دستی تایپ کنید:\n<code>' + esc(url) + '</code>',
+      KB([[BTN('◀️ بازگشت', 'a_shapp')]]));
+  }
+}
+
 // صفحهٔ «اتصال اپ شتاب»: ادمین باید بداند کدام مقدار را کجا وارد کند.
 async function adminShetabApp(env, chatId, messageId, origin) {
   const cfg = await getCfg(env);
@@ -6365,10 +6396,11 @@ async function adminShetabApp(env, chatId, messageId, origin) {
       : '') +
     '\n' +
     '⚠️ <b>مهم:</b> شمارهٔ کارتی که در ربات ثبت می‌کنید باید <b>همان کارتی</b> باشد که اپ روی گوشی پیامک‌هایش را می‌خواند؛ اپ شمارهٔ کارت مقصد را نمی‌فرستد و فقط مبلغ و کد پیگیری را گزارش می‌کند.\n\n' +
-    'پس از واردکردن URL و Secret در اپ، دکمهٔ «🧪 آزمون پرداخت خودکار» را بزنید. اگر سبز شد، اتصال کامل است.';
+    'در اپ ترتیب کار مهم است: مقدارها را وارد کنید → «💾 ذخیره تنظیمات» → «📡 تست اتصال». اگر «تست اتصال» را قبل از ذخیره بزنید، اپ با مقدار ذخیرهٔ قبلی تست می‌کند.\n\n' +
+    'پس از سبز شدن تست، دکمهٔ «🧪 آزمون پرداخت خودکار» را در ربات بزنید.';
   const rows = [];
   if (hasSecret) rows.push([COPYBTN('📋 کپی Secret', secret)]);
-  if (url) rows.push([COPYBTN('📋 کپی آدرس سرور', url)]);
+  if (url) rows.push([COPYBTN('📋 کپی آدرس سرور', url), BTN('📷 QR آدرس', 'a_shqr')]);
   rows.push([BTN('🔍 بررسی اتصال', 'a_shcheck')]);
   rows.push([BTN('🧪 آزمون پرداخت خودکار', 'a_shtest')]);
   if (hasSecret) rows.push([BTN('🔁 ساخت Secret تازه', 'a_shgen')]);
