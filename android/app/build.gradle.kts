@@ -62,6 +62,10 @@ android {
     lint {
         abortOnError = false
     }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = false
+    }
 }
 
 dependencies {
@@ -71,4 +75,7 @@ dependencies {
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // تست JVM تحلیل پیامک بانکی؛ در GitHub Actions قبل از ساخت APK اجرا می‌شود.
+    testImplementation("junit:junit:4.13.2")
 }

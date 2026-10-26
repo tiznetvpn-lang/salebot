@@ -823,6 +823,13 @@ class MainActivity : AppCompatActivity() {
         logCard.addView(logBox)
         smsContainer.addView(logCard)
 
+        // ابزار واقعی برای رفع اشکال: متن پیامک را بچسبانید و ببینید اپ چه مبلغی می‌خواند.
+        smsContainer.addView(outlinedButton().apply {
+            text = "آزمایش تحلیل پیامک"
+            isAllCaps = false
+            setOnClickListener { openSmsTester() }
+        })
+
         smsContainer.addView(
             Ui.text(
                 this,
@@ -831,6 +838,51 @@ class MainActivity : AppCompatActivity() {
                 R.color.tz_muted
             )
         )
+    }
+
+    /**
+     * همان تحلیلگر پیامک، روی متنی که کاربر می‌چسباند. برای اینکه بدون منتظر ماندن
+     * برای یک واریز واقعی، معلوم شود کدام عدد به‌عنوان مبلغ واریز خوانده می‌شود.
+     */
+    private fun openSmsTester() {
+        val input = EditText(this).apply {
+            hint = "متن کامل پیامک بانک را اینجا بچسبانید"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            minLines = 6
+            gravity = Gravity.TOP or Gravity.START
+            setTextColor(ContextCompat.getColor(context, R.color.tz_text))
+            setHintTextColor(ContextCompat.getColor(context, R.color.tz_muted))
+            setTextDirection(View.TEXT_DIRECTION_RTL)
+            setPadding(
+                Ui.dp(this@MainActivity, 10), Ui.dp(this@MainActivity, 10),
+                Ui.dp(this@MainActivity, 10), Ui.dp(this@MainActivity, 10)
+            )
+        }
+        val wrap = android.widget.FrameLayout(this).apply {
+            setPadding(
+                Ui.dp(this@MainActivity, 14), Ui.dp(this@MainActivity, 8),
+                Ui.dp(this@MainActivity, 14), 0
+            )
+            addView(input)
+        }
+        AlertDialog.Builder(this)
+            .setTitle("آزمایش تحلیل پیامک")
+            .setMessage("پیامک واریز بانک را بچسبانید؛ فقط خوانده می‌شود و چیزی به سرور نمی‌رود.")
+            .setView(wrap)
+            .setPositiveButton("تحلیل") { _, _ ->
+                val text = input.text.toString()
+                if (text.isBlank()) {
+                    toast("متنی وارد نشد.")
+                    return@setPositiveButton
+                }
+                AlertDialog.Builder(this)
+                    .setTitle("نتیجهٔ تحلیل")
+                    .setMessage(BankSms.explain("", text))
+                    .setPositiveButton("باشه", null)
+                    .show()
+            }
+            .setNegativeButton("انصراف", null)
+            .show()
     }
 
     private fun syncSecret(silent: Boolean = false, onDone: (() -> Unit)? = null) {

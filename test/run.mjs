@@ -1222,7 +1222,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.42-ubuntu26.44';"), 'شمارهٔ نسخهٔ سرور 1.8.42-ubuntu26.44 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.43-ubuntu26.45';"), 'شمارهٔ نسخهٔ سرور 1.8.43-ubuntu26.45 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -2594,7 +2594,24 @@ assert(
   && androidBootKt.includes('GuardService.start'),
   'سرویس پس‌زمینه پایدار است و بعد از بوت دوباره بالا می‌آید');
 const androidVersionCode = Number((androidGradleProps.match(/tiznet\.versionCode=(\d+)/) || [])[1] || 0);
-assert(androidVersionCode >= 2, 'versionCode اپ اندروید با هر انتشار یکی زیاد می‌شود (فعلی: ' + androidVersionCode + ')');
+assert(androidVersionCode >= 3, 'versionCode اپ اندروید با هر انتشار یکی زیاد می‌شود (فعلی: ' + androidVersionCode + ')');
+const androidBankSmsKt = readAndroid(path.join('java', 'site', 'tiznet', 'app', 'BankSms.kt'));
+const androidBankSmsTest = fs.readFileSync(path.join(androidRoot, 'app', 'src', 'test', 'java', 'site', 'tiznet', 'app', 'BankSmsTest.kt'), 'utf8');
+const androidWorkflow = fs.readFileSync(path.join(here, '..', '.github', 'workflows', 'android.yml'), 'utf8');
+assert(
+  androidBankSmsKt.includes("usable.firstOrNull { it.sign == '+' }")
+  && androidBankSmsKt.includes('isBalance')
+  && androidBankSmsKt.includes('maskNoise')
+  && androidBankSmsKt.includes('مانده'),
+  'اپ اندروید مبلغ واریز را از علامت + می‌خواند و خط «مانده» را کنار می‌گذارد');
+assert(
+  androidBankSmsTest.includes('+1,006,320') && androidBankSmsTest.includes('7,425,882')
+  && androidBankSmsTest.includes('100_632L') && androidBankSmsTest.includes('assertNotEquals(742_588L'),
+  'تست پیامک واقعی پست بانک، مبلغ واریز را ۱۰۰٬۶۳۲ تومان می‌خواهد و ماندهٔ ۷۴۲٬۵۸۸ را رد می‌کند');
+assert(
+  androidWorkflow.includes(':app:testReleaseUnitTest')
+  && androidWorkflow.indexOf(':app:testReleaseUnitTest') < androidWorkflow.indexOf(':app:assembleRelease'),
+  'تست‌های تحلیل پیامک قبل از ساخت APK در Actions اجرا می‌شوند');
 const androidVersionName = String((androidGradleProps.match(/tiznet\.versionName=([\w.]+)/) || [])[1] || '');
 assert(/^\d+\.\d+\.\d+$/.test(androidVersionName), 'versionName اپ اندروید سه‌بخشی است: ' + androidVersionName);
 
