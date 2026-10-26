@@ -75,6 +75,7 @@ sudo bash recover.sh                 # بازیابی/نصب تمیز با حف�
 | [GITHUB_FA.md](GITHUB_FA.md) | انتشار در GitHub و نصب از مخزن خصوصی |
 | [CHANGELOG_FA.md](CHANGELOG_FA.md) | تغییرات نسخه‌ها |
 | [docs/APP_INTEGRATION_FA.md](docs/APP_INTEGRATION_FA.md) | قرارداد اتصال اپ اندروید «تیزنت — حساب‌دار من» و کارهای باقی‌مانده |
+| [ANDROID_FA.md](ANDROID_FA.md) | اپ اندروید اختصاصی تیزنت: نصب، ورود، تأیید خودکار واریز و ساخت APK |
 | [README_FA.md](README_FA.md) | توضیح کامل معماری و قابلیت‌ها |
 
 ## توسعه و تست

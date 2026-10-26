@@ -1220,7 +1220,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.39-ubuntu26.41';"), 'شمارهٔ نسخهٔ سرور 1.8.39-ubuntu26.41 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.40-ubuntu26.42';"), 'شمارهٔ نسخهٔ سرور 1.8.40-ubuntu26.42 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -2234,6 +2234,19 @@ const domainDownJson = await domainDown.json();
 assert(domainDownJson.probe && domainDownJson.probe.ok === false && domainDownJson.probe.status === 0 && domainDownJson.probe.error, 'اگر دامنه پاسخ ندهد، خطا به‌صورت پیام قابل‌نمایش برمی‌گردد');
 delete env.PUBLIC_BASE_URL;
 delete env.MINIAPP_URL;
+
+// ---------- اپ اندروید: همان قرارداد مینی‌اپ، بدون endpoint تازهٔ جدا ----------
+const shetabAppDenied = await miniApi('/api/miniapp/admin/shetab-app', userInit);
+assert(shetabAppDenied.status === 403, 'اطلاعات اتصال اپ فقط برای مدیر است');
+const shetabAppView = await miniApi('/api/miniapp/admin/shetab-app', adminInit);
+assert(shetabAppView.status === 200 && shetabAppView.json.ok === true
+  && String(shetabAppView.json.endpoint || '').endsWith('/wp-json/webdide-cv/v1/confirm')
+  && String(shetabAppView.json.secret || '').length >= 16
+  && String(shetabAppView.json.status_url || '').endsWith('/wp-json/webdide-cv/v1/status')
+  && typeof shetabAppView.json.auto_enabled === 'boolean'
+  && typeof shetabAppView.json.card_number === 'string',
+  'اپ اندروید آدرس confirm، آدرس status و Secret را از نشست مدیریتی می‌گیرد');
+assert(miniAppSource.includes("api('/api/miniapp/admin/shetab-app'") === false, 'مینی‌اپ به این مسیر وابسته نیست و رفتارش تغییر نکرده');
 
 // ---------- گزارش‌ها: ارسال فایل به چت به‌جای دانلود گم‌شونده ----------
 const reportDenied = await miniApi('/api/miniapp/admin/report', userInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: 'tiznetvpn-x.csv', title: 't', csv: 'a,b\n1,2\n' }) });

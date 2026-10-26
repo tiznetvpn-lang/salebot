@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.Tiznet" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/tz_primary</item>
+        <item name="colorOnPrimary">#2A0408</item>
+        <item name="colorPrimaryContainer">@color/tz_surface_2</item>
+        <item name="colorOnPrimaryContainer">@color/tz_text</item>
+        <item name="colorSecondary">@color/tz_primary_dark</item>
+        <item name="colorOnSecondary">@color/tz_text</item>
+        <item name="android:colorBackground">@color/tz_bg</item>
+        <item name="colorSurface">@color/tz_surface</item>
+        <item name="colorSurfaceVariant">@color/tz_surface_2</item>
+        <item name="colorOnSurface">@color/tz_text</item>
+        <item name="colorOnSurfaceVariant">@color/tz_muted</item>
+        <item name="colorOutline">@color/tz_stroke</item>
+        <item name="android:statusBarColor">@color/tz_bg</item>
+        <item name="android:navigationBarColor">@color/tz_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="materialAlertDialogTheme">@style/Theme.Tiznet.Dialog</item>
+        <item name="android:textColorHint">@color/tz_muted</item>
+    </style>
+
+    <style name="Theme.Tiznet.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurface">@color/tz_surface</item>
+        <item name="colorOnSurface">@color/tz_text</item>
+    </style>
+
+    <style name="TzCard" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">@color/tz_surface</item>
+        <item name="cardCornerRadius">16dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeColor">@color/tz_stroke</item>
+        <item name="strokeWidth">1dp</item>
+    </style>
+</resources>
