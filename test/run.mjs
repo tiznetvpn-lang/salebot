@@ -1222,7 +1222,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.43-ubuntu26.45';"), 'شمارهٔ نسخهٔ سرور 1.8.43-ubuntu26.45 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.44-ubuntu26.46';"), 'شمارهٔ نسخهٔ سرور 1.8.44-ubuntu26.46 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -2544,6 +2544,38 @@ assert(miniAppSource.includes('id="customerStatusChips"') && ['all','active','ex
 assert(miniAppSource.includes('id="agentStatusFilter"') && miniAppSource.includes('id="agentSortFilter"') && miniAppSource.includes('id="agentAdminStats"') && miniAppSource.includes('class="analytics-chart"') && miniAppSource.includes('top_plans'), 'بخش نمایندگان مینی‌اپ آمار، فیلتر، مرتب‌سازی و تحلیل ۳۰ روزه دارد');
 assert(miniAppSource.includes('data-stab="retention"') && miniAppSource.includes('data-sgroup="retention"') && miniAppSource.includes('id="settingRetentionEnabled"') && miniAppSource.includes('id="settingRetentionGrace"') && miniAppSource.includes('retention_paid_grace_days') && miniAppSource.includes("const formGroups=['shop','pay','free','retention']"), 'تنظیمات مینی‌اپ گروه «نگهداری» را با کلیدها و مهلت ذخیره می‌کند');
 assert(miniAppSource.includes('data-customer-action="notify"') && miniAppSource.includes('promote_agent') && miniAppSource.includes('demote_agent') && miniAppSource.includes("toastMap[ctx.action]"), 'مدیر از پروندهٔ کاربر می‌تواند پیام بفرستد و نقش نمایندگی را تغییر دهد');
+
+// ---------- مینی‌اپ: کارت‌به‌کارت خودکار جای دستی + هشدار مبلغ اختصاصی ----------
+const chooserStart = miniAppSource.indexOf('function renderCheckoutChooser()');
+const chooserEnd = miniAppSource.indexOf('function walletTopupMarkup()', chooserStart);
+const chooserSource = miniAppSource.slice(chooserStart, chooserEnd);
+assert(chooserStart > 0 && chooserEnd > chooserStart,
+  'تابع انتخاب روش پرداخت مینی‌اپ پیدا می‌شود');
+assert(chooserSource.includes("data-pay-method=\"shetab\"") && chooserSource.includes('کارت‌به‌کارت خودکار')
+  && chooserSource.indexOf("data-pay-method=\"shetab\"") < chooserSource.indexOf('else if(options.manual)'),
+  'در انتخاب روش پرداخت، کارت‌به‌کارت خودکار جای دستی را گرفته و دستی فقط پشتیبان است');
+const topupStart = miniAppSource.indexOf('function walletTopupMarkup()');
+const topupSource = miniAppSource.slice(topupStart, miniAppSource.indexOf('function openWalletTopup()', topupStart));
+assert(topupSource.includes("data-topup-method=\"shetab\"")
+  && topupSource.indexOf('data-topup-method=\"shetab\"') < topupSource.indexOf('else if(options.manual)'),
+  'شارژ کیف پول هم اول کارت‌به‌کارت خودکار را پیشنهاد می‌دهد');
+assert(miniAppSource.includes('function renderAutoTransferWarning(')
+  && miniAppSource.includes('مبلغ کارت‌به‌کارت را دقیقاً براساس مبلغ اختصاصی انجام دهید')
+  && miniAppSource.includes('در غیر این صورت پرداخت شما تأیید نمی‌شود')
+  && miniAppSource.includes('«شماره کارت و مبلغ به ریال قابل کپی هست.»'),
+  'صفحهٔ هشدار، متن دقیق «مبلغ اختصاصی» و «قابل کپی بودن شماره کارت و مبلغ ریالی» را دارد');
+assert(miniAppSource.includes('data-auto-transfer-accept')
+  && miniAppSource.includes('data-auto-transfer-back')
+  && /function acceptAutoTransfer\(\)[\s\S]{0,400}startCheckout\('shetab'\)/.test(miniAppSource),
+  'زیر هشدار دکمهٔ «تأیید» هست و بعد از آن صفحهٔ اختصاصی سفارش خودکار باز می‌شود');
+assert(/closest\('\[data-pay-method\]'\)[\s\S]{0,260}data-pay-method==='shetab'\)\{renderAutoTransferWarning\('checkout'\)/.test(miniAppSource.replace("method.dataset.payMethod", "data-pay-method")),
+  'کلیک روی کارت‌به‌کارت خودکار اول هشدار را نشان می‌دهد و تا تأیید، سفارشی ساخته نمی‌شود');
+const closeModalSource = miniAppSource.slice(miniAppSource.indexOf('function closeModal()'), miniAppSource.indexOf('function stopOrderPolling()'));
+assert(closeModalSource.includes('pendingAutoTransfer=null;'),
+  'بستن مودال، حالت هشدار معلق را پاک می‌کند تا سفارش ناخواسته ساخته نشود');
+assert(miniAppSource.includes("if(pending.mode==='topup'){submitWalletTopup('shetab',pending.amount);return;}")
+  && miniAppSource.includes("startCheckout('shetab');"),
+  'تأیید هشدار در هر دو مسیر (خرید پلن و شارژ کیف پول) سفارش خودکار می‌سازد');
 
 // ---------- هیچ دکمهٔ شیشه‌ای در چت مشتری ----------
 const adminChatIds = new Set(['999', '777003']); // 777003 فقط در تست «مدیران» موقتاً ادمین می‌شود
