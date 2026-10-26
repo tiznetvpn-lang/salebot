@@ -2883,6 +2883,105 @@
       border-color: rgba(255, 150, 160, .26) !important;
     }
     .web-logout { background: rgba(66, 8, 14, .94) !important; color: #ffb7bf !important; }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       ۱۷) تحویل اشتراک: QR و لینک کاملاً ریسپانسیو (۱.۸.۳۳)
+       مشکل قبلی: لینک اشتراک (vless/sub) یک رشتهٔ بلند و بی‌فاصله است و
+       در گرید کارت تحویل، «حداقل عرض خودکار» ایجاد می‌کرد؛ نتیجه: کارت و
+       قاب QR از عرض مودال بیرون می‌زدند و اسکرول افقی می‌ساختند.
+       راه‌حل: عرض ستون‌ها با minmax(0,1fr) بسته شد، همهٔ فرزندهای کارت
+       min-width:0 گرفتند، QR با min() مقیاس می‌گیرد و لینک به‌جای «…»
+       در چند خط (break-anywhere) کامل نمایش داده می‌شود.
+       ══════════════════════════════════════════════════════════════════════ */
+
+    /* قاب مودال و اسلات QR هرگز از عرض صفحه بیرون نمی‌زنند */
+    .modal { overflow-x: hidden !important; }
+    #modalBody, .modal-body, .modal-intro, .modal-head { min-width: 0 !important; max-width: 100% !important; }
+    .subscription-qr-slot { display: block !important; min-width: 0 !important; width: 100% !important; max-width: 100% !important; }
+
+    /* کارت تحویل: یک ستون واقعی با عرض قابل‌شکست */
+    .subscription-delivery-card {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) !important;
+      gap: clamp(8px, 2.2vw, 12px) !important;
+      width: 100% !important; min-width: 0 !important; max-width: 100% !important;
+    }
+    .subscription-delivery-card > * { min-width: 0 !important; max-width: 100% !important; }
+    .delivery-card-heading { min-width: 0 !important; }
+    .delivery-card-heading > div { flex: 1 1 auto; min-width: 0 !important; }
+    .delivery-card-heading strong { display: block; font-size: clamp(12px, 3.2vw, 14px) !important; line-height: 1.6; }
+    .delivery-card-heading small {
+      display: block; min-width: 0 !important; max-width: 100%;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-size: clamp(9.5px, 2.6vw, 11px) !important;
+    }
+
+    /* QR: همیشه مربع، مرکزچین و متناسب با عرض صفحه */
+    .subscription-qr-frame {
+      display: grid !important; place-items: center !important;
+      width: 100% !important; min-width: 0 !important; max-width: 100% !important;
+      box-sizing: border-box;
+      padding: clamp(8px, 2.8vw, 14px) !important;
+      overflow: hidden !important;
+      border-radius: clamp(12px, 3.4vw, 16px) !important;
+    }
+    .subscription-qr-image {
+      display: block !important;
+      width: auto !important; height: auto !important;
+      max-width: min(100%, 208px) !important;
+      max-height: min(44vh, 208px) !important;
+      aspect-ratio: 1 / 1;
+      margin: 0 auto !important;
+      object-fit: contain !important;
+      border-radius: 8px !important;
+    }
+
+    /* لینک اشتراک: می‌شکند و کامل دیده می‌شود؛ دیگر «…» و اسکرول افقی ندارد */
+    .copy-line.subscription-copy {
+      display: flex !important; flex-wrap: wrap !important;
+      align-items: center !important; justify-content: flex-start !important;
+      gap: 8px !important;
+      width: 100% !important; min-width: 0 !important; max-width: 100% !important;
+      box-sizing: border-box;
+      padding: clamp(8px, 2.4vw, 11px) !important;
+    }
+    .copy-line.subscription-copy code {
+      flex: 1 1 150px; display: block !important;
+      min-width: 0 !important; max-width: 100% !important;
+      overflow: visible !important; text-overflow: clip !important;
+      white-space: pre-wrap !important;
+      overflow-wrap: anywhere !important;
+      font-size: clamp(10px, 2.7vw, 12.5px) !important;
+      line-height: 1.75 !important; letter-spacing: 0 !important;
+      direction: ltr; text-align: left; unicode-bidi: plaintext;
+      user-select: all; -webkit-user-select: all;
+    }
+    .copy-line.subscription-copy > button {
+      flex: 0 0 auto; min-height: 34px; white-space: nowrap !important;
+      font-size: clamp(10px, 2.7vw, 12px) !important;
+    }
+    @media (max-width: 380px) {
+      .copy-line.subscription-copy > button { flex: 1 1 100% !important; width: 100%; }
+    }
+
+    /* دکمه‌های «کپی» و «بازکردن لینک» و کارت دانلود: دو ستون در دسکتاپ، یک ستون در گوشی باریک */
+    .subscription-actions {
+      display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: clamp(6px, 2vw, 9px) !important; width: 100% !important; min-width: 0 !important;
+    }
+    .subscription-actions > button {
+      min-width: 0 !important; width: 100% !important;
+      min-height: clamp(36px, 9vw, 42px) !important;
+      padding: 0 clamp(8px, 2.6vw, 14px) !important;
+      font-size: clamp(10px, 2.8vw, 12.5px) !important;
+    }
+    .hiddify-downloads { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; min-width: 0 !important; }
+    .hiddify-downloads button { min-width: 0 !important; }
+    @media (max-width: 360px) {
+      .subscription-actions, .hiddify-downloads { grid-template-columns: minmax(0, 1fr) !important; }
+      .hiddify-downloads .hiddify-github { grid-column: auto !important; }
+    }
+    .subscription-qr-help, .subscription-link-heading { max-width: 100%; }
 </style>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
