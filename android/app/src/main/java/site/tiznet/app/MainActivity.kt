@@ -143,7 +143,6 @@ class MainActivity : AppCompatActivity() {
     // ── داشبورد ────────────────────────────────────────────────────────────
 
     private fun loadDashboard() {
-        if (loading) return
         loading = true
         ui.launch {
             try {
@@ -257,7 +256,6 @@ class MainActivity : AppCompatActivity() {
     // ── سفارش‌ها ───────────────────────────────────────────────────────────
 
     private fun loadOrders() {
-        if (loading) return
         loading = true
         ui.launch {
             try {
@@ -453,7 +451,6 @@ class MainActivity : AppCompatActivity() {
     // ── مشتری‌ها ───────────────────────────────────────────────────────────
 
     private fun loadCustomers(force: Boolean = false) {
-        if (loading && !force) return
         loading = true
         ui.launch {
             try {
