@@ -5686,12 +5686,13 @@
       const balance=Number(customerData&&customerData.customer&&customerData.customer.balance||0);
       const price=Number(p.price||0);
       const upgrading=checkoutContext.mode==='upgrade';
+      // کد تخفیف روی مبلغِ پلن اعمال می‌شود؛ تا وقتی اعمال نشده، مبلغ پایه همان قیمت پلن است.
+      // (این دو مقدار باید پیش از متن سرصفحه تعریف شوند، وگرنه خطای «قبل از مقداردهی» می‌دهد.)
+      const discount=checkoutContext.discount||null;
+      const payable=discount?Number(discount.payable||0):price;
       modalTitleElement.textContent=upgrading?'ارتقای پلن':checkoutContext.sub_sid?'تمدید اشتراک':'انتخاب روش پرداخت';
       modalTextElement.textContent=(p.title||'پلن')+' · '+(p.panel_name||'سرور')+' · '+fmt(p.days||0)+' روز · '+(discount?money(payable)+' (با تخفیف)':money(price)+(upgrading?' · مبلغ کامل':''));
       const options=customerData&&customerData.payment_options||{};
-      // کد تخفیف روی مبلغِ پلن اعمال می‌شود؛ تا وقتی اعمال نشده، مبلغ پایه همان قیمت پلن است.
-      const discount=checkoutContext.discount||null;
-      const payable=discount?Number(discount.payable||0):price;
       const wallet=balance>=payable;
       let html=renderDiscountBox(price,payable,discount);
       html+='<div class="payment-options">';
