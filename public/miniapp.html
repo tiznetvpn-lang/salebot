@@ -4499,7 +4499,7 @@
       const count=document.getElementById('agentSubCount');if(count)count.textContent=fmt(subs.length)+' اشتراک';
       const list=document.getElementById('agentSubscriptionsList');if(list){
         if(!subs.length)list.innerHTML='<div class="empty-state">هنوز اشتراکی نساخته‌اید.</div>';
-        else list.innerHTML=subs.map(sub=>{const statusClass=sub.status==='active'?'paid':sub.status==='expired'?'failed':'pending';const usage=sub.usage_unlimited?'نامحدود':fmtDec(sub.usage_used)+' از '+fmtDec(sub.usage_total)+' گیگ';const expire=sub.days_remaining==null?'':` · روز باقی‌مانده: ${fmt(sub.days_remaining)}`;const renewPlan=agentAvailableProducts.find(p=>String(p.panel_id)===String(sub.panel_id)&&String(p.plan_id)===String(sub.plan_id));const renewLabel=renewPlan&&Number(renewPlan.agent_price||0)?'تمدید — '+money(renewPlan.agent_price):'تمدید اشتراک';const actions=`<div class="referral-share-actions agent-sub-actions"><button class="btn-primary" type="button" data-agent-renew="${esc(sub.sid)}">${esc(renewLabel)}</button><button class="outline-btn" type="button" data-agent-qr="${esc(sub.sid)}">لینک و QR</button></div>`;const link=sub.link&&/^https:\/\//.test(sub.link)?`<div class="agent-link-box"><strong>لینک تحویل مشتری</strong><code>${esc(sub.link)}</code><div class="referral-share-actions"><button class="outline-btn" type="button" data-copy-text="${esc(sub.link)}">کپی لینک اشتراک</button><a class="table-action" href="${esc(sub.link)}" target="_blank" rel="noopener noreferrer">بازکردن لینک</a></div></div>`:'<div class="mini-note">لینک اشتراک از سرور در دسترس نیست؛ وضعیت پنل را بررسی کنید.</div>';return `<article class="agent-sub-card"><div class="agent-sub-card-top"><div><strong>${esc(sub.customer_name||'مشتری')}</strong><span class="agent-sub-meta">${esc(sub.plan_name)} · ${esc(sub.panel_name)} · ${esc(sub.status_label)}</span><span class="agent-sub-meta">ساخت: ${esc(fmtDate(sub.created_at))} · مصرف: ${usage}${expire}</span><span class="agent-sub-meta">هزینهٔ خرید داخلی: ${money(sub.agent_price)}</span></div><span class="status ${statusClass}">${esc(sub.status_label)}</span></div>${actions}${link}</article>`;}).join('');
+        else list.innerHTML=subs.map(sub=>{const statusClass=sub.status==='active'?'paid':sub.status==='expired'?'failed':'pending';const usage=sub.usage_unlimited?'نامحدود':fmtDec(sub.usage_used)+' از '+fmtDec(sub.usage_total)+' گیگ';const expire=sub.days_remaining==null?'':` · روز باقی‌مانده: ${fmt(sub.days_remaining)}`;const renewPlans=agentAvailableProducts.filter(p=>String(p.panel_id)===String(sub.panel_id)&&Number(p.agent_price||0)>0);const renewLabel=renewPlans.length?'تمدید اشتراک ('+fmt(renewPlans.length)+' پلن)':'تمدید اشتراک';const actions=`<div class="referral-share-actions agent-sub-actions"><button class="btn-primary" type="button" data-agent-renew="${esc(sub.sid)}">${esc(renewLabel)}</button><button class="outline-btn" type="button" data-agent-qr="${esc(sub.sid)}">لینک و QR</button></div>`;const link=sub.link&&/^https:\/\//.test(sub.link)?`<div class="agent-link-box"><strong>لینک تحویل مشتری</strong><code>${esc(sub.link)}</code><div class="referral-share-actions"><button class="outline-btn" type="button" data-copy-text="${esc(sub.link)}">کپی لینک اشتراک</button><a class="table-action" href="${esc(sub.link)}" target="_blank" rel="noopener noreferrer">بازکردن لینک</a></div></div>`:'<div class="mini-note">لینک اشتراک از سرور در دسترس نیست؛ وضعیت پنل را بررسی کنید.</div>';return `<article class="agent-sub-card"><div class="agent-sub-card-top"><div><strong>${esc(sub.customer_name||'مشتری')}</strong><span class="agent-sub-meta">${esc(sub.plan_name)} · ${esc(sub.panel_name)} · ${esc(sub.status_label)}</span><span class="agent-sub-meta">ساخت: ${esc(fmtDate(sub.created_at))} · مصرف: ${usage}${expire}</span><span class="agent-sub-meta">هزینهٔ خرید داخلی: ${money(sub.agent_price)}</span></div><span class="status ${statusClass}">${esc(sub.status_label)}</span></div>${actions}${link}</article>`;}).join('');
       }
       const transactions=Array.isArray(agentPortalData.transactions)?agentPortalData.transactions:[];
       const tx=document.getElementById('agentTransactionsList');if(tx){
@@ -4595,27 +4595,76 @@
       if(!sub){toast('اشتراک در فهرست پیدا نشد؛ صفحه را تازه کنید.');return;}
       showAgentDelivery(sub);
     }
-    async function renewAgentSubscription(sid) {
+    function agentRenewSub(sid) {
+      return (agentPortalData&&Array.isArray(agentPortalData.subscriptions)?agentPortalData.subscriptions:[]).find(x=>String(x.sid)===String(sid))||null;
+    }
+    function agentPlanSize(plan) {
+      const gb=Number(plan&&plan.gb||0);
+      return !gb||gb>=100000?'نامحدود':fmtDec(gb)+' گیگ';
+    }
+    // تمدید: همهٔ پلن‌های فعال همین سرور نمایش داده می‌شوند، نه فقط پلن فعلی.
+    function openAgentRenewSelector(sid) {
       if(!liveMode||!agentRole)return;
-      const sub=(agentPortalData&&Array.isArray(agentPortalData.subscriptions)?agentPortalData.subscriptions:[]).find(x=>String(x.sid)===String(sid));
+      const sub=agentRenewSub(sid);
       if(!sub){toast('اشتراک در فهرست پیدا نشد؛ صفحه را تازه کنید.');return;}
-      const product=agentAvailableProducts.find(p=>String(p.panel_id)===String(sub.panel_id)&&String(p.plan_id)===String(sub.plan_id));
-      const price=product?Number(product.agent_price||0):0;
+      const plans=agentAvailableProducts.filter(p=>String(p.panel_id)===String(sub.panel_id)&&Number(p.agent_price||0)>0);
+      if(!plans.length){toast('پلن فعالی برای این سرور وجود ندارد؛ با مدیر تماس بگیرید.');return;}
+      const balance=Number((agentPortalData&&agentPortalData.agent&&agentPortalData.agent.balance)||0);
+      modalTitleElement.textContent='تمدید اشتراک';
+      modalTextElement.textContent=[sub.customer_name,sub.panel_name].filter(Boolean).join(' · ');
+      const options=plans.map(p=>{
+        const current=String(p.plan_id)===String(sub.plan_id);
+        return `<button class="payment-option" type="button" style="margin-bottom:10px" data-agent-renew-plan="${esc(p.plan_id)}" data-agent-renew-sid="${esc(sub.sid)}"><span class="payment-icon">${current?'↻':'↗'}</span><span><strong>${esc(p.title||'پلن')} · ${money(p.agent_price||0)}</strong><small>${esc(agentPlanSize(p))} · ${fmt(p.days||0)} روز${current?' · پلن فعلی':''}</small></span></button>`;
+      }).join('');
+      modalBodyElement.innerHTML='<div class="order-summary-box"><div>پلن فعلی: <strong>'+esc(sub.plan_name||'—')+'</strong></div><div>موجودی کیف پول: <strong>'+money(balance)+'</strong></div></div>'
+        +'<div class="mini-note" style="margin:10px 0">همهٔ پلن‌های فعال سرور «'+esc(sub.panel_name||'')+'» را می‌بینید. پلن انتخابی از امروز روی همین اشتراک تنظیم می‌شود و مبلغش از کیف پول کسر می‌گردد.</div>'
+        +'<div class="payment-options">'+options+'</div>';
+      setModalAction('','');openModal();
+    }
+    function openAgentRenewConfirm(sid, planId) {
+      const sub=agentRenewSub(sid);
+      const plan=agentAvailableProducts.find(p=>String(p.panel_id)===String((sub&&sub.panel_id)||'')&&String(p.plan_id)===String(planId));
+      if(!sub||!plan){toast('پلن انتخابی دیگر در دسترس نیست؛ صفحه را تازه کنید.');return;}
+      const price=Number(plan.agent_price||0);
+      const balance=Number((agentPortalData&&agentPortalData.agent&&agentPortalData.agent.balance)||0);
+      const enough=balance>=price;
+      modalTitleElement.textContent='تأیید تمدید اشتراک';
+      modalTextElement.textContent=[sub.customer_name,sub.panel_name].filter(Boolean).join(' · ');
+      modalBodyElement.innerHTML='<div class="order-summary-box"><div>مشتری: <strong>'+esc(sub.customer_name||'مشتری')+'</strong></div>'
+        +'<div>پلن جدید: <strong>'+esc(plan.title||'پلن')+'</strong></div>'
+        +'<div>حجم و مدت: <strong>'+esc(agentPlanSize(plan))+' · '+fmt(plan.days||0)+' روز</strong></div>'
+        +'<div>هزینهٔ کسر از کیف پول: <strong>'+money(price)+'</strong></div>'
+        +'<div>موجودی پس از تمدید: <strong>'+(enough?money(balance-price):money(balance))+'</strong></div></div>'
+        +'<div class="order-state '+(enough?'warn':'warn')+'" style="margin-top:12px">'+(enough
+          ? 'با تأیید، حجم و مدت از امروز بازنشانی می‌شود؛ زمان/حجم باقی‌ماندهٔ فعلی به پلن جدید اضافه نمی‌شود.'
+          : 'موجودی کیف پول برای این پلن کافی نیست؛ از مدیر بخواهید کیف پول را شارژ کند.')+'</div>'
+        +'<div class="form-actions" style="margin-top:12px"><button class="btn-primary" type="button" data-agent-renew-confirm="'+esc(plan.plan_id)+'" data-agent-renew-sid="'+esc(sub.sid)+'"'+(enough?'':' disabled')+'>تأیید تمدید و کسر '+money(price)+'</button><button class="outline-btn" type="button" data-agent-renew-back="'+esc(sub.sid)+'">انتخاب پلن دیگر</button></div>';
+      setModalAction('','');openModal();
+    }
+    async function renewAgentSubscription(sid, planId) {
+      if(!liveMode||!agentRole)return;
+      const sub=agentRenewSub(sid);
+      if(!sub){toast('اشتراک در فهرست پیدا نشد؛ صفحه را تازه کنید.');return;}
+      const plan=agentAvailableProducts.find(p=>String(p.panel_id)===String(sub.panel_id)&&String(p.plan_id)===String(planId));
+      const price=plan?Number(plan.agent_price||0):0;
       const message=document.getElementById('agentCreateMessage');
-      if(!price){toast('این پلن دیگر برای تمدید فعال یا قیمت‌گذاری نشده است؛ با مدیر تماس بگیرید.');return;}
-      if(!confirm('تمدید «'+String(sub.customer_name||'مشتری')+'» با پلن '+String(sub.plan_name||'')+' به مبلغ '+money(price)+' از کیف پول شما کسر می‌شود. ادامه می‌دهید؟'))return;
+      if(!plan||!price){toast('پلن انتخابی دیگر در دسترس نیست؛ صفحه را تازه کنید.');return;}
+      const confirmButton=modalBodyElement.querySelector('[data-agent-renew-confirm]');
+      if(confirmButton){confirmButton.disabled=true;confirmButton.textContent='در حال تمدید امن…';}
       if(message)message.textContent='در حال تمدید امن…';
       try {
-        const result=await api('/api/miniapp/agent/subscriptions/'+encodeURIComponent(sid)+'/renew',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_id:newRequestId()})});
+        const result=await api('/api/miniapp/agent/subscriptions/'+encodeURIComponent(sid)+'/renew',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_id:newRequestId(),plan_id:String(plan.plan_id)})});
         if(result.agent&&agentPortalData)agentPortalData.agent=result.agent;
         const updated=result.subscription;
         if(agentPortalData&&updated){const rows=Array.isArray(agentPortalData.subscriptions)?agentPortalData.subscriptions:[];agentPortalData.subscriptions=rows.map(x=>String(x.sid)===String(updated.sid)?Object.assign({},x,updated):x);}
+        closeModal();
         renderAgentPortal(agentPortalData||result);
         if(message)message.textContent='تمدید انجام شد؛ '+money(price)+' از کیف پول کسر شد.';
-        toast(result.duplicate?'این تمدید قبلاً ثبت شده است.':'اشتراک تمدید شد.');
+        toast(result.duplicate?'این تمدید قبلاً ثبت شده است.':'اشتراک با پلن «'+String(plan.title||'')+'» تمدید شد.');
       } catch(e) {
         const text=agentErrorText(e.message,e.data&&e.data.detail);
         if(message)message.textContent=text;toast(text);
+        if(confirmButton){confirmButton.disabled=false;confirmButton.textContent='تأیید تمدید و کسر '+money(price);}
         if(e.message==='agent_renew_failed')await loadAgentPortal().catch(()=>{});
       }
     }
@@ -5704,7 +5753,10 @@
       const revoke=e.target.closest('[data-agent-invite-revoke]');if(revoke){revokeAgentInvite(revoke.dataset.agentInviteRevoke);return;}
       const toggle=e.target.closest('[data-agent-toggle]');if(toggle){adminAgentAction(toggle.dataset.agentToggle,{action:'toggle'});return;}
       const wallet=e.target.closest('[data-agent-wallet]');if(wallet){const amount=document.getElementById('agentAdminWalletAmount')?.value||'';if(!amount){toast('مبلغ کیف پول را وارد کنید.');return;}adminAgentAction(wallet.dataset.agentId,{action:wallet.dataset.agentWallet,amount:amount});return;}
-      const agentRenew=e.target.closest('[data-agent-renew]');if(agentRenew){renewAgentSubscription(agentRenew.dataset.agentRenew);return;}
+      const agentRenew=e.target.closest('[data-agent-renew]');if(agentRenew){openAgentRenewSelector(agentRenew.dataset.agentRenew);return;}
+      const agentRenewPlan=e.target.closest('[data-agent-renew-plan]');if(agentRenewPlan){openAgentRenewConfirm(agentRenewPlan.dataset.agentRenewSid,agentRenewPlan.dataset.agentRenewPlan);return;}
+      const agentRenewConfirm=e.target.closest('[data-agent-renew-confirm]');if(agentRenewConfirm&&!agentRenewConfirm.disabled){renewAgentSubscription(agentRenewConfirm.dataset.agentRenewSid,agentRenewConfirm.dataset.agentRenewConfirm);return;}
+      const agentRenewBack=e.target.closest('[data-agent-renew-back]');if(agentRenewBack){openAgentRenewSelector(agentRenewBack.dataset.agentRenewBack);return;}
       const agentQr=e.target.closest('[data-agent-qr]');if(agentQr){openAgentSubscriptionQr(agentQr.dataset.agentQr);return;}
     });
     document.querySelectorAll('[data-customer-tab]').forEach(b=>b.addEventListener('click',()=>setCustomerTab(b.dataset.customerTab)));
