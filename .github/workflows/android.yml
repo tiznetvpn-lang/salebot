@@ -11,9 +11,6 @@ on:
   push:
     branches: [main, 'arena/**']
     tags: ['app-v*']
-    paths:
-      - 'android/**'
-      - '.github/workflows/android.yml'
 
 permissions:
   contents: write
