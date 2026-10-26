@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.34-ubuntu26.36';
+const VERSION = '1.8.35-ubuntu26.37';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -7693,7 +7693,7 @@ const RETENTION_DELETE_LIMIT = 150;   // سقف حذف در هر اجرا (ضد 
 const RETENTION_LOG_ROWS = 60;
 const RETENTION_CURSOR_KEY = 'system:retention_cursor';
 const RETENTION_SCAN_LIMIT = 400;    // سقف بررسی در هر اجرا (چرخشی)
-const RETENTION_BUDGET_MS = 45000;   // بودجهٔ زمانی هر اجرا پیش از بستن سرویس systemd
+const RETENTION_BUDGET_MS = 30000;   // بودجهٔ زمانی هر اجرا پیش از بستن سرویس systemd
 
 function retentionConfig(cfg) {
   const c = cfg || {};

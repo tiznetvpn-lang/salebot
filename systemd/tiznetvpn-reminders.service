@@ -12,6 +12,8 @@ EnvironmentFile=/etc/tiznetvpn/tiznetvpn.env
 Environment=NODE_ENV=production
 Environment=DATA_DIR=/var/lib/tiznetvpn
 Environment=DB_BACKUP_DIR=/var/backups/tiznetvpn
+# یادآوری‌ها + پاک‌سازی پنل؛ برای نصب‌های بزرگ‌تر از سقف پیش‌فرض ۹۰ ثانیه فرصت بیشتری لازم است.
+TimeoutStartSec=600
 ExecStart=/usr/bin/node /opt/tiznetvpn/scripts/run-cron.mjs reminders
 UMask=0027
 NoNewPrivileges=true
