@@ -129,9 +129,16 @@ object BankSms {
     fun detectBank(sender: String, body: String = ""): String {
         val fromSender = sender.lowercase().replace(" ", "")
         banks.firstOrNull { (_, keys) -> keys.any { fromSender.contains(it) } }?.let { return it.first }
+
         val text = body.lowercase()
-        banks.firstOrNull { (name, _) -> text.contains("بانک " + name) || text.contains(name + " بانک") }
-            ?.let { return it.first }
+        // نام‌هایی که خودشان «بانک» دارند (مثل «پست بانک») مستقیم جست‌وجو می‌شوند؛ بقیه با
+        // پیشوند/پسوند «بانک» تا کلمه‌های کوتاه (مثل «دی») با متن‌های دیگر اشتباه نشوند.
+        banks.firstOrNull { (name, _) ->
+            val n = name.lowercase()
+            if (n.contains("بانک")) text.contains(n)
+            else text.contains("بانک " + n) || text.contains("بانک" + n) || text.contains(n + " بانک")
+        }?.let { return it.first }
+
         banks.firstOrNull { (_, keys) -> keys.any { text.contains(it) } }?.let { return it.first }
         return ""
     }

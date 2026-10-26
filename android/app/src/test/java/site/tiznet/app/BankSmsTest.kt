@@ -117,5 +117,8 @@ class BankSmsTest {
     fun bankNameIsDetectedFromMessageBody() {
         assertEquals("پست بانک", BankSms.detectBank("+9830001234", postBank))
         assertEquals("ملت", BankSms.detectBank("+9821000000", "بانک ملت\nواریز 100,000 تومان"))
+        assertEquals("دی", BankSms.detectBank("+9821000000", "بانک دی\nواریز 100,000 تومان"))
+        // کلمهٔ «دیروز» نباید بانک «دی» شناخته شود.
+        assertEquals("", BankSms.detectBank("+9821000000", "دیروز واریزی نداشتید"))
     }
 }
