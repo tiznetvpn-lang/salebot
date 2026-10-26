@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.40-ubuntu26.42';
+const VERSION = '1.8.41-ubuntu26.43';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -8200,6 +8200,12 @@ async function adminShetabApp(env, chatId, messageId, origin) {
     '⚠️ <b>مهم:</b> شمارهٔ کارتی که در ربات ثبت می‌کنید باید <b>همان کارتی</b> باشد که اپ روی گوشی پیامک‌هایش را می‌خواند؛ اپ شمارهٔ کارت مقصد را نمی‌فرستد و فقط مبلغ و کد پیگیری را گزارش می‌کند.\n\n' +
     'در اپ ترتیب کار مهم است: مقدارها را وارد کنید → «💾 ذخیره تنظیمات» → «📡 تست اتصال». اگر «تست اتصال» را قبل از ذخیره بزنید، اپ با مقدار ذخیرهٔ قبلی تست می‌کند.\n\n' +
     'پس از سبز شدن تست، دکمهٔ «🧪 آزمون پرداخت خودکار» را در ربات بزنید.';
+  const appDownload = APP_DOWNLOAD_URL;
+  const t2 = t.replace('⚠️ <b>مهم:</b>', '📱 <b>اپ اندروید تیزنت</b> (اختیاری — برای همین سرور)\n' +
+    '<code>' + esc(appDownload) + '</code>\n' +
+    '<i>با این اپ بدون تلگرام هم سفارش‌ها را می‌بینید و واریزهای پیامکی خودکار تأیید می‌شوند؛ ' +
+    'اتصال با همان کد یک‌بارمصرف نسخهٔ وب انجام می‌شود.</i>\n\n' +
+    '⚠️ <b>مهم:</b>');
   const rows = [];
   if (hasSecret) rows.push([COPYBTN('📋 کپی Secret', secret)]);
   if (url) rows.push([COPYBTN('📋 کپی آدرس سرور', url), BTN('📷 QR آدرس', 'a_shqr')]);
@@ -8208,8 +8214,8 @@ async function adminShetabApp(env, chatId, messageId, origin) {
   if (hasSecret) rows.push([BTN('🔁 ساخت Secret تازه', 'a_shgen')]);
   rows.push([BTN('💳 شماره کارت', 'a_cards'), BTN('📜 رویدادهای بانکی', 'a_shlog')]);
   rows.push([BTN('◀️ تنظیمات', 'a_set')]);
-  if (messageId) await editMsg(env, chatId, messageId, t, KB(rows));
-  else await msg(env, chatId, t, KB(rows));
+  if (messageId) await editMsg(env, chatId, messageId, t2, KB(rows));
+  else await msg(env, chatId, t2, KB(rows));
 }
 
 function fmtDate(ts) {
@@ -8398,6 +8404,9 @@ function shetabJson(data, status) {
 // فقط رشتهٔ آدرس را نمی‌سنجد؛ ساختار REST وردپرس را هم بررسی می‌کند. بدون این لایه،
 // آدرس کاملاً درست هم با پیام «آدرس API اشتباه است؛ باید مسیر confirm افزونه باشد»
 // رد می‌شود، چون /wp-json/ روی این سرور ۴۰۴ بود.
+
+// لینک رسمی دانلود اپ اندروید تیزنت (همان مخزن خودِ پروژه).
+const APP_DOWNLOAD_URL = 'https://github.com/tiznetvpn-lang/salebot/releases/latest';
 
 const WP_REST_NAMESPACE = 'webdide-cv/v1';
 const WP_REST_CORS = {
