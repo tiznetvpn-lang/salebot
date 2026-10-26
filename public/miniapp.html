@@ -2982,6 +2982,32 @@
       .hiddify-downloads .hiddify-github { grid-column: auto !important; }
     }
     .subscription-qr-help, .subscription-link-heading { max-width: 100%; }
+
+    /* ── ۱۸) نگهداری پنل، نمایندگان پیشرفته و مدیریت کاربران ── */
+    .retention-facts, .agent-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 10px; }
+    .retention-fact, .summary-tile { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); }
+    .retention-fact span, .summary-tile span { color: var(--muted); font-size: clamp(10px, 2.9vw, 12px); }
+    .retention-fact strong, .summary-tile strong { font-size: clamp(11px, 3.4vw, 15px); color: var(--text); font-variant-numeric: tabular-nums; }
+    .retention-actions, .agent-filter-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+    .filter-chip-row { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; padding: 2px 0 6px; scrollbar-width: none; }
+    .filter-chip-row::-webkit-scrollbar { display: none; }
+    .filter-chip { flex: 0 0 auto; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--text); padding: 6px 12px; font-size: 12.5px; cursor: pointer; }
+    .filter-chip.is-active { background: var(--teal); border-color: var(--teal); color: #fff; }
+    .filter-chip b { margin-inline-start: 5px; font-weight: 700; }
+    .agent-row-stats { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+    .agent-row-stats b { color: var(--text); font-weight: 700; }
+    .analytics-chart { display: grid; grid-template-columns: repeat(30, minmax(0, 1fr)); align-items: end; gap: 3px; height: 92px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg-deep); }
+    .analytics-bar { min-height: 3px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, var(--teal), var(--teal-2)); }
+    .analytics-bar.is-empty { background: rgba(255, 255, 255, .12); }
+    .analytics-legend { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+    .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 12px; }
+    .agent-row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .customer-page-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+    .customer-page-tools .mini-note { margin: 0; }
+    @media (max-width: 420px) {
+      .retention-facts, .agent-summary-grid, .analytics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .analytics-chart { height: 76px; gap: 2px; }
+    }
 </style>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -3062,6 +3088,23 @@
           <div class="table-wrap"><table><thead><tr><th>شناسه</th><th>مشتری</th><th>نوع</th><th>مبلغ</th><th>وضعیت</th></tr></thead><tbody id="recentOrdersBody"></tbody></table></div>
         </article>
       </div>
+
+      <div class="lower-grid" style="margin-top:14px">
+        <article class="panel" id="retentionPanel">
+          <div class="panel-head"><div><h3>نگهداری و پاک‌سازی پنل</h3></div><span class="status" id="retentionStateBadge">—</span></div>
+          <div class="retention-facts" id="retentionFacts"><div class="empty-state">وضعیت پاک‌سازی در حال دریافت است…</div></div>
+          <div class="retention-actions">
+            <button class="outline-btn" id="retentionPreviewBtn" type="button">پیش‌نمایش بدون حذف</button>
+            <button class="btn-primary" id="retentionRunBtn" type="button">اجرای پاک‌سازی</button>
+          </div>
+          <div class="mini-note" id="retentionMessage" role="status" aria-live="polite">اشتراک رایگان پس از پایان روزِ انقضا و اشتراک پولی پس از پایان مهلت تمدید از پنل حذف می‌شود.</div>
+        </article>
+        <article class="panel" id="agentsSummaryPanel">
+          <div class="panel-head"><div><h3>نمایندگان</h3></div><button class="link-button" type="button" data-go="agents">مدیریت نمایندگان ←</button></div>
+          <div class="agent-summary-grid" id="agentsSummaryGrid"><div class="empty-state">آمار نمایندگان در حال دریافت است…</div></div>
+          <div class="mini-note" id="agentsSummaryNote" role="status" aria-live="polite"></div>
+        </article>
+      </div>
     </section>
 
     <section class="page hidden" id="ordersPage">
@@ -3086,12 +3129,32 @@
 
       <div class="stats-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
         <article class="stat-card"><div class="stat-top"><span>کاربران ثبت‌شده</span><span class="stat-icon">◉</span></div><strong class="stat-value" id="customersTotalKpi">۰</strong><div class="stat-foot"><span>در فروشگاه</span><span class="trend">کل</span></div></article>
-        <article class="stat-card" style="--tone:var(--purple);--iconbg:rgba(240, 86, 99, .12)"><div class="stat-top"><span>کاربر جدید</span><span class="stat-icon">＋</span></div><strong class="stat-value" id="customersNewKpi">۰</strong><div class="stat-foot"><span>در بازهٔ فعلی</span><span class="trend">ثبت‌شده</span></div></article>
-        <article class="stat-card" style="--tone:var(--yellow);--iconbg:rgba(244, 160, 167, .12)"><div class="stat-top"><span>سهم تمدید</span><span class="stat-icon">↻</span></div><strong class="stat-value" id="customersRenewKpi">—</strong><div class="stat-foot"><span>تمدید ÷ کل</span><span class="trend">دوره</span></div></article>
+        <article class="stat-card" style="--tone:var(--purple);--iconbg:rgba(240, 86, 99, .12)"><div class="stat-top"><span>اشتراک فعال</span><span class="stat-icon">✓</span></div><strong class="stat-value" id="customersNewKpi">۰</strong><div class="stat-foot"><span>در فهرست فعلی</span><span class="trend">فعال</span></div></article>
+        <article class="stat-card" style="--tone:var(--yellow);--iconbg:rgba(244, 160, 167, .12)"><div class="stat-top"><span>در آستانهٔ انقضا</span><span class="stat-icon">◷</span></div><strong class="stat-value" id="customersRenewKpi">—</strong><div class="stat-foot"><span>کمتر از ۷ روز</span><span class="trend">پیگیری</span></div></article>
       </div>
       <article class="panel" style="margin-top:14px">
         <div class="panel-head"><div><h3>فهرست مشتری‌ها</h3></div><input class="search" id="customerSearch" placeholder="نام، username یا Telegram ID" aria-label="جست‌وجوی مشتری"></div>
-        <div class="table-wrap"><table><thead><tr><th>مشتری</th><th>Telegram ID</th><th>عضویت</th><th>اشتراک</th><th>مجموع خرید</th><th>کیف پول</th><th>دعوت</th><th>آخرین فعالیت</th></tr></thead><tbody id="customerTableBody"></tbody></table></div>
+        <div class="filter-chip-row" id="customerStatusChips" role="group" aria-label="فیلتر وضعیت کاربران">
+          <button class="filter-chip is-active" type="button" data-customer-status="all">همه <b id="customerCountAll">۰</b></button>
+          <button class="filter-chip" type="button" data-customer-status="active">فعال <b id="customerCountActive">۰</b></button>
+          <button class="filter-chip" type="button" data-customer-status="expiring">در آستانهٔ انقضا <b id="customerCountExpiring">۰</b></button>
+          <button class="filter-chip" type="button" data-customer-status="expired">منقضی <b id="customerCountExpired">۰</b></button>
+          <button class="filter-chip" type="button" data-customer-status="banned">مسدود <b id="customerCountBanned">۰</b></button>
+          <button class="filter-chip" type="button" data-customer-status="agent">نماینده <b id="customerCountAgents">۰</b></button>
+        </div>
+        <div class="customer-page-tools">
+          <select class="filter-control" id="customerSort" aria-label="مرتب‌سازی کاربران">
+            <option value="recent">آخرین فعالیت</option>
+            <option value="joined">تازه‌ترین عضویت</option>
+            <option value="spend">بیشترین خرید</option>
+            <option value="balance">بیشترین موجودی</option>
+            <option value="name">نام</option>
+          </select>
+          <button class="outline-btn" id="customerPrevBtn" type="button">قبلی</button>
+          <span class="mini-note" id="customerPageInfo">صفحهٔ ۱</span>
+          <button class="outline-btn" id="customerNextBtn" type="button">بعدی</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>مشتری</th><th>Telegram ID</th><th>عضویت</th><th>اشتراک</th><th>مجموع خرید</th><th>کیف پول</th><th>دعوت</th><th>آخرین فعالیت</th><th>وضعیت</th></tr></thead><tbody id="customerTableBody"></tbody></table></div>
         <div class="mini-note" id="customerDataNote">اطلاعات این صفحه فقط برای ادمین معتبر Telegram ارسال می‌شود.</div>
       </article>
     </section>
@@ -3117,7 +3180,24 @@
         </div>
         <article class="panel">
           <div class="panel-head"><div><h3>فهرست نماینده‌ها</h3></div><span class="status paid" id="agentTotalBadge">۰ نماینده</span></div>
+          <div class="agent-summary-grid" id="agentAdminStats"><div class="empty-state">آمار نمایندگان در حال دریافت است…</div></div>
           <label class="admin-field" for="agentSearch">جست‌وجو<input id="agentSearch" type="search" maxlength="80" placeholder="شناسه، نام یا @username"></label>
+          <div class="agent-filter-actions">
+            <select class="filter-control" id="agentStatusFilter" aria-label="فیلتر وضعیت نماینده">
+              <option value="all">همهٔ نمایندگان</option>
+              <option value="active">فعال</option>
+              <option value="disabled">غیرفعال</option>
+              <option value="low_quota">سهمیهٔ کم (۵ یا کمتر)</option>
+              <option value="low_balance">موجودی خالی</option>
+            </select>
+            <select class="filter-control" id="agentSortFilter" aria-label="مرتب‌سازی نماینده‌ها">
+              <option value="newest">تازه‌ترین</option>
+              <option value="sales">بیشترین فروش</option>
+              <option value="revenue">بیشترین درآمد</option>
+              <option value="balance">بیشترین موجودی</option>
+              <option value="last_sale">آخرین فروش</option>
+            </select>
+          </div>
           <div class="managed-list" id="managedAgentsList"><div class="empty-state">در حال آماده‌سازی فهرست نماینده‌ها…</div></div>
           <div class="mini-note" id="agentListNote" role="status" aria-live="polite"></div>
         </article>
@@ -3175,6 +3255,7 @@
         <button class="settings-tab active" type="button" role="tab" aria-selected="true" data-stab="shop">فروشگاه</button>
         <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="pay">پرداخت</button>
         <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="free">اشتراک رایگان</button>
+        <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="retention">نگهداری</button>
         <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="look">دکمه‌ها</button>
         <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="backup">پشتیبان</button>
         <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="domain">دامنه</button>
@@ -3211,6 +3292,21 @@
               <label>سیاست دریافت<select id="settingFreeClaimPolicy"><option value="">انتخاب سیاست دریافت</option><option value="once_lifetime">یک‌بار برای همیشه</option><option value="one_active">فقط یک اشتراک رایگان فعال</option><option value="repeat">هر بار؛ بدون محدودیت دریافت</option></select></label>
             </div>
             <div class="mini-note">حجم صفر به معنی نامحدود است. در سیاست «هر بار»، مشتری می‌تواند چند اشتراک رایگان جداگانه بسازد.</div>
+          </div>
+          <div class="free-settings-block" data-sgroup="retention">
+            <div class="settings-toggles">
+              <label class="toggle-row"><input id="settingRetentionEnabled" type="checkbox"><span class="switch-ui"></span><span><strong>پاک‌سازی خودکار پنل</strong><small>هر روز پس از پایان مهلت، اشتراک منقضی از پنل Hiddify حذف می‌شود. رکورد اشتراک برای سابقه باقی می‌ماند.</small></span></label>
+              <label class="toggle-row"><input id="settingRetentionFree" type="checkbox"><span class="switch-ui"></span><span><strong>حذف اشتراک رایگان در پایان روزِ انقضا</strong><small>اشتراک تست/رایگان به‌محض تمام‌شدن روز انقضا از پنل حذف می‌شود.</small></span></label>
+              <label class="toggle-row"><input id="settingRetentionPaid" type="checkbox"><span class="switch-ui"></span><span><strong>حذف اشتراک پولی تمدیدنشده</strong><small>اشتراک پولی تا پایان مهلت تمدید از پنل حذف نمی‌شود.</small></span></label>
+            </div>
+            <div class="settings-grid">
+              <label>مهلت تمدید پس از روز انقضا (روز)<input id="settingRetentionGrace" type="number" min="0" max="60" step="1" inputmode="numeric"></label>
+            </div>
+            <div class="retention-actions">
+              <button class="outline-btn" id="settingRetentionPreview" type="button">پیش‌نمایش بدون حذف</button>
+              <button class="btn-secondary" id="settingRetentionRun" type="button">اجرای پاک‌سازی</button>
+            </div>
+            <div class="mini-note" id="settingRetentionStatus" role="status" aria-live="polite">تعداد حذف در هر اجرا محدود است تا خطای تنظیمات به حذف گروهی منجر نشود.</div>
           </div>
           <div class="form-actions"><button class="btn-primary" id="settingsSave" type="submit"><svg class="bi bi-save" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h11L19.5 8v11.5h-15z"/><path d="M8 4.5v5h7v-5"/><path d="M8 19.5v-6h8v6"/></svg><span id="settingsSaveLabel">ذخیرهٔ تنظیمات</span></button><span id="settingsMessage" class="form-message" role="status"></span></div>
         </form>
@@ -3501,6 +3597,7 @@
     let agentAvailableProducts = [];
     let agentPendingCreate = null;
     let agentSearchTimer = null;
+    let customerStatusFilter='all',customerSort='recent',customerPage=1,customerHasMore=false,customerStats=null;
     let searchTimer = null;
     let customerTimer = null;
     let toastTimer = null;
@@ -3640,19 +3737,87 @@
       const shareEl=document.getElementById('kpiRenewShare'); if(shareEl) shareEl.textContent=fmt(share)+'٪';
       document.getElementById('periodCaption').textContent=fmt(data.period_days||currentPeriod)+' روز اخیر';
       const users=document.getElementById('customersTotalKpi'); if(users) users.textContent=fmt(t.users||0);
-      const newUsers=document.getElementById('customersNewKpi'); if(newUsers) newUsers.textContent=fmt(t.new_customers||0);
-      const renewKpi=document.getElementById('customersRenewKpi'); if(renewKpi) renewKpi.textContent=fmt(share)+'٪';
+      // کارت‌های «اشتراک فعال» و «در آستانهٔ انقضا» صفحهٔ مشتری‌ها از پاسخ فهرست کاربران پر می‌شوند.
       renderPaymentMix(data.payments,t.sales||0);
       drawChart(data.chart);
       renderPlanBars(document.getElementById('topPlansList'),data.top_plans,'plan');
       renderPlanBars(document.getElementById('topServersList'),data.top_servers,'server');
       recentOrders=Array.isArray(data.recent_orders)?data.recent_orders:[]; renderRecent(recentOrders);
+      renderRetentionPanel(data.retention);renderAgentsSummary(data.agents_summary);
       const note=document.getElementById('orderDataNote');
       const coverage=data.coverage||{};
       if(note) note.textContent=(coverage.note||'')+(coverage.partial?' هشدار: سقف نمایش گزارش رسیده و بخشی از رکوردها ممکن است بیرون بازه باشند.':'');
       const title=document.querySelector('.hero h1'); if(title&&profile) title.textContent='سلام، '+(profile.first_name||'مدیر')+' 👋';
       const countPending=document.getElementById('ordersPendingKpi'); if(countPending) countPending.textContent=fmt(t.pending_orders||0);
       const navCount=document.getElementById('ordersNavCount'); if(navCount) navCount.textContent=fmt(t.pending_orders||0);
+    }
+    function renderRetentionPanel(retention) {
+      const facts=document.getElementById('retentionFacts'),badge=document.getElementById('retentionStateBadge');
+      if(!facts)return;
+      if(!retention||!retention.config){
+        facts.innerHTML='<div class="empty-state">وضعیت پاک‌سازی در دسترس نیست.</div>';
+        if(badge){badge.className='status pending';badge.textContent='نامشخص';}
+        return;
+      }
+      const conf=retention.config,last=retention.last||{};
+      if(badge){
+        badge.className='status '+(conf.enabled?'paid':'pending');
+        badge.textContent=conf.enabled?'روشن':'خاموش';
+      }
+      const runAt=last.at?fmtDate(last.at):'هنوز اجرا نشده';
+      facts.innerHTML=[
+        `<div class="retention-fact"><span>مهلت پولی</span><strong>${fmt(conf.grace_days)} روز</strong></div>`,
+        `<div class="retention-fact"><span>آخرین اجرا</span><strong>${esc(runAt)}</strong></div>`,
+        `<div class="retention-fact"><span>رایگان حذف‌شده</span><strong>${last.deleted_free?fmt(last.deleted_free):'۰'}</strong></div>`,
+        `<div class="retention-fact"><span>پولی حذف‌شده</span><strong>${last.deleted_paid?fmt(last.deleted_paid):'۰'}</strong></div>`
+      ].join('');
+      const msg=document.getElementById('retentionMessage');
+      if(msg)msg.textContent='حذف رایگان: '+(conf.free_delete?'روشن':'خاموش')+' · حذف پولی: '+(conf.paid_delete?'روشن':'خاموش')+' · مجموع حذف در آخرین اجرا: '+fmt(last.deleted||0)+' · سقف هر اجرا: '+fmt(retention.delete_limit||150);
+    }
+    function renderAgentsSummary(summary) {
+      const grid=document.getElementById('agentsSummaryGrid'),note=document.getElementById('agentsSummaryNote');
+      if(!grid)return;
+      const s=summary||{};
+      if(!summary){
+        grid.innerHTML='<div class="empty-state">آمار نمایندگان در دسترس نیست.</div>';
+        if(note)note.textContent='';
+        return;
+      }
+      grid.innerHTML=[
+        `<div class="summary-tile"><span>نمایندگان فعال</span><strong>${fmt(s.active||0)} از ${fmt(s.count||0)}</strong></div>`,
+        `<div class="summary-tile"><span>ساخت‌های موفق</span><strong>${fmt(s.created||0)}</strong></div>`,
+        `<div class="summary-tile"><span>درآمد (تومان)</span><strong>${fmt(s.revenue||0)}</strong></div>`,
+        `<div class="summary-tile"><span>موجودی (تومان)</span><strong>${fmt(s.balance||0)}</strong></div>`,
+        `<div class="summary-tile"><span>سهمیهٔ باقی‌مانده</span><strong>${fmt(s.quota||0)}</strong></div>`,
+        `<div class="summary-tile"><span>نیازمند رسیدگی</span><strong>${fmt((s.low_quota||0)+(s.low_balance||0))}</strong></div>`
+      ].join('');
+      if(note)note.textContent=(s.low_quota||s.low_balance)?('سهمیهٔ کم: '+fmt(s.low_quota||0)+' · موجودی خالی: '+fmt(s.low_balance||0)+' — از «مدیریت نمایندگان» رسیدگی کنید.'):'همهٔ نمایندگان سهمیه و موجودی کافی دارند.';
+    }
+    function retentionResultText(data) {
+      const d=data||{};
+      if(d.disabled)return 'پاک‌سازی خودکار خاموش است؛ در تنظیمات → نگهداری روشنش کنید.';
+      const head=d.dry_run?'پیش‌نمایش':'اجرا';
+      return head+' · واجد شرایط: '+fmt(d.eligible||0)+' · حذف‌شده: '+(d.dry_run?'۰':fmt(d.deleted||0))+' (رایگان '+(d.dry_run?'—':fmt(d.deleted_free||0))+' · پولی '+(d.dry_run?'—':fmt(d.deleted_paid||0))+') · در مهلت: '+fmt(d.in_grace||0)+' · فعال: '+fmt(d.active||0)+' · نامشخص: '+fmt(d.unknown||0)+' · ناموفق: '+fmt(d.failed||0);
+    }
+    async function runRetentionAction(execute,statusId) {
+      const target=document.getElementById(statusId||'retentionMessage');
+      const previewBtn=document.getElementById('retentionPreviewBtn'),runBtn=document.getElementById('retentionRunBtn');
+      const settingPreview=document.getElementById('settingRetentionPreview'),settingRun=document.getElementById('settingRetentionRun');
+      const buttons=[previewBtn,runBtn,settingPreview,settingRun].filter(Boolean);
+      buttons.forEach(b=>{b.disabled=true;});
+      if(target)target.textContent=execute?'در حال اجرای پاک‌سازی روی پنل…':'در حال محاسبهٔ پیش‌نمایش…';
+      try{
+        const data=await api('/api/miniapp/admin/retention',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:execute?'run':'preview'})});
+        const text=retentionResultText(data);
+        if(target)target.textContent=text;
+        toast(text);
+        if(execute){await loadAdminSummary(currentPeriod).catch(()=>{});}
+        else{await loadAdminSummary(currentPeriod).catch(()=>{});}
+      }catch(e){
+        const message=adminErrorText(e.message,e.data&&e.data.detail);
+        if(target)target.textContent=message;
+        toast(message);
+      }finally{buttons.forEach(b=>{b.disabled=false;});}
     }
     function setPageVisible(page) {
       currentPage=page;
@@ -3761,15 +3926,52 @@
       const chip=document.getElementById('dashboardDrillFilter');if(chip)chip.classList.add('hidden');
       if(liveMode)loadOrders().catch(()=>toast('پاک‌کردن فیلتر انجام نشد.'));else filterPreviewOrders();
     }
+    function customerStatusMeta(row) {
+      if(row.banned)return {label:'مسدود',cls:'failed'};
+      if(row.status==='active')return {label:row.expiring_soon?'در آستانهٔ انقضا':'فعال',cls:row.expiring_soon?'pending':'paid'};
+      if(row.status==='expired')return {label:'منقضی',cls:'failed'};
+      return {label:'بدون اشتراک',cls:'pending'};
+    }
+    function setCustomerChipCounts(stats) {
+      const map={all:stats.scanned,active:stats.active,expiring:stats.expiring,expired:stats.expired,banned:stats.banned,agent:stats.agents};
+      Object.keys(map).forEach(key=>{
+        const ids={all:'customerCountAll',active:'customerCountActive',expiring:'customerCountExpiring',expired:'customerCountExpired',banned:'customerCountBanned',agent:'customerCountAgents'};
+        const el=document.getElementById(ids[key]);if(el)el.textContent=fmt(map[key]||0);
+      });
+      document.querySelectorAll('[data-customer-status]').forEach(chip=>{
+        const on=chip.getAttribute('data-customer-status')===customerStatusFilter;
+        chip.classList.toggle('is-active',on);
+        chip.setAttribute('aria-pressed',on?'true':'false');
+      });
+    }
     async function loadCustomers() {
       if(!liveMode||!adminRole){renderPreviewCustomers();return;}
       const q=document.getElementById('customerSearch').value.trim();
-      const data=await api('/api/miniapp/admin/customers?q='+encodeURIComponent(q)+'&limit=60');
+      const params=new URLSearchParams({q:q,limit:'40',status:customerStatusFilter,sort:customerSort,page:String(customerPage)});
+      const data=await api('/api/miniapp/admin/customers?'+params.toString());
       liveCustomers=data.items||[];
+      customerHasMore=!!data.has_more;customerStats=data.stats||null;
       const body=document.getElementById('customerTableBody');
-      body.innerHTML=liveCustomers.map(u=>`<tr class="customer-click-row" tabindex="0" role="button" data-customer-open="${esc(u.tg_id)}" aria-label="باز کردن پروندهٔ ${esc(u.first_name||u.username||u.tg_id)}"><td><div class="customer-cell"><span class="mini-avatar">${esc(initials(u.first_name||u.username||u.tg_id))}</span><span>${esc(u.first_name||u.username||'کاربر')} ${u.banned?'<i class="status-banned">مسدود</i>':''}<small style="display:block;color:#f5eaeb;margin-top:3px;font-size:11px;direction:ltr;text-align:right">${u.username?'@'+esc(u.username):''}</small></span></div></td><td><span class="order-id">${esc(u.tg_id)}</span></td><td>${esc(fmtDate(u.joined_at))}</td><td>${fmt(u.subscriptions||0)}</td><td>${money(u.total_spent||0)}</td><td>${money(u.balance||0)}</td><td>${fmt(u.invited||0)}</td><td>${esc(fmtDate(u.last_activity_at||u.joined_at))}</td></tr>`).join('')||'<tr><td colspan="8" style="text-align:center;color:#f5eaeb;padding:30px">مشتری‌ای با این جست‌وجو پیدا نشد.</td></tr>';
+      body.innerHTML=liveCustomers.map(u=>{
+        const meta=customerStatusMeta(u);
+        const subText=u.active_subscriptions?(fmt(u.active_subscriptions)+' فعال'+(u.next_expiry?' · تا '+esc(fmtDate(u.next_expiry)):'')):'—';
+        return `<tr class="customer-click-row" tabindex="0" role="button" data-customer-open="${esc(u.tg_id)}" aria-label="باز کردن پروندهٔ ${esc(u.first_name||u.username||u.tg_id)}"><td><div class="customer-cell"><span class="mini-avatar">${esc(initials(u.first_name||u.username||u.tg_id))}</span><span>${esc(u.first_name||u.username||'کاربر')} ${u.banned?'<i class="status-banned">مسدود</i>':''}${u.is_agent?'<i class="status-banned" style="background:rgba(255,45,63,.28)">نماینده</i>':''}<small style="display:block;color:#f5eaeb;margin-top:3px;font-size:11px;direction:ltr;text-align:right">${u.username?'@'+esc(u.username):''}</small></span></div></td><td><span class="order-id">${esc(u.tg_id)}</span></td><td>${esc(fmtDate(u.joined_at))}</td><td>${subText}</td><td>${money(u.total_spent||0)}</td><td>${money(u.balance||0)}</td><td>${fmt(u.invited||0)}</td><td>${esc(fmtDate(u.last_activity_at||u.joined_at))}</td><td><span class="status ${meta.cls}">${meta.label}</span></td></tr>`;
+      }).join('')||'<tr><td colspan="9" style="text-align:center;color:#f5eaeb;padding:30px">مشتری‌ای با این فیلتر پیدا نشد.</td></tr>';
       const total=document.getElementById('customersTotalKpi');if(total)total.textContent=fmt(data.registered_users||0);
-      const note=document.getElementById('customerDataNote');if(note)note.textContent=(data.note||'')+(data.count_partial?' شمارش به سقف گزارش رسیده است.':'');
+      if(customerStats){
+        setCustomerChipCounts(customerStats);
+        const newKpi=document.getElementById('customersNewKpi');
+        const renewKpi=document.getElementById('customersRenewKpi');
+        if(newKpi)newKpi.textContent=fmt(customerStats.active||0);
+        if(renewKpi)renewKpi.textContent=fmt(customerStats.expiring||0);
+      }
+      const info=document.getElementById('customerPageInfo');
+      if(info)info.textContent='صفحهٔ '+fmt(data.page||1)+' · '+fmt(data.matched||0)+' نتیجه';
+      const prev=document.getElementById('customerPrevBtn'),next=document.getElementById('customerNextBtn');
+      if(prev)prev.disabled=(data.page||1)<=1;
+      if(next)next.disabled=!customerHasMore;
+      const note=document.getElementById('customerDataNote');
+      if(note)note.textContent=(data.note||'')+(data.count_partial?' شمارش به سقف گزارش رسیده است.':'')+(data.search_window?' جست‌وجو در '+fmt(data.search_window)+' کاربر اخیر انجام می‌شود.':'');
     }
     async function loadPlans() {
       if(!liveMode||!adminRole){renderPreviewPlans();return;}
@@ -3798,6 +4000,18 @@
         invalid_card_number:'شمارهٔ کارت باید بین ۱۲ تا ۱۹ رقم باشد.',
         automatic_payment_not_configured:'پرداخت خودکار هنوز آماده نیست: شماره کارت را ثبت کنید و روی سرور «sudo bash /opt/tiznetvpn/update.sh --yes» را اجرا کنید تا Secret ساخته شود.',
         invalid_free_subscription_volume:'حجم اشتراک رایگان باید بین صفر و یک میلیون گیگ باشد.',invalid_free_subscription_days:'مدت اشتراک رایگان باید بین ۱ تا ۳۶۵۰ روز باشد.',invalid_free_subscription_policy:'سیاست دریافت اشتراک رایگان معتبر نیست.',free_subscription_policy_required:'پیش از فعال‌کردن اشتراک رایگان، یک سیاست دریافت انتخاب کنید.',free_subscription_panel_unavailable:'برای اشتراک رایگان، یک پنل فعال و کامل انتخاب کنید.',invalid_free_subscription_panel:'شناسهٔ پنل اشتراک رایگان معتبر نیست.',
+        invalid_retention_paid_grace_days:'مهلت تمدید باید عددی بین ۰ تا ۶۰ روز باشد.',
+        invalid_retention_enabled:'مقدار پاک‌سازی خودکار معتبر نیست.',
+        invalid_retention_free_delete:'تنظیم حذف اشتراک رایگان معتبر نیست.',
+        invalid_retention_paid_delete:'تنظیم حذف اشتراک پولی معتبر نیست.',
+        invalid_retention_action:'درخواست پاک‌سازی معتبر نیست.',
+        agent_already_exists:'این کاربر از قبل نماینده است.',
+        agent_not_found:'نماینده پیدا نشد.',
+        agent_has_balance_or_quota:'ابتدا موجودی و سهمیهٔ نماینده را صفر کنید؛ سپس برکناری ممکن است.',
+        agent_user_blocked:'کاربر مسدود است؛ ابتدا رفع مسدودی کنید.',
+        admin_cannot_be_agent:'مدیر ربات را نمی‌توان نماینده کرد.',
+        invalid_notify_text:'متن پیام معتبر نیست.',
+        notify_failed:'ارسال پیام در تلگرام ناموفق بود.',
         backup_create_failed:'ساخت بکاپ KV ناموفق بود؛ حجم داده یا اتصال Worker را بررسی کنید.',backup_download_link_failed:'لینک موقت دانلود بکاپ ساخته نشد؛ دوباره تلاش کنید.',backup_too_large:'حجم فایل بکاپ از حد مجاز بیشتر است.',invalid_restore_upload:'فایل ارسالی معتبر نیست.',backup_file_required:'فایل بکاپ gzip را انتخاب کنید.',invalid_backup_file:'قالب فایل با بکاپ تیزنت سازگار نیست یا فایل خراب است.',restore_confirmation_required:'برای ریستور کامل، تأیید نهایی لازم است.',restore_busy:'یک ریستور دیگر در حال اجراست؛ کمی صبر کنید.',backup_busy:'یک بکاپ زمان‌بندی‌شده در حال اجراست؛ کمی صبر کنید.',restore_safety_backup_failed:'بکاپ ایمنی وضعیت فعلی ساخته نشد؛ هیچ داده‌ای تغییر نکرد.',restore_safety_backup_delivery_failed:'بکاپ ایمنی به حساب مدیر ارسال نشد؛ هیچ داده‌ای تغییر نکرد.',restore_failed_rolled_back:'ریستور ناموفق بود؛ وضعیت قبلی از بکاپ ایمنی بازیابی شد.',restore_failed_rollback_failed:'ریستور و بازیابی خودکار هر دو خطا دادند؛ بکاپ ایمنی را از چت مدیر دریافت کنید.',restore_failed:'ریستور ناموفق بود؛ وضعیت قبلی تغییر نکرد یا به‌صورت خودکار بازیابی شد.' ,
         invalid_panel_name:'نام سرور را وارد کنید.',invalid_panel_api_url:'آدرس API باید HTTPS و بدون اطلاعات ورود باشد.',
         invalid_panel_user_url:'دامنهٔ اشتراک باید HTTPS باشد.',invalid_panel_api_key:'کلید API معتبر نیست.',panel_connection_failed:'اتصال به پنل ناموفق بود؛ آدرس و تنظیمات پنل را بررسی کنید.',
@@ -3962,6 +4176,10 @@
       const manual=document.getElementById('settingManualEnabled');if(manual)manual.checked=!!settings.card_manual_enabled;
       const auto=document.getElementById('settingAutoEnabled');if(auto){auto.checked=!!settings.card_auto_enabled;auto.disabled=false;}
       const freeEnabled=document.getElementById('settingFreeEnabled');if(freeEnabled)freeEnabled.checked=!!settings.free_subscription_enabled;
+      const retentionEnabled=document.getElementById('settingRetentionEnabled');if(retentionEnabled)retentionEnabled.checked=settings.retention_enabled!==false;
+      const retentionFree=document.getElementById('settingRetentionFree');if(retentionFree)retentionFree.checked=settings.retention_free_delete!==false;
+      const retentionPaid=document.getElementById('settingRetentionPaid');if(retentionPaid)retentionPaid.checked=settings.retention_paid_delete!==false;
+      set('settingRetentionGrace',settings.retention_paid_grace_days==null?3:settings.retention_paid_grace_days);
       set('settingFreeGb',settings.free_subscription_gb==null?1:settings.free_subscription_gb);
       set('settingFreeDays',settings.free_subscription_days==null?1:settings.free_subscription_days);
       set('settingFreeClaimPolicy',settings.free_subscription_claim_policy||'');
@@ -4003,7 +4221,11 @@
         free_subscription_gb:document.getElementById('settingFreeGb').value,
         free_subscription_days:document.getElementById('settingFreeDays').value,
         free_subscription_panel_id:document.getElementById('settingFreePanel').value,
-        free_subscription_claim_policy:document.getElementById('settingFreeClaimPolicy').value
+        free_subscription_claim_policy:document.getElementById('settingFreeClaimPolicy').value,
+        retention_enabled:document.getElementById('settingRetentionEnabled').checked,
+        retention_free_delete:document.getElementById('settingRetentionFree').checked,
+        retention_paid_delete:document.getElementById('settingRetentionPaid').checked,
+        retention_paid_grace_days:document.getElementById('settingRetentionGrace').value
       };
       try { const data=await api('/api/miniapp/admin/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});renderSettingsView(data.settings||{});if(message)message.textContent='تنظیمات با موفقیت ذخیره شد.';toast('تنظیمات فروشگاه ذخیره شد.'); }
       catch(e){if(message)message.textContent=adminErrorText(e.message);toast(adminErrorText(e.message));}
@@ -4119,21 +4341,45 @@
       };
       return texts[code]||adminErrorText(code,detail);
     }
+    function agentStateLabel(a) { return a.enabled?'فعال':'غیرفعال'; }
+    function renderAgentAdminStats(totals,statsPartial) {
+      const grid=document.getElementById('agentAdminStats');if(!grid)return;
+      if(!totals){grid.innerHTML='<div class="empty-state">آمار در دسترس نیست.</div>';return;}
+      const tiles=[
+        ['نمایندهٔ فعال',fmt(totals.active||0)+' از '+fmt(totals.agents||0)],
+        ['فروش کل',fmt(totals.sales||0)],
+        ['فروش ۳۰ روز',fmt(totals.sales_30d||0)],
+        ['درآمد نمایندگان',money(totals.revenue||0)],
+        ['موجودی کیف پول‌ها',money(totals.balance||0)],
+        ['سهمیهٔ باقی‌مانده',fmt(totals.quota||0)],
+        ['سهمیهٔ کم',fmt(totals.low_quota||0)],
+        ['موجودی خالی',fmt(totals.low_balance||0)]
+      ];
+      grid.innerHTML=tiles.map(([label,value])=>`<div class="summary-tile"><span>${esc(label)}</span><strong>${value}</strong></div>`).join('');
+      const note=document.getElementById('agentListNote');
+      if(note&&statsPartial)note.textContent='تعداد نمایندگان بالا است؛ آمار فروش هر ردیف از شمارندهٔ ساخت محاسبه شده و ممکن است خلاصه باشد.';
+    }
     function renderManagedAgents() {
       const el=document.getElementById('managedAgentsList');if(!el)return;
       const badge=document.getElementById('agentTotalBadge');if(badge)badge.textContent=fmt(liveAgents.length)+' نماینده';
-      if(!liveAgents.length){el.innerHTML='<div class="empty-state">نماینده‌ای پیدا نشد.</div>';return;}
+      if(!liveAgents.length){el.innerHTML='<div class="empty-state">نماینده‌ای با این فیلتر پیدا نشد.</div>';return;}
       el.innerHTML=liveAgents.map(a=>{
         const label=(a.first_name||'نماینده')+(a.username?' · @'+a.username:'');
-        return `<div class="managed-item"><div class="managed-main"><strong>${esc(label)}</strong><span class="managed-meta" dir="ltr">Telegram ID: ${esc(a.tg_id)}</span><span class="managed-meta">کیف پول: ${money(a.balance)} · سهمیه: ${fmt(a.quota_remaining)} · ساخت موفق: ${fmt(a.total_created)}</span></div><span class="status ${a.enabled?'paid':'pending'} agent-state-pill">${a.enabled?'فعال':'غیرفعال'}</span><div class="managed-actions"><button class="table-action" type="button" data-agent-open="${esc(a.tg_id)}">مدیریت نماینده</button></div></div>`;
+        const lastSale=a.last_sale_at?fmtDate(a.last_sale_at):'بدون فروش';
+        return `<div class="managed-item"><div class="managed-main"><strong>${esc(label)}</strong><span class="managed-meta" dir="ltr">Telegram ID: ${esc(a.tg_id)}</span><div class="agent-row-stats"><span>فروش: <b>${fmt(a.sales_total||0)}</b></span><span>۳۰ روز: <b>${fmt(a.sales_30d||0)}</b></span><span>درآمد: <b>${money(a.total_revenue||0)}</b></span><span>موجودی: <b>${money(a.balance)}</b></span><span>سهمیه: <b>${fmt(a.quota_remaining)}</b></span><span>آخرین فروش: <b>${esc(lastSale)}</b></span></div></div><span class="status ${a.enabled?'paid':'pending'} agent-state-pill">${agentStateLabel(a)}</span><div class="managed-actions"><button class="table-action" type="button" data-agent-open="${esc(a.tg_id)}">مدیریت نماینده</button></div></div>`;
       }).join('');
     }
     async function loadAdminAgents(query) {
       if(!liveMode||!adminRole)return;
       const q=query==null?(document.getElementById('agentSearch')?.value||''):query;
-      const data=await api('/api/miniapp/admin/agents?q='+encodeURIComponent(q));
+      const status=document.getElementById('agentStatusFilter')?.value||'all';
+      const sort=document.getElementById('agentSortFilter')?.value||'newest';
+      const params=new URLSearchParams({q:q,status:status,sort:sort});
+      const data=await api('/api/miniapp/admin/agents?'+params.toString());
       liveAgents=Array.isArray(data.items)?data.items:[];renderManagedAgents();
-      const note=document.getElementById('agentListNote');if(note)note.textContent=data.partial?'فهرست به سقف نمایش رسیده است؛ برای نتیجهٔ دقیق‌تر جست‌وجو کنید.':'';
+      renderAgentAdminStats(data.totals,data.stats_partial);
+      const note=document.getElementById('agentListNote');
+      if(note)note.textContent=(data.partial?'فهرست به سقف نمایش رسیده است؛ برای نتیجهٔ دقیق‌تر جست‌وجو کنید.':(data.stats_partial?'':'آمار از شمارندهٔ ساخت و دفتر مالی نمایندگان محاسبه شده است.'));
     }
     async function loadAgentInvites() {
       if(!liveMode||!adminRole)return;
@@ -4186,11 +4432,19 @@
       const transactions=Array.isArray(data.transactions)?data.transactions:[];
       const subscriptions=Array.isArray(data.subscriptions)?data.subscriptions:[];
       const priceFields=plans.length?plans.map(p=>`<label class="agent-price-field">${esc(p.title||p.id)} <span class="mini-note">${fmt(p.gb)} گیگ · ${fmt(p.days)} روز${p.archived?' · آرشیوی':''}</span><input type="text" inputmode="numeric" data-agent-price="${esc(p.id)}" value="${esc(p.agent_price||p.public_price||'')}" ${p.public_price>0?'required':'disabled'} aria-label="قیمت خرید نماینده برای ${esc(p.title||p.id)}"></label>`).join(''):'<div class="empty-state">پلنی برای تعیین قیمت وجود ندارد.</div>';
+      const an=data.analytics||{};
+      const chart=Array.isArray(an.chart)?an.chart:[];
+      const maxSales=Math.max(1,...chart.map(row=>Number(row.count||0)));
+      const chartHtml=chart.length?`<div class="analytics-chart" role="img" aria-label="نمودار فروش ۳۰ روز اخیر نماینده">${chart.map(row=>`<i class="analytics-bar${row.count?'':' is-empty'}" style="height:${row.count?Math.max(8,Math.round(row.count/maxSales*100)):3}%" title="${esc(row.date)} · ${fmt(row.count)} فروش"></i>`).join('')}</div><div class="analytics-legend"><span>${esc(chart[0].date)}</span><span>۳۰ روز اخیر</span><span>${esc(chart[chart.length-1].date)}</span></div>`:'<div class="empty-state">داده‌ای برای نمودار نیست.</div>';
+      const topPlans=Array.isArray(an.top_plans)?an.top_plans:[];
+      const topPlansHtml=topPlans.length?`<div class="plan-list">${topPlans.map(row=>`<div class="plan-row"><span class="plan-name">${esc(row.title||'پلن')}</span><span class="bar-track"><i class="bar-fill" style="width:${Math.max(6,Math.round(Number(row.count||0)/Math.max(1,...topPlans.map(x=>Number(x.count||0)))*100))}%"></i></span><span class="plan-count">${fmt(row.count||0)} فروش · ${money(row.revenue||0)}</span></div>`).join('')}</div>`:'<div class="empty-state">فروشی برای این نماینده ثبت نشده است.</div>';
+      const analyticsHtml=`<div class="panel-head" style="margin-top:18px"><div><h3>تحلیل فروش نماینده</h3><p>فروش، درآمد و موجودی مستقل نمایندگی</p></div></div><div class="analytics-grid"><div class="summary-tile"><span>فروش کل</span><strong>${fmt(an.sales_total||0)}</strong></div><div class="summary-tile"><span>فروش ۳۰ روز</span><strong>${fmt(an.sales_30d||0)}</strong></div><div class="summary-tile"><span>درآمد کل</span><strong>${money(an.revenue||0)}</strong></div><div class="summary-tile"><span>درآمد ۳۰ روز</span><strong>${money(an.revenue_30d||0)}</strong></div><div class="summary-tile"><span>اشتراک فعال / منقضی</span><strong>${fmt(an.active_subs||0)} / ${fmt(an.expired_subs||0)}</strong></div><div class="summary-tile"><span>شارژ / کسر مدیر</span><strong>${money(an.credit_total||0)} / ${money(an.debit_total||0)}</strong></div></div>${chartHtml}<div class="panel-head" style="margin-top:14px"><div><h3>پرفروش‌ترین پلن‌ها</h3></div></div>${topPlansHtml}`;
       const subRows=subscriptions.length?subscriptions.map(sub=>`<div class="agent-sub-card"><div class="agent-sub-card-top"><div><strong>${esc(sub.customer_name||'مشتری')}</strong><span class="agent-sub-meta">${esc(sub.plan_name)} · ${esc(sub.panel_name)} · ${esc(sub.status_label)}</span><span class="agent-sub-meta">${esc(fmtDate(sub.created_at))} · مبلغ خرید داخلی: ${money(sub.agent_price)}</span></div></div></div>`).join(''):'<div class="empty-state">هنوز اشتراکی برای این نماینده ساخته نشده است.</div>';
       const txRows=transactions.length?transactions.map(tx=>{const value=tx.type==='admin_quota_set'?'سهمیه: '+(tx.direction==='in'?'+':'−')+fmt(tx.amount):(tx.direction==='in'?'+':'−')+money(tx.amount);return `<div class="agent-transaction-card"><div class="agent-transaction-top"><div><strong>${esc(tx.description||tx.type||'تراکنش')}</strong><span class="agent-transaction-meta">${esc(fmtDate(tx.occurred_at))}${tx.quota_after==null?'':' · سهمیه پس از عملیات: '+fmt(tx.quota_after)}</span></div><span class="agent-transaction-amount">${esc(value)}</span></div></div>`;}).join(''):'<div class="empty-state">تراکنشی ثبت نشده است.</div>';
       panel.innerHTML=`<div class="panel-head"><div><h3>پروندهٔ نماینده: ${esc(a.first_name||'نماینده')}</h3><p dir="ltr">Telegram ID: ${esc(a.tg_id)}${a.username?' · @'+esc(a.username):''}</p></div><span class="status ${a.enabled?'paid':'pending'}">${a.enabled?'فعال':'غیرفعال'}</span></div>
         <div class="agent-stat-grid"><article class="panel referral-stat"><span>کیف پول مستقل</span><strong>${money(a.balance)}</strong></article><article class="panel referral-stat"><span>سهمیهٔ باقی‌مانده</span><strong>${fmt(a.quota_remaining)}</strong></article><article class="panel referral-stat"><span>ساخت موفق</span><strong>${fmt(a.total_created)}</strong></article></div>
         <div class="agent-admin-actions"><button class="table-action ${a.enabled?'danger':''}" type="button" data-agent-toggle="${esc(a.tg_id)}">${a.enabled?'غیرفعال‌کردن نماینده':'فعال‌کردن نماینده'}</button></div>
+        ${analyticsHtml}
         <form id="agentPricingForm" class="admin-form"><input type="hidden" id="agentPricingTgId" value="${esc(a.tg_id)}"><div class="panel-head"><div><h3>قیمت خرید نماینده برای هر پلن</h3></div></div><div class="agent-price-grid">${priceFields}</div><div class="form-actions"><button class="btn-primary" type="submit">ذخیرهٔ قیمت‌ها</button><span class="mini-note" id="agentPriceMessage" role="status" aria-live="polite"></span></div></form>
         <div class="panel-head" style="margin-top:18px"><div><h3>شارژ یا کسر از کیف پول</h3><p>تراکنش مدیریتی در تاریخچهٔ مستقل نماینده ثبت می‌شود.</p></div></div><div class="agent-wallet-controls"><label class="admin-field">مبلغ (تومان)<input id="agentAdminWalletAmount" type="text" inputmode="numeric" placeholder="مبلغ"></label><button class="btn-primary" type="button" data-agent-wallet="credit" data-agent-id="${esc(a.tg_id)}">شارژ</button><button class="table-action danger" type="button" data-agent-wallet="debit" data-agent-id="${esc(a.tg_id)}">کسر</button></div>
         <div class="panel-head" style="margin-top:18px"><div><h3>تنظیم سهمیهٔ کل ساخت</h3><p>عدد واردشده، سهمیهٔ باقی‌ماندهٔ جدید است؛ نه افزایش نسبی.</p></div></div><div class="agent-wallet-controls"><label class="admin-field">سهمیهٔ باقی‌مانده<input id="agentAdminQuotaAmount" type="number" min="0" max="1000000" step="1" value="${esc(a.quota_remaining)}"></label><button class="btn-primary" type="button" data-agent-quota="set" data-agent-id="${esc(a.tg_id)}">ذخیرهٔ سهمیه</button></div>
@@ -4357,7 +4611,7 @@
       liveCustomers=demos;
       const q=(document.getElementById('customerSearch')?.value||'').toLowerCase();
       const list=demos.filter(u=>[u.tg_id,u.first_name,u.username].join(' ').toLowerCase().includes(q));
-      const body=document.getElementById('customerTableBody');if(body)body.innerHTML=list.map(u=>`<tr class="customer-click-row" tabindex="0" role="button" data-customer-open="${esc(u.tg_id)}" aria-label="باز کردن پروندهٔ نمونهٔ ${esc(u.first_name)}"><td><div class="customer-cell"><span class="mini-avatar">${esc(initials(u.first_name))}</span><span>${esc(u.first_name)}<small style="display:block;color:#f5eaeb;margin-top:3px;font-size:11px;direction:ltr;text-align:right">@${esc(u.username)}</small></span></div></td><td><span class="order-id">${esc(u.tg_id)}</span></td><td>${esc(fmtDate(u.joined_at))}</td><td>${fmt(u.subscriptions)}</td><td>${money(u.total_spent)}</td><td>${money(u.balance)}</td><td>${fmt(u.invited)}</td><td>${esc(fmtDate(u.last_activity_at||u.joined_at))}</td></tr>`).join('');
+      const body=document.getElementById('customerTableBody');if(body)body.innerHTML=list.map(u=>`<tr class="customer-click-row" tabindex="0" role="button" data-customer-open="${esc(u.tg_id)}" aria-label="باز کردن پروندهٔ نمونهٔ ${esc(u.first_name)}"><td><div class="customer-cell"><span class="mini-avatar">${esc(initials(u.first_name))}</span><span>${esc(u.first_name)}<small style="display:block;color:#f5eaeb;margin-top:3px;font-size:11px;direction:ltr;text-align:right">@${esc(u.username)}</small></span></div></td><td><span class="order-id">${esc(u.tg_id)}</span></td><td>${esc(fmtDate(u.joined_at))}</td><td>${fmt(u.subscriptions)}</td><td>${money(u.total_spent)}</td><td>${money(u.balance)}</td><td>${fmt(u.invited)}</td><td>${esc(fmtDate(u.last_activity_at||u.joined_at))}</td><td><span class="status ${u.subscriptions>0?'paid':'pending'}">${u.subscriptions>0?'فعال':'بدون اشتراک'}</span></td></tr>`).join('');
       document.getElementById('customersTotalKpi').textContent='۴۸۲';document.getElementById('customersNewKpi').textContent='۶۷';document.getElementById('customersRenewKpi').textContent='۶۱٫۳٪';
       const note=document.getElementById('customerDataNote');if(note)note.textContent='پیش‌نمایش: مشتری‌ها و مبالغ این فهرست نمونه‌ای هستند.';
     }
@@ -4921,7 +5175,10 @@
         <section class="customer-detail-section"><details><summary>تاریخچهٔ فعالیت ربات · ${fmt(summary.activity_events||activity.length)}</summary><ul class="customer-detail-list customer-activity">${activityRows}</ul><div class="form-hint">${esc(detail.coverage&&detail.coverage.note||'فقط نوع رویداد ثبت می‌شود؛ محتوای پیام‌ها ذخیره نمی‌شود.')}</div></details></section>
         <label class="admin-field">مبلغ شارژ/کسر (تومان)<input id="customerAdminAmount" type="text" inputmode="numeric" placeholder="مبلغ"></label>
         <div class="admin-actions"><button class="btn-primary" type="button" data-customer-action="credit" data-customer-id="${esc(id)}">شارژ کیف پول</button><button class="table-action danger" type="button" data-customer-action="debit" data-customer-id="${esc(id)}">کسر از کیف پول</button><button class="outline-btn" type="button" data-customer-action="${customer.banned?'unban':'ban'}" data-customer-id="${esc(id)}">${customer.banned?'رفع مسدودی':'مسدودسازی'}</button></div>
-        <div class="form-hint">مدیران از مسدودسازی محافظت می‌شوند. تغییر موجودی برای مشتری در تلگرام اطلاع‌رسانی و در گزارش کیف پول ثبت می‌شود.</div>`;
+        <div class="form-hint">مدیران از مسدودسازی محافظت می‌شوند. تغییر موجودی برای مشتری در تلگرام اطلاع‌رسانی و در گزارش کیف پول ثبت می‌شود.</div>
+        <label class="admin-field">پیام مستقیم به کاربر (حداکثر ۸۰۰ نویسه)<textarea id="customerNotifyText" rows="2" maxlength="800" placeholder="متن پیام برای ارسال در تلگرام"></textarea></label>
+        <div class="admin-actions"><button class="outline-btn" type="button" data-customer-action="notify" data-customer-id="${esc(id)}">ارسال پیام</button><button class="outline-btn" type="button" data-customer-action="${customer.is_agent?'demote_agent':'promote_agent'}" data-customer-id="${esc(id)}">${customer.is_agent?'برکناری از نمایندگی':'ارتقا به نماینده'}</button></div>
+        <div class="form-hint">برکناری فقط وقتی ممکن است که موجودی و سهمیهٔ نماینده صفر باشد.</div>`;
       setModalAction('','');
     }
     function openCustomerManager(id) {
@@ -4972,11 +5229,14 @@
       }
       if(ctx.type==='customer'){
         try{
-          const result=await api('/api/miniapp/admin/customers/'+encodeURIComponent(ctx.id),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:ctx.action,amount:ctx.amount})});
+          await api('/api/miniapp/admin/customers/'+encodeURIComponent(ctx.id),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:ctx.action,amount:ctx.amount,text:ctx.text})});
           await loadCustomers().catch(()=>{});
+          const toastMap={credit:'کیف پول شارژ و در تاریخچه ثبت شد.',debit:'کسر کیف پول ثبت شد.',ban:'مشتری مسدود شد.',unban:'مسدودی مشتری برداشته شد.',notify:'پیام مستقیم برای کاربر ارسال شد.',promote_agent:'کاربر به نماینده تبدیل شد.',demote_agent:'کاربر از نمایندگی برکنار شد.'};
+          if(ctx.action==='demote_agent'){await loadAdminAgents().catch(()=>{});closeModal();toast(toastMap.demote_agent);return;}
           const detail=await api('/api/miniapp/admin/customers/'+encodeURIComponent(ctx.id));
           renderCustomerManager(detail);
-          if(result.customer)toast(ctx.action==='credit'?'کیف پول شارژ و در تاریخچه ثبت شد.':ctx.action==='debit'?'کسر کیف پول ثبت شد.':ctx.action==='ban'?'مشتری مسدود شد.':'مسدودی مشتری برداشته شد.');
+          if(ctx.action==='promote_agent'){await loadAdminAgents().catch(()=>{});}
+          toast(toastMap[ctx.action]||'عملیات انجام شد.');
         }catch(e){const message=adminErrorText(e.message,e.data&&e.data.detail);showAdminActionStatus(message,'warn');setAdminActionButtons(false,'تلاش دوباره');toast(message);}return;
       }
       if(ctx.type==='withdrawal'){
@@ -5408,7 +5668,33 @@
     document.getElementById('orderSearch').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>liveMode?loadOrders().catch(()=>toast('جست‌وجو انجام نشد.')):filterPreviewOrders(),250);});
     ['orderTypeFilter','orderStatusFilter','orderMethodFilter','orderPeriodFilter'].forEach(id=>document.getElementById(id).addEventListener('change',()=>liveMode?loadOrders().catch(()=>toast('فیلتر سفارش‌ها بارگذاری نشد.')):filterPreviewOrders()));
     document.getElementById('clearDashboardDrill').addEventListener('click',clearDashboardDrill);
-    document.getElementById('customerSearch').addEventListener('input',()=>{clearTimeout(customerTimer);customerTimer=setTimeout(()=>loadCustomers().catch(()=>toast('جست‌وجوی مشتری ناموفق بود.')),250);});
+    document.getElementById('customerSearch').addEventListener('input',()=>{customerPage=1;clearTimeout(customerTimer);customerTimer=setTimeout(()=>loadCustomers().catch(()=>toast('جست‌وجوی مشتری ناموفق بود.')),250);});
+    // فیلترها و صفحه‌بندی مدیریت کاربران
+    document.querySelectorAll('[data-customer-status]').forEach(chip=>chip.addEventListener('click',()=>{
+      customerStatusFilter=chip.getAttribute('data-customer-status')||'all';customerPage=1;
+      document.querySelectorAll('[data-customer-status]').forEach(c=>{const on=c===chip;c.classList.toggle('is-active',on);c.setAttribute('aria-pressed',on?'true':'false');});
+      loadCustomers().catch(()=>toast('فیلتر کاربران اعمال نشد.'));
+    }));
+    const customerSortEl=document.getElementById('customerSort');
+    if(customerSortEl)customerSortEl.addEventListener('change',()=>{customerSort=customerSortEl.value||'recent';customerPage=1;loadCustomers().catch(()=>toast('مرتب‌سازی کاربران اعمال نشد.'));});
+    const customerPrevBtn=document.getElementById('customerPrevBtn');
+    if(customerPrevBtn)customerPrevBtn.addEventListener('click',()=>{if(customerPage>1){customerPage-=1;loadCustomers().catch(()=>toast('صفحهٔ قبلی بارگذاری نشد.'));}});
+    const customerNextBtn=document.getElementById('customerNextBtn');
+    if(customerNextBtn)customerNextBtn.addEventListener('click',()=>{if(customerHasMore){customerPage+=1;loadCustomers().catch(()=>toast('صفحهٔ بعدی بارگذاری نشد.'));}});
+    // فیلتر و مرتب‌سازی نمایندگان
+    const agentStatusFilterEl=document.getElementById('agentStatusFilter');
+    if(agentStatusFilterEl)agentStatusFilterEl.addEventListener('change',()=>loadAdminAgents().catch(()=>toast('فیلتر نمایندگان اعمال نشد.')));
+    const agentSortFilterEl=document.getElementById('agentSortFilter');
+    if(agentSortFilterEl)agentSortFilterEl.addEventListener('change',()=>loadAdminAgents().catch(()=>toast('مرتب‌سازی نمایندگان اعمال نشد.')));
+    // دکمه‌های پاک‌سازی پنل (داشبورد و تنظیمات)
+    const retentionPreviewBtn=document.getElementById('retentionPreviewBtn');
+    if(retentionPreviewBtn)retentionPreviewBtn.addEventListener('click',()=>runRetentionAction(false,'retentionMessage'));
+    const retentionRunBtn=document.getElementById('retentionRunBtn');
+    if(retentionRunBtn)retentionRunBtn.addEventListener('click',()=>runRetentionAction(true,'retentionMessage'));
+    const settingRetentionPreview=document.getElementById('settingRetentionPreview');
+    if(settingRetentionPreview)settingRetentionPreview.addEventListener('click',()=>runRetentionAction(false,'settingRetentionStatus'));
+    const settingRetentionRun=document.getElementById('settingRetentionRun');
+    if(settingRetentionRun)settingRetentionRun.addEventListener('click',()=>runRetentionAction(true,'settingRetentionStatus'));
     document.getElementById('plansPeriod').addEventListener('change',()=>loadPlans().catch(()=>toast('گزارش پلن‌ها بارگذاری نشد.')));
     document.getElementById('planCreate').addEventListener('click',()=>{if(!livePanels.length)loadManagedPlans().then(()=>openPlanEditor(null)).catch(()=>toast('فهرست سرورها بارگذاری نشد.'));else openPlanEditor(null);});
     document.getElementById('settingsForm').addEventListener('submit',e=>{e.preventDefault();saveSettingsForm(e.target);});
@@ -5467,7 +5753,7 @@
       const orderAction=e.target.closest('[data-order-admin-action]');if(orderAction){const ctx=adminModalContext;const order=ctx&&ctx.order;if(orderAction.dataset.orderAdminAction==='approve'){renderAdminConfirm({type:'order',id:orderAction.dataset.orderId,order:order},'تأیید و پردازش سفارش','پرداخت ثبت‌شده را بررسی کرده‌اید؟ با تأیید، Worker سرویس/اشتراک را پردازش می‌کند.','تأیید پرداخت و پردازش');}else if(orderAction.dataset.orderAdminAction==='approve_manual'){renderAdminConfirm({type:'manualApprove',id:orderAction.dataset.orderId,order:order},'تأیید دستی پرداخت و تحویل','این مسیرِ استثنایی رسید یا تأیید خودکار را دور می‌زند. فقط پس از مشاهدهٔ واقعی وجه در حساب مقصد ادامه دهید؛ اگر وضعیت پرداخت قبلی نامعلوم است، مشتری را به پرداخت دوباره راهنمایی نکنید.','ثبت تأیید دستی و تحویل');}else if(orderAction.dataset.orderAdminAction==='reject')renderRejectOrderForm(orderAction.dataset.orderId,order);else if(orderAction.dataset.orderAdminAction==='edit'&&order)renderOrderEdit(order);return;}
       const orderBack=e.target.closest('[data-order-back]');if(orderBack){openAdminOrder(orderBack.dataset.orderBack);return;}
       const orderRejectConfirm=e.target.closest('[data-order-reject-confirm]');if(orderRejectConfirm){confirmRejectOrder();return;}
-      const customerAction=e.target.closest('[data-customer-action]');if(customerAction){const ctx=adminModalContext,action=customerAction.dataset.customerAction;const customer=ctx&&ctx.customer;const amount=document.getElementById('customerAdminAmount')?.value||'';if((action==='credit'||action==='debit')&&!amount){toast('مبلغ را وارد کنید.');return;}const label=action==='credit'?'شارژ کیف پول':action==='debit'?'کسر از کیف پول':action==='ban'?'مسدودسازی مشتری':'رفع مسدودی مشتری';renderAdminConfirm({type:'customer',id:customerAction.dataset.customerId,action:action,amount:amount,customer:customer},label,'این عملیات روی حساب مشتری اثر می‌گذارد. پس از تأیید، نتیجه در Worker ثبت می‌شود.','تأیید عملیات');return;}
+      const customerAction=e.target.closest('[data-customer-action]');if(customerAction){const ctx=adminModalContext,action=customerAction.dataset.customerAction;const customer=ctx&&ctx.customer;const amount=document.getElementById('customerAdminAmount')?.value||'';const notifyText=document.getElementById('customerNotifyText')?.value||'';if((action==='credit'||action==='debit')&&!amount){toast('مبلغ را وارد کنید.');return;}if(action==='notify'&&notifyText.trim().length<2){toast('متن پیام را وارد کنید.');return;}const labels={credit:'شارژ کیف پول',debit:'کسر از کیف پول',ban:'مسدودسازی مشتری',unban:'رفع مسدودی مشتری',notify:'ارسال پیام مستقیم',promote_agent:'ارتقا به نماینده',demote_agent:'برکناری از نمایندگی'};renderAdminConfirm({type:'customer',id:customerAction.dataset.customerId,action:action,amount:amount,text:notifyText,customer:customer},labels[action]||'عملیات مشتری','این عملیات روی حساب مشتری اثر می‌گذارد. پس از تأیید، نتیجه در Worker ثبت می‌شود.','تأیید عملیات');return;}
       const withdraw=e.target.closest('[data-withdraw-action]');if(withdraw){const action=withdraw.dataset.withdrawAction;renderAdminConfirm({type:'withdrawal',id:withdraw.dataset.withdrawId,action:action},action==='approve'?'تأیید برداشت':'رد و برگشت وجه',action==='approve'?'تأیید کنید که مبلغ برداشت به کارت مقصد پرداخت شده است.':'درخواست رد می‌شود و مبلغ به کیف پول مشتری برمی‌گردد.','تأیید');return;}
       const confirm=e.target.closest('[data-admin-confirm]');if(confirm){handleAdminConfirm();return;}
       const cancel=e.target.closest('[data-admin-cancel]');if(cancel){const ctx=adminModalContext;if(ctx&&(ctx.type==='order'||ctx.type==='manualApprove')&&ctx.order)renderAdminOrder(ctx.order);else if(ctx&&ctx.type==='customer'&&ctx.customer)renderCustomerManager(ctx.customer);else closeModal();return;}
@@ -5607,7 +5893,7 @@
     // مینی‌اپ نمی‌تواند شناسهٔ ایموجی پریمیومی را بخواند؛ با یک لمس ادمین به حالت گرفتن در چت می‌رود.
     // تنظیمات در چند سربرگ گروه‌بندی شده تا صفحه بلند نشود.
     function showSettingsGroup(name){
-      const formGroups=['shop','pay','free'];
+      const formGroups=['shop','pay','free','retention'];
       const editor=document.getElementById('settingsEditorPanel');
       if(editor) editor.classList.toggle('hidden', !formGroups.includes(name));
       document.querySelectorAll('#settingsPage [data-sgroup]').forEach((el)=>{
