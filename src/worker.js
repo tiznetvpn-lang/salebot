@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.44-ubuntu26.46';
+const VERSION = '1.8.45-ubuntu26.47';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -2697,6 +2697,264 @@ async function getPanels(env) { return await kvGet(env, 'panels', {}); }
 async function savePanels(env, p) { await kvPut(env, 'panels', p); }
 async function getPlans(env) { return await kvGet(env, 'plans', {}); }
 async function savePlans(env, p) { await kvPut(env, 'plans', p); }
+
+/* ---------- کد تخفیف ------------------------------------------------------
+ * هر کد: درصدی یا مبلغی، تاریخ انقضا، و سقف استفاده برای هر حساب.
+ * استفاده در «ساخت سفارش» رزرو می‌شود (نه هنگام تأیید) تا دو سفارش هم‌زمان از یک کد
+ * رد نشوند؛ اگر سفارش لغو یا منقضی شود، همان استفاده آزاد می‌شود.
+ * کد تخفیف فقط روی خرید/تمدید/ارتقای پلن اعمال می‌شود؛ شارژ کیف پول تخفیف ندارد
+ * (وگرنه راهی برای تبدیل کد تخفیف به پول نقد باز می‌شود).
+ */
+const DISCOUNTS_KEY = 'discounts';
+const DISCOUNT_MIN_PAYABLE = 1000;          // حداقل مبلغ پرداخت بعد از تخفیف (تومان)
+const DISCOUNT_MAX_CODES = 200;             // سقف تعداد کدهای ثبت‌شده
+const DISCOUNT_MAX_TRACKED_ACCOUNTS = 300;  // سقف نگهداری شمارندهٔ هر حساب در یک کد
+
+async function getDiscounts(env) {
+  const raw = await kvGet(env, DISCOUNTS_KEY, {});
+  return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+}
+async function saveDiscounts(env, all) { await kvPut(env, DISCOUNTS_KEY, all || {}); }
+
+/** کد تخفیف فقط A-Z، ۰-۹ (ارقام فارسی هم پذیرفته می‌شود)، خط تیره و زیرخط. */
+function normalizeDiscountCode(raw) {
+  return normDigits(String(raw == null ? '' : raw))
+    .toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 24);
+}
+
+function discountView(rec) {
+  const used = rec && rec.used && typeof rec.used === 'object' ? rec.used : {};
+  return {
+    code: String(rec.code || ''),
+    type: rec.type === 'amount' ? 'amount' : 'percent',
+    value: Number(rec.value || 0),
+    enabled: rec.enabled !== false,
+    expires_at: Number(rec.expires_at || 0),
+    per_account_limit: Math.max(1, Number(rec.per_account_limit || 1)),
+    used_total: Number(rec.used_total || 0),
+    accounts: Object.keys(used).length,
+    created_at: Number(rec.created_at || 0),
+    updated_at: Number(rec.updated_at || 0),
+    last_used_at: Number(rec.last_used_at || 0),
+    note: String(rec.note || '')
+  };
+}
+
+/** دلیل غیرفعال‌بودن کد؛ رشتهٔ خالی یعنی کد قابل استفاده است. */
+function discountBlockReason(rec, now) {
+  if (!rec) return 'discount_not_found';
+  if (rec.enabled === false) return 'discount_disabled';
+  const expires = Number(rec.expires_at || 0);
+  if (expires > 0 && expires <= Number(now || Date.now())) return 'discount_expired';
+  return '';
+}
+
+/** مبلغ تخفیف به تومان؛ درصدی همیشه رو به پایین گرد می‌شود تا به نفع فروشگاه باشد. */
+function discountAmountFor(rec, baseAmount) {
+  const base = Math.max(0, Math.floor(Number(baseAmount) || 0));
+  if (!base || !rec) return 0;
+  if (rec.type === 'amount') return Math.min(base, Math.max(0, Math.floor(Number(rec.value) || 0)));
+  const percent = Math.max(0, Math.min(95, Number(rec.value) || 0));
+  return Math.min(base, Math.floor(base * percent / 100));
+}
+
+function discountUsedBy(rec, tgId) {
+  const used = rec && rec.used && typeof rec.used === 'object' ? rec.used : {};
+  return Math.max(0, Number(used[String(tgId)] || 0));
+}
+
+/** ارزیابی کامل یک کد برای یک مشتری و مبلغ پایه؛ خروجی همیشه یک شکل دارد. */
+function evaluateDiscount(rec, tgId, baseAmount, now) {
+  const reason = discountBlockReason(rec, now);
+  if (reason) return { ok: false, error: reason };
+  const base = Math.max(0, Math.floor(Number(baseAmount) || 0));
+  if (!base) return { ok: false, error: 'invalid_amount' };
+  const limit = Math.max(1, Math.min(100, Number(rec.per_account_limit || 1)));
+  const usedByMe = discountUsedBy(rec, tgId);
+  if (usedByMe >= limit) {
+    return { ok: false, error: 'discount_limit_reached', per_account_limit: limit, used_by_me: usedByMe };
+  }
+  const amount = discountAmountFor(rec, base);
+  if (amount <= 0) return { ok: false, error: 'discount_zero' };
+  const payable = base - amount;
+  // تخفیف نباید سفارش را به کمتر از حداقل مبلغ قابل پرداخت برساند؛ وگرنه مبلغ یکتا
+  // برای تطبیق پیامک بانکی بی‌معنی می‌شود.
+  if (payable < DISCOUNT_MIN_PAYABLE) return { ok: false, error: 'discount_too_large', base_amount: base };
+  return {
+    ok: true,
+    code: String(rec.code || ''),
+    type: rec.type === 'amount' ? 'amount' : 'percent',
+    value: Number(rec.value || 0),
+    base_amount: base,
+    discount: amount,
+    payable: payable,
+    expires_at: Number(rec.expires_at || 0),
+    per_account_limit: limit,
+    used_by_me: usedByMe,
+    remaining: Math.max(0, limit - usedByMe)
+  };
+}
+
+/**
+ * قفل درون‌فرایندی برای شمارندهٔ کدها؛ Worker روی یک فرایند Node اجرا می‌شود، پس همین
+ * زنجیره کافی است تا دو سفارش هم‌زمان سقف «هر حساب» را رد نکنند.
+ */
+let discountLockChain = Promise.resolve();
+function withDiscountLock(fn) {
+  const run = discountLockChain.then(() => fn());
+  discountLockChain = run.then(() => {}, () => {});
+  return run;
+}
+
+/**
+ * یک استفاده برای این حساب ثبت می‌شود. اگر با سقف حساب برخورد کند `false` برمی‌گردد تا
+ * فراخوان سفارش تازه‌ساخته را لغو کند (کنترل دوباره، بعد از قفل).
+ */
+async function reserveDiscountUse(env, code, tgId, orderId, limit) {
+  const key = normalizeDiscountCode(code);
+  if (!key) return false;
+  return withDiscountLock(async () => {
+    const all = await getDiscounts(env);
+    const rec = all[key];
+    if (!rec) return false;
+    rec.used = rec.used && typeof rec.used === 'object' ? rec.used : {};
+    const id = String(tgId);
+    const used = Math.max(0, Number(rec.used[id] || 0));
+    const cap = Math.max(1, Number(limit || rec.per_account_limit || 1));
+    if (used >= cap) return false;
+    rec.used[id] = used + 1;
+    rec.used_total = Math.max(0, Number(rec.used_total || 0)) + 1;
+    const accounts = Object.keys(rec.used);
+    if (accounts.length > DISCOUNT_MAX_TRACKED_ACCOUNTS) {
+      // قدیمی‌ترین حساب‌ها از شمارش حذف می‌شوند؛ شمارندهٔ کل دست‌نخورده می‌ماند.
+      for (const extra of accounts.slice(0, accounts.length - DISCOUNT_MAX_TRACKED_ACCOUNTS)) delete rec.used[extra];
+    }
+    rec.last_used_at = Date.now();
+    rec.last_order_id = String(orderId || '');
+    await saveDiscounts(env, all);
+    return true;
+  });
+}
+
+/** آزادکردن استفادهٔ یک سفارش لغوشده/منقضی تا سقف حساب بی‌دلیل مصرف نشود. */
+async function releaseDiscountUse(env, order) {
+  if (!order || !order.discount_code || !order.discount_counted_at || order.discount_released_at) return false;
+  await withDiscountLock(async () => {
+    const all = await getDiscounts(env);
+    const rec = all[order.discount_code];
+    if (rec) {
+      const id = String(order.tg_id);
+      if (rec.used && typeof rec.used === 'object') {
+        const next = Math.max(0, Number(rec.used[id] || 0) - 1);
+        if (next === 0) delete rec.used[id]; else rec.used[id] = next;
+      }
+      rec.used_total = Math.max(0, Number(rec.used_total || 0) - 1);
+      await saveDiscounts(env, all);
+    }
+    order.discount_released_at = Date.now();
+    await saveOrder(env, order);
+    return true;
+  });
+  return true;
+}
+
+/** بستن سفارش بازِ جایگزین‌شده (مثلاً وقتی مشتری کد تخفیف را عوض می‌کند). */
+async function closePendingMiniAppOrder(env, order, reason) {
+  if (!order || order.status !== 'pending') return false;
+  order.status = 'cancelled';
+  order.closed_reason = String(reason || 'replaced');
+  order.cancelled_at = Date.now();
+  order.cancelled_by = 'system';
+  await saveOrder(env, order);
+  if (order.pay_amount != null) { try { await kvDel(env, 'shetab_amt:' + order.pay_amount); } catch (e) {} }
+  await releaseDiscountUse(env, order);
+  return true;
+}
+
+/** فهرست و مدیریت کدها برای پنل مدیر. */
+async function miniAppAdminDiscountList(env) {
+  const all = await getDiscounts(env);
+  const now = Date.now();
+  const items = Object.values(all).map(discountView)
+    .sort((a, b) => (b.created_at || 0) - (a.created_at || 0) || a.code.localeCompare(b.code));
+  return {
+    ok: true,
+    items,
+    stats: {
+      total: items.length,
+      active: items.filter((x) => x.enabled && (!x.expires_at || x.expires_at > now)).length,
+      uses: items.reduce((sum, x) => sum + x.used_total, 0)
+    }
+  };
+}
+
+async function miniAppAdminDiscountAction(env, adminId, body) {
+  const data = body && typeof body === 'object' ? body : {};
+  const action = String(data.action || 'save');
+  const code = normalizeDiscountCode(data.code);
+  const all = await getDiscounts(env);
+  const existing = code ? all[code] : null;
+
+  if (action === 'delete') {
+    if (!existing) return { data: { ok: false, error: 'discount_not_found' }, status: 404 };
+    delete all[code];
+    await saveDiscounts(env, all);
+    return { data: { ok: true, deleted: code }, status: 200 };
+  }
+  if (action === 'toggle') {
+    if (!existing) return { data: { ok: false, error: 'discount_not_found' }, status: 404 };
+    existing.enabled = existing.enabled === false;
+    existing.updated_at = Date.now();
+    await saveDiscounts(env, all);
+    return { data: { ok: true, item: discountView(existing) }, status: 200 };
+  }
+  if (action !== 'save') return { data: { ok: false, error: 'invalid_discount_action' }, status: 400 };
+  if (!/^[A-Z0-9_-]{3,24}$/.test(code)) return { data: { ok: false, error: 'invalid_discount_code' }, status: 400 };
+  if (!existing && Object.keys(all).length >= DISCOUNT_MAX_CODES) {
+    return { data: { ok: false, error: 'discount_codes_full' }, status: 409 };
+  }
+  const type = data.type === 'amount' ? 'amount' : data.type === 'percent' ? 'percent' : '';
+  if (!type) return { data: { ok: false, error: 'invalid_discount_type' }, status: 400 };
+  const value = type === 'percent' ? Number(normDigits(data.value)) : parseMoney(data.value);
+  if (type === 'percent' && (!Number.isFinite(value) || value < 1 || value > 95)) {
+    return { data: { ok: false, error: 'invalid_discount_value' }, status: 400 };
+  }
+  if (type === 'amount' && (value == null || !Number.isSafeInteger(value) || value < DISCOUNT_MIN_PAYABLE || value > 1000000000)) {
+    return { data: { ok: false, error: 'invalid_discount_value' }, status: 400 };
+  }
+  const perAccount = Number(normDigits(data.per_account_limit == null || data.per_account_limit === '' ? 1 : data.per_account_limit));
+  if (!Number.isInteger(perAccount) || perAccount < 1 || perAccount > 100) {
+    return { data: { ok: false, error: 'invalid_discount_limit' }, status: 400 };
+  }
+  let expiresAt = 0;
+  if (data.expires_at !== '' && data.expires_at != null && Number(data.expires_at) !== 0) {
+    const parsed = Number(data.expires_at);
+    if (!Number.isFinite(parsed) || parsed <= 0) return { data: { ok: false, error: 'invalid_discount_expiry' }, status: 400 };
+    expiresAt = Math.floor(parsed);
+    if (expiresAt < Date.now() - 86400000) {
+      return { data: { ok: false, error: 'discount_expiry_in_past' }, status: 400 };
+    }
+  }
+  const record = Object.assign({}, existing || {}, {
+    code: code,
+    type: type,
+    value: type === 'percent' ? Math.round(value) : Math.round(value),
+    expires_at: expiresAt,
+    per_account_limit: perAccount,
+    enabled: data.enabled === undefined ? (existing ? existing.enabled !== false : true) : !!data.enabled,
+    note: cleanText(data.note).slice(0, 120),
+    updated_at: Date.now()
+  });
+  if (!existing) {
+    record.created_at = Date.now();
+    record.created_by = String(adminId || '');
+    record.used = {};
+    record.used_total = 0;
+  }
+  all[code] = record;
+  await saveDiscounts(env, all);
+  return { data: { ok: true, item: discountView(record) }, status: 200 };
+}
 
 async function getUser(env, tgid) { return await kvGet(env, 'u:' + tgid, null); }
 async function saveUser(env, u) {
@@ -4763,6 +5021,7 @@ async function adminNotifyOrder(env, o) {
     (plan ? '\n📦 پلن: ' + esc(plan.title) : '') +
     (panel ? '\n🖥 سرور: ' + esc(panel.name) : '') +
     '\n💵 مبلغ پلن: <b>' + fmtToman(o.amount) + '</b>' +
+    (Number(o.discount_amount || 0) > 0 ? '\n🎟 کد تخفیف <code>' + esc(o.discount_code) + '</code>: −' + fmtToman(o.discount_amount) + ' (قیمت پایه ' + fmtToman(o.list_amount) + ')' : '') +
     (o.pay_amount != null ? '\n🏦 مبلغ دقیق انتقال: <b>' + fmtToman(o.pay_amount) + '</b>' : '');
   if (o.receipt_text) t += '\n🧾 رسید/کد پیگیری: ' + esc(o.receipt_text).slice(0, 300);
   const kb = KB([[BTN('✅ تأیید', 'a_ok:' + o.id), BTN('❌ رد', 'a_no:' + o.id)], [BTN('🔍 جزئیات', 'a_ord:' + o.id)]]);
@@ -5484,6 +5743,7 @@ async function doReject(env, adminId, oid, reason) {
   o.status = 'rejected';
   o.reject_reason = reason || '';
   await saveOrder(env, o);
+  await releaseDiscountUse(env, o).catch(() => {});
   await recordCustomerActivity(env, o.tg_id, 'order_rejected', { order_id: o.id, kind: o.type, amount: o.amount, actor_id: adminId });
   await msg(env, adminId, '🚫 سفارش <code>' + oid + '</code> رد شد.');
   try {
@@ -6325,6 +6585,7 @@ async function onCallback(env, q, origin) {
       o.cancelled_at = Date.now();
       o.cancelled_by = String(from.id);
       await saveOrder(env, o);
+      await releaseDiscountUse(env, o).catch(() => {});
       // سفارش را از دیتابیس حذف نمی‌کنیم تا سابقهٔ گزارش و پیگیری مالی باقی بماند.
       await editMsg(env, chatId, messageId, '🗃 سفارش <code>' + oid + '</code> لغو و بایگانی شد.', KB([[BTN('◀️ سفارش‌ها', 'a_orders')]]));
       try { await msg(env, o.tg_id, '❌ سفارش <code>' + oid + '</code> لغو شد. برای پیگیری به پشتیبانی پیام بدید.'); } catch (e) {}
@@ -7929,6 +8190,7 @@ async function cronShetab(env) {
     o.cancelled_by = 'system';
     await saveOrder(env, o);
     if (o.pay_amount != null) { try { await kvDel(env, 'shetab_amt:' + o.pay_amount); } catch (e) {} }
+    await releaseDiscountUse(env, o).catch(() => {});
     expired++;
     try {
       await msg(env, o.tg_id,
@@ -9738,6 +10000,9 @@ async function miniAppOrderPayload(env, order) {
       upgrade_from_plan_id: String(order.upgrade_from_plan_id || ''), sub_sid: String(order.sub_sid || ''), status: String(order.status || 'unknown'),
       payment_method: method, payment_status: String(order.payment_status || ''),
       amount: amount, pay_amount: order.pay_amount == null ? null : payAmount,
+      list_amount: Number(order.list_amount == null ? amount : order.list_amount),
+      discount_amount: Number(order.discount_amount || 0),
+      discount_code: String(order.discount_code || ''),
       receipt_submitted: !!order.receipt_submitted_at,
       plan_title: String(plan.title || order.plan_name || ''), panel_name: String(panel.name || order.panel_name || ''),
       created_at: Number(order.created_at || 0), updated_at: Number(order.updated_at || 0),
@@ -9871,6 +10136,39 @@ async function miniAppSubmitReceipt(request, env, user, orderId) {
   return { data: await miniAppOrderPayload(env, latest), status: 200 };
 }
 
+/**
+ * بررسی کد تخفیف برای یک پلن مشخص (بدون ساخت سفارش). همان محاسبهٔ سرور در زمان سفارش
+ * استفاده می‌شود تا عددی که مشتری می‌بیند با عددی که پرداخت می‌کند یکی باشد.
+ */
+async function miniAppCheckDiscount(env, user, body) {
+  const data = body && typeof body === 'object' ? body : {};
+  const code = normalizeDiscountCode(data.code);
+  if (!code) return { data: { ok: false, error: 'discount_code_required' }, status: 400 };
+  // سقف تلاش برای حدس‌زدن کد؛ جلوی شمارش کدهای تخفیف با اسکریپت را می‌گیرد.
+  const attemptKey = 'dc_try:' + String(user.tg_id);
+  const attempts = Number(await kvGet(env, attemptKey, 0)) || 0;
+  if (attempts >= 30) return { data: { ok: false, error: 'discount_rate_limited' }, status: 429 };
+  await kvPut(env, attemptKey, attempts + 1, 3600);
+  const plans = await getPlans(env);
+  const panels = await getPanels(env);
+  const subSid = String(data.sub_sid || '').slice(0, 40);
+  let panelId = String(data.panel_id || '').slice(0, 40);
+  if (subSid) {
+    const sub = await getSub(env, subSid);
+    if (!sub || String(sub.tg_id) !== String(user.tg_id)) return { data: { ok: false, error: 'subscription_not_found' }, status: 404 };
+    panelId = String(sub.panel_id || '');
+  }
+  const panel = panels[panelId];
+  const plan = plans[String(data.plan_id || '').slice(0, 40)];
+  if (!isRecordEnabled(panel) || !isRecordEnabled(plan)) return { data: { ok: false, error: 'plan_unavailable' }, status: 404 };
+  if (!planAssignedToPanel(plan, panel.id || panelId)) return { data: { ok: false, error: 'plan_panel_mismatch' }, status: 400 };
+  const amount = Number(plan.price);
+  if (!Number.isSafeInteger(amount) || amount <= 0) return { data: { ok: false, error: 'invalid_plan_price' }, status: 400 };
+  const all = await getDiscounts(env);
+  const result = evaluateDiscount(all[code], user.tg_id, amount, Date.now());
+  return { data: result.ok ? Object.assign({ ok: true }, result) : Object.assign({ ok: false }, result), status: result.ok ? 200 : 409 };
+}
+
 async function miniAppCreateCheckout(env, user, body) {
   const data = body && typeof body === 'object' ? body : {};
   const method = String(data.method || '');
@@ -9897,6 +10195,9 @@ async function miniAppCreateCheckout(env, user, body) {
   const amount = Number(plan.price);
   if (!Number.isSafeInteger(amount) || amount <= 0) return { data: { ok: false, error: 'invalid_plan_price' }, status: 400 };
 
+  // کد تخفیف سمت سرور دوباره سنجیده می‌شود؛ عددی که مینی‌اپ نشان می‌دهد فقط پیش‌نمایش است.
+  const discountCode = normalizeDiscountCode(data.discount_code);
+
   const idemKey = 'miniapp_idem:' + String(user.tg_id) + ':' + requestId;
   const previous = await kvGet(env, idemKey, null);
   if (previous && previous.order_id) {
@@ -9904,12 +10205,24 @@ async function miniAppCreateCheckout(env, user, body) {
     if (previousOrder && String(previousOrder.tg_id) === String(user.tg_id)) return { data: await miniAppOrderPayload(env, previousOrder), status: 200 };
   }
   const openOrder = await findMiniAppPendingOrder(env, user.tg_id, type, panelId, planId, subSid);
-  if (openOrder) {
+  // تکرار همان درخواست (رفرش/شبکه) باید همان سفارش باز را برگرداند، نه خطای «سقف کد».
+  if (openOrder && String(openOrder.discount_code || '') === discountCode) {
     await kvPut(env, idemKey, { order_id: String(openOrder.id) }, 86400);
     const response = await miniAppOrderPayload(env, openOrder);
     response.reused = true;
     return { data: response, status: 200 };
   }
+  let discount = null;
+  if (discountCode) {
+    const allDiscounts = await getDiscounts(env);
+    const evaluated = evaluateDiscount(allDiscounts[discountCode], user.tg_id, amount, Date.now());
+    if (!evaluated.ok) return { data: { ok: false, error: evaluated.error, discount_code: discountCode }, status: 409 };
+    discount = evaluated;
+  }
+  const chargeAmount = discount ? discount.payable : amount;
+  // مشتری کد تخفیف را اضافه/حذف کرده است؛ سفارش باز با مبلغ قدیمی نگه داشته نمی‌شود.
+  // این کار بعد از اعتبارسنجی کد انجام می‌شود تا کد اشتباه، سفارش باز مشتری را از بین نبرد.
+  if (openOrder) await closePendingMiniAppOrder(env, openOrder, 'discount_changed');
   if (type === 'renew') {
     const otherPending = await findMiniAppPendingRenewal(env, user.tg_id, subSid);
     if (otherPending) return { data: { ok: false, error: 'subscription_has_pending_order', order_id: String(otherPending.id) }, status: 409 };
@@ -9923,7 +10236,7 @@ async function miniAppCreateCheckout(env, user, body) {
 
   if (method === 'wallet') {
     const fresh = await getUser(env, user.tg_id) || user;
-    if (Number(fresh.balance || 0) < amount) return { data: { ok: false, error: 'insufficient_balance', balance: Number(fresh.balance || 0), amount: amount }, status: 409 };
+    if (Number(fresh.balance || 0) < chargeAmount) return { data: { ok: false, error: 'insufficient_balance', balance: Number(fresh.balance || 0), amount: chargeAmount }, status: 409 };
     const lockKey = 'miniapp_wallet_lock:' + String(user.tg_id);
     const held = await kvGet(env, lockKey, null);
     if (held && Date.now() - Number(held.created_at || 0) < 30000) {
@@ -9936,36 +10249,51 @@ async function miniAppCreateCheckout(env, user, body) {
       id: uid(8), tg_id: user.tg_id, username: user.username, first_name: user.first_name,
       type: type, panel_id: panelId, plan_id: planId, sub_sid: subSid || null,
       upgrade_from_plan_id: sub && String(sub.plan_id) !== planId ? String(sub.plan_id || '') : '',
-      amount: amount, payment_method: 'wallet', payment_status: 'processing'
+      amount: chargeAmount, list_amount: amount,
+      discount_code: discount ? discount.code : '', discount_amount: discount ? discount.discount : 0,
+      discount_type: discount ? discount.type : '', discount_value: discount ? discount.value : 0,
+      discount_counted_at: discount ? Date.now() : 0,
+      payment_method: 'wallet', payment_status: 'processing'
     });
+    if (discount) {
+      const reserved = await reserveDiscountUse(env, discount.code, user.tg_id, order.id, discount.per_account_limit);
+      if (!reserved) {
+        order.discount_counted_at = 0; // رزرو نشد؛ آزادسازی نباید شمارندهٔ کس دیگری را کم کند
+        await closePendingMiniAppOrder(env, order, 'discount_limit_reached');
+        await kvDel(env, lockKey);
+        return { data: { ok: false, error: 'discount_limit_reached', discount_code: discount.code }, status: 409 };
+      }
+    }
     await kvPut(env, lockKey, { order_id: order.id, request_id: requestId, created_at: Date.now() }, 60);
     await kvPut(env, idemKey, { order_id: String(order.id) }, 86400);
     const debitUser = await getUser(env, user.tg_id) || fresh;
-    if (Number(debitUser.balance || 0) < amount) {
+    if (Number(debitUser.balance || 0) < chargeAmount) {
       order.status = 'cancelled'; order.payment_status = 'insufficient_balance'; await saveOrder(env, order); await kvDel(env, lockKey);
-      return { data: { ok: false, error: 'insufficient_balance', balance: Number(debitUser.balance || 0), amount: amount }, status: 409 };
+      await releaseDiscountUse(env, order);
+      return { data: { ok: false, error: 'insufficient_balance', balance: Number(debitUser.balance || 0), amount: chargeAmount }, status: 409 };
     }
-    debitUser.balance = Number(debitUser.balance || 0) - amount;
+    debitUser.balance = Number(debitUser.balance || 0) - chargeAmount;
     await saveUser(env, debitUser);
     order.wallet_debited_at = Date.now();
     order.payment_status = 'paid'; order.payment_received_at = Date.now();
     await saveOrder(env, order);
     try {
       await approveOrder(env, order, { suppressCustomer: true });
-      await notifyAdmins(env, '⚡ <b>خرید Mini App با کیف پول</b>\n👤 <code>' + user.tg_id + '</code>\n📦 ' + esc(plan.title) + '\n🖥 ' + esc(panel.name) + '\n💵 ' + fmtToman(amount));
+      await notifyAdmins(env, '⚡ <b>خرید Mini App با کیف پول</b>\n👤 <code>' + user.tg_id + '</code>\n📦 ' + esc(plan.title) + '\n🖥 ' + esc(panel.name) + '\n💵 ' + fmtToman(chargeAmount) + (discount ? '\n🎟 کد تخفیف: <code>' + esc(discount.code) + '</code> (−' + fmtToman(discount.discount) + ')' : ''));
       return { data: await miniAppOrderPayload(env, await getOrder(env, order.id) || order), status: 200 };
     } catch (e) {
       const latest = await getOrder(env, order.id) || order;
       if (latest.status === 'approved') return { data: await miniAppOrderPayload(env, latest), status: 200 };
       const refundUser = await getUser(env, user.tg_id);
       if (refundUser && !latest.wallet_refunded_at) {
-        refundUser.balance = Number(refundUser.balance || 0) + amount;
+        refundUser.balance = Number(refundUser.balance || 0) + chargeAmount;
         await saveUser(env, refundUser);
         latest.wallet_refunded_at = Date.now();
       }
       latest.status = 'cancelled'; latest.payment_status = 'refunded';
       latest.fulfillment_error = String((e && e.message) || e).slice(0, 300);
       await saveOrder(env, latest);
+      await releaseDiscountUse(env, latest);
       await kvDel(env, lockKey);
       await notifyAdmins(env, '⚠️ <b>خرید کیف‌پولی Mini App با خطا مواجه شد</b>\n🧾 سفارش: <code>' + order.id + '</code>\nخطا: <code>' + esc(latest.fulfillment_error) + '</code>');
       return { data: { ok: false, error: 'wallet_purchase_failed_refunded', order_id: order.id }, status: 502 };
@@ -9977,16 +10305,27 @@ async function miniAppCreateCheckout(env, user, body) {
   await kvPut(env, idemKey, { state: 'processing', created_at: Date.now() }, 120);
   const orderId = uid(8);
   let payAmount;
-  try { payAmount = await reserveShetabAmount(env, amount, orderId); }
+  try { payAmount = await reserveShetabAmount(env, chargeAmount, orderId); }
   catch (e) { await kvDel(env, idemKey); return { data: { ok: false, error: 'bank_amount_unavailable' }, status: 503 }; }
   const order = await newOrder(env, {
     id: orderId, tg_id: user.tg_id, username: user.username, first_name: user.first_name,
     type: type, panel_id: panelId, plan_id: planId, sub_sid: subSid || null,
     upgrade_from_plan_id: sub && String(sub.plan_id) !== planId ? String(sub.plan_id || '') : '',
-    amount: amount, pay_amount: payAmount,
+    amount: chargeAmount, list_amount: amount, pay_amount: payAmount,
+    discount_code: discount ? discount.code : '', discount_amount: discount ? discount.discount : 0,
+    discount_type: discount ? discount.type : '', discount_value: discount ? discount.value : 0,
+    discount_counted_at: discount ? Date.now() : 0,
     payment_method: method, payment_status: method === 'manual' ? 'awaiting_receipt' : 'waiting',
     payment_card_number: String(cfg.card_number).replace(/\s/g, ''), payment_card_holder: String(cfg.card_holder || '')
   });
+  if (discount) {
+    const reserved = await reserveDiscountUse(env, discount.code, user.tg_id, order.id, discount.per_account_limit);
+    if (!reserved) {
+      order.discount_counted_at = 0; // رزرو نشد؛ آزادسازی نباید شمارندهٔ کس دیگری را کم کند
+      await closePendingMiniAppOrder(env, order, 'discount_limit_reached');
+      return { data: { ok: false, error: 'discount_limit_reached', discount_code: discount.code }, status: 409 };
+    }
+  }
   await kvPut(env, idemKey, { order_id: String(order.id) }, 86400);
   return { data: await miniAppOrderPayload(env, order), status: 200 };
 }
@@ -10316,6 +10655,9 @@ async function miniAppAdminOrderView(env, order) {
     plan_id: String(order.plan_id || ''), plan_title: String(plan.title || order.plan_name || ''),
     panel_id: String(order.panel_id || ''), panel_name: String(panel.name || order.panel_name || ''),
     amount: Number(order.amount || 0), pay_amount: order.pay_amount == null ? null : Number(order.pay_amount),
+    list_amount: Number(order.list_amount == null ? order.amount || 0 : order.list_amount),
+    discount_amount: Number(order.discount_amount || 0), discount_code: String(order.discount_code || ''),
+    discount_type: String(order.discount_type || ''), discount_value: Number(order.discount_value || 0),
     payment_method: String(order.payment_method || ''), payment_status: String(order.payment_status || ''),
     payment_ref: String(order.payment_ref || ''), receipt_text: String(order.receipt_text || ''),
     receipt_submitted: !!order.receipt_submitted_at, has_receipt_photo: !!order.receipt_file_id,
@@ -10389,6 +10731,7 @@ async function miniAppAdminOrderAction(env, adminId, orderId, body) {
       order.status = 'rejected'; order.reject_reason = reason; order.rejected_by = String(adminId); order.rejected_at = Date.now();
       if (order.wallet_refunded_at) order.payment_status = 'refunded';
       await saveOrder(env, order);
+      await releaseDiscountUse(env, order);
       await recordCustomerActivity(env, order.tg_id, 'order_rejected', { order_id: order.id, kind: order.type, amount: order.amount, actor_id: adminId });
       try { await msg(env, order.tg_id, '❌ <b>سفارش شما رد شد.</b>\n\n🧾 شماره: <code>' + esc(order.id) + '</code>' +
         (reason ? '\n📝 دلیل: ' + esc(reason) : '') + (order.wallet_refunded_at ? '\n💰 مبلغ کیف پول برگشت داده شد.' : '') +
@@ -10435,6 +10778,13 @@ async function miniAppAdminOrderAction(env, adminId, orderId, body) {
             order.pay_amount = order.amount + (suffix >= 10 && suffix <= 999 ? suffix : 0);
           }
         } else return { data: { ok: false, error: 'order_type_not_editable' }, status: 409 };
+        // تغییر محصول/مبلغ، پایهٔ تخفیف را عوض می‌کند؛ استفادهٔ کد آزاد و اطلاعات تخفیف پاک می‌شود
+        // تا گزارش سفارش با مبلغ تازه در تناقض نباشد.
+        if (order.discount_code) {
+          await releaseDiscountUse(env, order);
+          order.discount_code = ''; order.discount_amount = 0; order.discount_type = ''; order.discount_value = 0;
+        }
+        order.list_amount = Number(order.amount || 0);
       }
       order.edited_at = Date.now(); order.edited_by = String(adminId);
       await saveOrder(env, order);
@@ -11276,6 +11626,14 @@ async function miniAppApi(request, env, url) {
       return miniAppJson({ ok: false, error: 'wallet_topup_failed' }, 500);
     }
   }
+  if (path === '/api/miniapp/discount/check') {
+    if (request.method !== 'POST') return miniAppJson({ ok: false, error: 'method_not_allowed' }, 405);
+    let body;
+    try { body = await request.json(); }
+    catch (e) { return miniAppJson({ ok: false, error: 'invalid_json' }, 400); }
+    const result = await miniAppCheckDiscount(env, user, body);
+    return miniAppJson(result.data, result.status);
+  }
   if (path === '/api/miniapp/checkout') {
     if (request.method !== 'POST') return miniAppJson({ ok: false, error: 'method_not_allowed' }, 405);
     let body;
@@ -11698,6 +12056,16 @@ async function miniAppApi(request, env, url) {
     if (path === '/api/miniapp/admin/plans' && request.method === 'GET') {
       const days = miniAppPeriod(url.searchParams.get('days'), 30);
       return miniAppJson(await miniAppAdminPlans(env, days), 200);
+    }
+    if (path === '/api/miniapp/admin/discounts') {
+      if (request.method === 'GET') return miniAppJson(await miniAppAdminDiscountList(env), 200);
+      if (request.method === 'POST') {
+        const body = await readBody();
+        if (!body) return miniAppJson({ ok: false, error: 'invalid_json' }, 400);
+        const result = await miniAppAdminDiscountAction(env, identity.user.id, body);
+        return miniAppJson(result.data, result.status);
+      }
+      return miniAppJson({ ok: false, error: 'method_not_allowed' }, 405);
     }
     if (path === '/api/miniapp/admin/withdrawals' && request.method === 'GET') {
       return miniAppJson(await miniAppAdminWithdrawals(env), 200);
