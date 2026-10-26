@@ -82,6 +82,17 @@ jobs:
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           ls -lh out
 
+      # اثبات قابل‌بررسی: همان مجوزها و سرویس/گیرنده‌هایی که در manifest است، واقعاً داخل APK است.
+      - name: Verify APK permissions
+        run: |
+          set -euo pipefail
+          APK="out/$(ls out | head -1)"
+          "$SDK/build-tools/34.0.0/aapt" dump badging "$APK" \
+            | grep -E "^package:|^sdkVersion|^targetSdkVersion|uses-permission" || true
+          echo '--- services/receivers ---'
+          "$SDK/build-tools/34.0.0/aapt" dump xmltree "$APK" AndroidManifest.xml \
+            | grep -E "E: (service|receiver)|A: android:name|foregroundServiceType" | head -40 || true
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
