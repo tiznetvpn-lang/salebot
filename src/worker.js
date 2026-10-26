@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.33-ubuntu26.35';
+const VERSION = '1.8.34-ubuntu26.36';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -2327,6 +2327,7 @@ const SHETAB_HEARTBEAT_DEDUPE_MS = 6 * 3600 * 1000;
 const SHETAB_TEST_TTL_MS = 2 * 86400 * 1000;   // پاک‌سازی سفارش‌های آزمایشی
 const SHETAB_CRON = '*/10 * * * *';            // هماهنگ با systemd/tiznetvpn-shetab.timer
 const KV_BACKUP_CRON = '0 */3 * * *';           // هر ۳ ساعت (هماهنگ با systemd/tiznetvpn-backup.timer)
+const RETENTION_CRON = '30 5 * * *';            // هماهنگ با systemd/tiznetvpn-reminders.timer (روزانه)
 const KV_BACKUP_MIN_INTERVAL_MS = 2.5 * 60 * 60 * 1000; // فاصلهٔ ایمنی کمتر از بازهٔ ۳ ساعت تا ارسال بعدی رد نشود
 const KV_BACKUP_LAST_KEY = 'system:kv_backup_last_at';
 const KV_BACKUP_LOCK_KEY = 'system:kv_backup_lock';
@@ -2478,12 +2479,12 @@ function addDaysUTC(d, n) {
 }
 
 // محاسبه روزهای باقی‌مانده و تاریخ انقضا مثل منطق پنل (package_days - (today - start_date))
-function planRemaining(huser) {
+function planRemaining(huser, at) {
   const pkg = huser && huser.package_days != null ? Number(huser.package_days) : null;
   const sd = huser ? parseDate10(huser.start_date) : null;
   if (pkg == null || !Number.isFinite(pkg)) return { days: null, expiry: null };
   if (!sd) return { days: pkg, expiry: null };
-  const now = new Date();
+  const now = at instanceof Date && !isNaN(at) ? at : new Date();
   const days = pkg - diffDaysUTC(sd, now);
   return { days: days, expiry: addDaysUTC(sd, pkg) };
 }
@@ -2672,6 +2673,11 @@ const DEFAULT_SETTINGS = {
   free_subscription_days: 1,
   free_subscription_panel_id: '',
   free_subscription_claim_policy: '',
+  // نگهداری اشتراک‌ها: حذف خودکار از پنل پس از انقضا
+  retention_enabled: true,
+  retention_free_delete: true,
+  retention_paid_delete: true,
+  retention_paid_grace_days: 3,
   shetab_secret: '',        // Secret پرداخت خودکار؛ اگر در env نبود، از همین‌جا ساخته می‌شود
   shetab_secret_created_at: 0,
   join_lock_enabled: false, // قفل کانال: کاربر باید عضو کانال‌های فهرست باشد
@@ -2737,8 +2743,11 @@ function miniAppAgentView(agent, user) {
     balance: Math.max(0, Number(record.balance || 0)),
     quota_remaining: Math.max(0, Math.floor(Number(record.quota_remaining || 0))),
     total_created: Math.max(0, Math.floor(Number(record.total_created || 0))),
+    total_revenue: Math.max(0, Number(record.total_revenue || 0)),
+    last_created_at: Number(record.last_created_at || 0),
     created_at: Number(record.created_at || 0),
-    updated_at: Number(record.updated_at || 0)
+    updated_at: Number(record.updated_at || 0),
+    status_label: isRecordEnabled(record) ? 'فعال' : 'غیرفعال'
   };
 }
 async function createAgentRecord(env, tgid, user, actorId) {
@@ -4260,7 +4269,8 @@ async function chatUserSubs(env, u) {
   const list = [];
   for (const sid of (u.subs || [])) {
     const sub = await getSub(env, sid);
-    if (sub) list.push(sub);
+    // اشتراک پاک‌شده از پنل در فهرست مشتری نمایش داده نمی‌شود؛ سابقه‌اش می‌ماند.
+    if (sub && !sub.purged_at) list.push(sub);
   }
   return list;
 }
@@ -4992,6 +5002,9 @@ async function approveOrder(env, o, options) {
     sub.plan_id = o.plan_id;
     sub.expire_noticed = false;
     sub.reminded = '';
+    // مبنای نمایش انقضا در پنل مدیر: تمدید از امروز شروع می‌شود.
+    sub.last_renewed_at = Date.now();
+    sub.days_at_renewal = Number(plan.days) || 0;
     await saveSub(env, sub);
     const u = await getUser(env, o.tg_id);
     u.total_spent = (u.total_spent || 0) + o.amount;
@@ -5093,6 +5106,8 @@ async function walletRenew(env, u, sid, plid, messageId) {
     sub.plan_id = plid;
     sub.expire_noticed = false;
     sub.reminded = '';
+    sub.last_renewed_at = Date.now();
+    sub.days_at_renewal = Number(plan.days) || 0;
     await saveSub(env, sub);
     u.total_spent = (u.total_spent || 0) + plan.price;
     await saveUser(env, u);
@@ -5127,8 +5142,8 @@ async function showMySubs(env, chatId, messageId, u) {
 
 async function showSubDetail(env, chatId, messageId, u, sid) {
   const sub = await getSub(env, sid);
-  if (!sub || sub.tg_id !== u.tg_id) {
-    await msg(env, chatId, '❌ اشتراک پیدا نشد.', KB([[BTN('◀️ برگشت', 'mysubs')]]));
+  if (!sub || sub.tg_id !== u.tg_id || sub.purged_at) {
+    await msg(env, chatId, '❌ این اشتراک در دسترس نیست. اگر مهلت تمدید گذشته باشد، اشتراک از پنل حذف شده است.', KB([[BTN('🛍 خرید اشتراک', 'buy')], [BTN('◀️ اشتراک‌های من', 'mysubs')]]));
     return;
   }
   const panels = await getPanels(env);
@@ -5317,7 +5332,7 @@ async function adminStats(env, chatId, messageId) {
 }
 
 async function adminAgentsView(env, chatId, messageId) {
-  const list = await miniAppAdminAgents(env, '');
+  const list = await miniAppAdminAgents(env, '', { stats: false });
   const items = (list.items || []).slice(0, 20);
   const lines = items.length
     ? items.map((a, i) => faNum(i + 1) + '. ' + esc(a.first_name || a.username || a.tg_id) + ' — 💰 ' + fmtToman(a.balance) + ' · 🧩 ' + faNum(a.quota_remaining) + ' سهمیه · ✅ ' + faNum(a.total_created) + ' ساخته')
@@ -5620,6 +5635,35 @@ async function adminWithdrawDetail(env, chatId, messageId, wid) {
   else await msg(env, chatId, t, KB(rows));
 }
 
+async function adminRetention(env, chatId, messageId) {
+  const cfg = await getCfg(env);
+  const conf = retentionConfig(cfg);
+  const last = await kvGet(env, RETENTION_LAST_KEY, null);
+  const fmtAt = (ms) => ms ? new Date(Number(ms)).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : '—';
+  const t = '🧹 <b>نگهداری و پاک‌سازی پنل</b>\n\n' +
+    'وضعیت کلی: ' + (conf.enabled ? 'روشن ✅' : 'خاموش ⛔') + '\n' +
+    'اشتراک رایگان در پایان روزِ انقضا: ' + (conf.free_delete ? 'حذف می‌شود ✅' : 'حذف نمی‌شود ⛔') + '\n' +
+    'اشتراک پولی تمدیدنشده: ' + (conf.paid_delete ? 'حذف می‌شود ✅' : 'حذف نمی‌شود ⛔') + '\n' +
+    'مهلت تمدید: <b>' + faNum(conf.grace_days) + ' روز</b> پس از پایان روز انقضا\n\n' +
+    '⏱ زمان اجرا: هر روز ۰۵:۳۰ UTC (همراه یادآوری‌ها)\n' +
+    '🛡 سقف هر اجرا: ' + faNum(RETENTION_DELETE_LIMIT) + ' حذف\n' +
+    (last ? '\n📊 آخرین اجرا: ' + fmtAt(last.at) + '\nحذف‌شده: ' + faNum(last.deleted || 0) +
+      ' (رایگان ' + faNum(last.deleted_free || 0) + ' · پولی ' + faNum(last.deleted_paid || 0) + ')' +
+      '\nبررسی‌شده: ' + faNum(last.checked || 0) + ' · در مهلت: ' + faNum(last.in_grace || 0) + ' · ناموفق: ' + faNum(last.failed || 0) : '\n📊 هنوز اجرا نشده است.') +
+    '\n\n<i>حذف فقط از پنل انجام می‌شود؛ رکورد اشتراک برای سابقه می‌ماند و مشتری پولی یک‌بار پیام اطلاع‌رسانی می‌گیرد.</i>';
+  const rows = [
+    [BTN(conf.enabled ? '⛔ خاموش‌کردن پاک‌سازی خودکار' : '✅ روشن‌کردن پاک‌سازی خودکار', 's_retn_all')],
+    [BTN(conf.free_delete ? '⛔ حذف رایگان را خاموش کن' : '✅ حذف رایگان را روشن کن', 's_retn_free')],
+    [BTN(conf.paid_delete ? '⛔ حذف پولی را خاموش کن' : '✅ حذف پولی را روشن کن', 's_retn_paid')],
+    [BTN('۰ روز', 's_retn_g:0'), BTN('۳ روز', 's_retn_g:3'), BTN('۵ روز', 's_retn_g:5'), BTN('۷ روز', 's_retn_g:7')],
+    [BTN('👁 پیش‌نمایش بدون حذف', 's_retn_preview')],
+    [BTN('▶️ اجرای همین حالا', 's_retn_run')],
+    [BTN('◀️ تنظیمات', 'a_set')]
+  ];
+  if (messageId) await editMsg(env, chatId, messageId, t, KB(rows));
+  else await msg(env, chatId, t, KB(rows));
+}
+
 async function adminSettings(env, chatId, messageId) {
   const cfg = await getCfg(env);
   const manualOn = cfg.card_manual_enabled !== false;
@@ -5650,6 +5694,7 @@ async function adminSettings(env, chatId, messageId) {
     [BTN('🔒 قفل کانال و شماره', 's_gate')],
     [BTN('🎨 دکمه‌ها و آیکن‌ها', 's_ui')],
     [BTN('🎛 دکمه‌های کیبورد چت', 's_kb')],
+    [BTN('🧹 نگهداری پنل', 's_retn')],
     [BTN('💾 بکاپ KV همین حالا', 'a_kvb'), BTN('📜 رویدادهای بانکی', 'a_shlog')],
     [BTN('◀️ پنل مدیریت', 'admin')]
   ];
@@ -6705,6 +6750,45 @@ async function onCallback(env, q, origin) {
     await msg(env, chatId, '✏️ متن پیام قفل کانال را بفرستید (حداکثر ۸۰۰ کاراکتر).\nبرای بازگشت به متن پیش‌فرض، فقط <code>-</code> بفرستید.', KB([[BTN('❌ انصراف', 's_gate')]]));
     return;
   }
+  if (data === 's_retn') { if (!await needAdmin()) return; await ansCb(env, q.id); await adminRetention(env, chatId, messageId); return; }
+  if (data === 's_retn_all' || data === 's_retn_free' || data === 's_retn_paid') {
+    if (!await needAdmin()) return;
+    const cfg = await getCfg(env);
+    if (data === 's_retn_all') cfg.retention_enabled = cfg.retention_enabled === false;
+    else if (data === 's_retn_free') cfg.retention_free_delete = cfg.retention_free_delete === false;
+    else cfg.retention_paid_delete = cfg.retention_paid_delete === false;
+    await saveCfg(env, cfg);
+    const conf = retentionConfig(cfg);
+    await ansCb(env, q.id, data === 's_retn_all'
+      ? (conf.enabled ? 'پاک‌سازی روشن شد ✅' : 'پاک‌سازی خاموش شد ⛔')
+      : data === 's_retn_free'
+        ? (conf.free_delete ? 'حذف رایگان روشن شد ✅' : 'حذف رایگان خاموش شد ⛔')
+        : (conf.paid_delete ? 'حذف پولی روشن شد ✅' : 'حذف پولی خاموش شد ⛔'));
+    await adminRetention(env, chatId, messageId);
+    return;
+  }
+  if (data.startsWith('s_retn_g:')) {
+    if (!await needAdmin()) return;
+    const days = Math.max(0, Math.min(60, Math.floor(Number(data.slice(9)) || 0)));
+    const cfg = await getCfg(env);
+    cfg.retention_paid_grace_days = days;
+    await saveCfg(env, cfg);
+    await ansCb(env, q.id, 'مهلت تمدید ' + faNum(days) + ' روز شد.');
+    await adminRetention(env, chatId, messageId);
+    return;
+  }
+  if (data === 's_retn_preview' || data === 's_retn_run') {
+    if (!await needAdmin()) return;
+    const summary = await retentionSweep(env, { dry_run: data === 's_retn_preview' });
+    await ansCb(env, q.id, data === 's_retn_preview' ? 'پیش‌نمایش انجام شد.' : 'پاک‌سازی اجرا شد.');
+    await msg(env, chatId, (data === 's_retn_preview' ? '👁 <b>پیش‌نمایش پاک‌سازی</b>' : '🧹 <b>نتیجهٔ پاک‌سازی</b>') + '\n\n' +
+      'واجد شرایط: <b>' + faNum(summary.eligible) + '</b>\n' +
+      'حذف‌شده: <b>' + faNum(summary.deleted) + '</b> (رایگان ' + faNum(summary.deleted_free) + ' · پولی ' + faNum(summary.deleted_paid) + ')\n' +
+      'در مهلت: ' + faNum(summary.in_grace) + ' · فعال: ' + faNum(summary.active) + '\n' +
+      'نامشخص (بدون تاریخ معتبر): ' + faNum(summary.unknown) + ' · ناموفق: ' + faNum(summary.failed),
+      KB([[BTN('◀️ نگهداری پنل', 's_retn')]]));
+    return;
+  }
   if (data === 's_pay_manual') {
     if (!await needAdmin()) return;
     const cfg = await getCfg(env);
@@ -7594,6 +7678,166 @@ async function handleUpdate(env, upd, origin) {
 }
 
 /* ============================ یادآوری انقضا (کرون) ============================ */
+
+/* ======================================================================
+   نگهداری اشتراک‌ها — پاک‌سازی خودکار پنل (۱.۸.۳۴)
+   • اشتراک رایگان/تست: به‌محض پایان روزِ انقضا از پنل حذف می‌شود.
+   • اشتراک پولی: تا «۳ روز پس از پایان روزِ انقضا» فرصت تمدید دارد و بعد
+     از آن از پنل حذف می‌شود (تعداد روزها قابل تنظیم است).
+   حذف فقط روی پنل انجام می‌شود؛ رکورد اشتراک با نشانهٔ purged_at می‌ماند
+   تا سابقهٔ مالی/اداری از دست نرود و مشتری هم آن را در فهرست نبیند.
+   ====================================================================== */
+const RETENTION_LAST_KEY = 'system:retention_last';
+const RETENTION_LOG_KEY = 'system:retention_log';
+const RETENTION_DELETE_LIMIT = 150;   // سقف حذف در هر اجرا (ضد سانحه)
+const RETENTION_LOG_ROWS = 60;
+const RETENTION_CURSOR_KEY = 'system:retention_cursor';
+const RETENTION_SCAN_LIMIT = 400;    // سقف بررسی در هر اجرا (چرخشی)
+const RETENTION_BUDGET_MS = 45000;   // بودجهٔ زمانی هر اجرا پیش از بستن سرویس systemd
+
+function retentionConfig(cfg) {
+  const c = cfg || {};
+  const rawGrace = Number(c.retention_paid_grace_days);
+  const grace = Number.isFinite(rawGrace) ? Math.max(0, Math.min(60, Math.floor(rawGrace))) : 3;
+  return {
+    enabled: c.retention_enabled !== false,
+    free_delete: c.retention_free_delete !== false,
+    paid_delete: c.retention_paid_delete !== false,
+    grace_days: grace
+  };
+}
+
+// پایان همان روزِ انقضا به وقت UTC: مبنای «بعد از ۳ روز پایان روز».
+function endOfUtcDayMs(value) {
+  const d = value instanceof Date ? value : parseDate10(value);
+  if (!d || isNaN(d)) return null;
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 23, 59, 59, 999);
+}
+
+async function retentionSweep(env, options) {
+  const opts = options && typeof options === 'object' ? options : {};
+  const startedAt = Date.now();
+  const now = Number.isFinite(Number(opts.now)) && Number(opts.now) > 0 ? Number(opts.now) : startedAt;
+  const dryRun = opts.dry_run === true || opts.dryRun === true;
+  const conf = retentionConfig(await getCfg(env));
+  const limit = Math.max(1, Math.min(RETENTION_DELETE_LIMIT, Number(opts.limit) || RETENTION_DELETE_LIMIT));
+  const budgetMs = Math.max(5000, Math.min(60000, Number(opts.budget_ms) || RETENTION_BUDGET_MS));
+  const summary = {
+    ok: true, at: now, dry_run: dryRun, enabled: conf.enabled,
+    free_delete: conf.free_delete, paid_delete: conf.paid_delete, grace_days: conf.grace_days,
+    scanned: 0, total_subs: 0, checked: 0, active: 0, in_grace: 0, eligible: 0,
+    deleted: 0, deleted_free: 0, deleted_paid: 0, missing: 0,
+    unknown: 0, skipped: 0, agent_subs: 0, failed: 0, truncated: false, next_cursor: 0
+  };
+  if (!conf.enabled && !opts.force) { summary.disabled = true; return summary; }
+  const panels = await getPanels(env);
+  const keys = await kvList(env, 's:');
+  summary.total_subs = keys.length;
+  if (!keys.length) return summary;
+  // چرخش بین اجراها: هر شب بخشی از اشتراک‌ها بررسی می‌شود تا اجرا از بودجهٔ
+  // زمانی سرویس systemd بیرون نزند؛ اجرای بعدی از همان‌جا ادامه می‌دهد.
+  const savedCursor = Number(await kvGet(env, RETENTION_CURSOR_KEY, 0)) || 0;
+  const startIndex = savedCursor >= 0 && savedCursor < keys.length ? savedCursor : 0;
+  const batchSize = Math.min(RETENTION_SCAN_LIMIT, keys.length);
+  const batch = [];
+  for (let i = 0; i < batchSize; i++) batch.push(keys[(startIndex + i) % keys.length]);
+  summary.scanned = batch.length;
+  const logRows = [];
+  let processed = 0;
+  for (const key of batch) {
+    if (Date.now() - startedAt > budgetMs) { summary.truncated = true; break; }
+    if (summary.deleted >= limit) { summary.truncated = true; break; }
+    const sub = await kvGet(env, key, null);
+    processed++;
+    if (!sub || !sub.uuid) continue;
+    if (sub.purged_at) continue;
+    // اشتراک نمایندگی دارایی خود نماینده است (با موجودی/سهمیه مدیریت می‌شود)؛
+    // پاک‌سازی خودکار فقط روی اشتراک‌های فروخته‌شده به مشتری اجرا می‌شود.
+    if (sub.kind === 'agent_subscription' || (sub.agent_id && !sub.tg_id)) { summary.agent_subs++; continue; }
+    summary.checked++;
+    const panel = panels[String(sub.panel_id || '')];
+    if (!panel || !isRecordEnabled(panel) || !panel.api_base || !panel.api_key) { summary.skipped++; continue; }
+    let live = null;
+    try { live = await hGetLive(panel, sub.uuid); }
+    catch (e) {
+      if (String((e && e.message) || '').indexOf('404') >= 0) {
+        summary.missing++;
+        if (!dryRun) {
+          sub.purged_at = now; sub.purged_by = 'system'; sub.purge_reason = 'missing_in_panel';
+          await saveSub(env, sub);
+        }
+        continue;
+      }
+      summary.failed++;
+      continue;
+    }
+    const rem = planRemaining(live || {}, new Date(now));
+    if (rem.days == null || !rem.expiry) { summary.unknown++; continue; }
+    if (rem.days > 0) { summary.active++; continue; }
+    const free = isFreeSubscription(sub);
+    const dayEnd = endOfUtcDayMs(rem.expiry);
+    if (dayEnd == null) { summary.unknown++; continue; }
+    const deleteAt = dayEnd + (free ? 0 : conf.grace_days * 86400000);
+    if (now < deleteAt) { summary.in_grace++; continue; }
+    if (free ? !conf.free_delete : !conf.paid_delete) { summary.skipped++; continue; }
+    summary.eligible++;
+    if (dryRun) continue;
+    try {
+      await hDeleteUser(panel, sub.uuid);
+    } catch (e) {
+      summary.failed++;
+      continue;
+    }
+    sub.purged_at = now;
+    sub.purged_by = 'system';
+    sub.purge_reason = free ? 'free_expired' : 'unrenewed_after_grace';
+    sub.purge_grace_days = free ? 0 : conf.grace_days;
+    await saveSub(env, sub);
+    summary.deleted++;
+    if (free) summary.deleted_free++; else summary.deleted_paid++;
+    logRows.push({
+      at: now, sid: String(sub.sid || ''), uuid: String(sub.uuid || ''), tg_id: String(sub.tg_id || ''),
+      agent_id: String(sub.agent_id || ''), panel: String(panel.name || ''), free: free,
+      reason: sub.purge_reason, grace_days: sub.purge_grace_days
+    });
+    // اطلاع به مشتری فقط برای اشتراک پولی؛ اشتراک رایگان ماهیت آزمایشی دارد.
+    if (!free && /^\d{1,20}$/.test(String(sub.tg_id || ''))) {
+      try {
+        await msg(env, sub.tg_id, '⛔ <b>اشتراک شما حذف شد</b>\n\nاشتراک سرور <b>' + esc(panel.name || '') + '</b> پس از پایان مهلت ' + faNum(conf.grace_days) + ' روزهٔ تمدید، از پنل حذف شد.\nبرای ادامه، از «📦 اشتراک‌های من» یک پلن تازه بگیرید.', KB([[BTN('📦 اشتراک‌های من', 'mysubs')]]));
+      } catch (e) {}
+    }
+  }
+  summary.scanned = processed;
+  summary.next_cursor = batch.length ? (startIndex + processed) % keys.length : 0;
+  if (dryRun) return summary;
+  await kvPut(env, RETENTION_CURSOR_KEY, summary.next_cursor);
+  if (logRows.length) {
+    const current = await kvGet(env, RETENTION_LOG_KEY, []);
+    const rows = Array.isArray(current) ? current : [];
+    await kvPut(env, RETENTION_LOG_KEY, logRows.reverse().concat(rows).slice(0, RETENTION_LOG_ROWS));
+  }
+  await kvPut(env, RETENTION_LAST_KEY, summary);
+  if (summary.deleted > 0) {
+    try {
+      await notifyAdmins(env, '🧹 <b>پاک‌سازی خودکار پنل</b>\n\n' +
+        'حذف‌شده: <b>' + faNum(summary.deleted) + '</b> (رایگان: ' + faNum(summary.deleted_free) +
+        ' · پولی: ' + faNum(summary.deleted_paid) + ')\nبررسی‌شده: ' + faNum(summary.checked) + ' اشتراک' +
+        (summary.truncated ? '\nادامهٔ بررسی در اجرای بعدی انجام می‌شود.' : ''));
+    } catch (e) {}
+  }
+  return summary;
+}
+
+async function miniAppAdminRetentionView(env) {
+  const cfg = await getCfg(env);
+  const [last, log] = await Promise.all([kvGet(env, RETENTION_LAST_KEY, null), kvGet(env, RETENTION_LOG_KEY, [])]);
+  return {
+    ok: true, config: retentionConfig(cfg), cron: RETENTION_CRON,
+    last: last && typeof last === 'object' ? last : null,
+    log: Array.isArray(log) ? log.slice(0, RETENTION_LOG_ROWS) : [],
+    delete_limit: RETENTION_DELETE_LIMIT
+  };
+}
 
 async function cronReminders(env) {
   const keys = await kvList(env, 's:');
@@ -8762,8 +9006,27 @@ async function miniAppAdminSummary(env, days) {
     });
   }
   recentOrders.sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0));
+  // کارت‌های «نگهداری» و «نمایندگان» داشبورد؛ محاسبهٔ سبک و بدون فراخوانی زندهٔ پنل.
+  const retentionConf = retentionConfig(await getCfg(env));
+  const retentionLast = await kvGet(env, RETENTION_LAST_KEY, null);
+  const agentKeys = await env.DB.list({ prefix: 'agent:', limit: 300 });
+  const agentRecords = (await Promise.all((agentKeys.keys || []).map((k) => kvGet(env, k.name, null)))).filter(Boolean);
+  const agentsSummary = {
+    count: agentRecords.length,
+    active: agentRecords.filter((a) => isRecordEnabled(a)).length,
+    disabled: agentRecords.filter((a) => !isRecordEnabled(a)).length,
+    balance: agentRecords.reduce((acc, a) => acc + Number(a.balance || 0), 0),
+    quota: agentRecords.reduce((acc, a) => acc + Math.floor(Number(a.quota_remaining || 0)), 0),
+    created: agentRecords.reduce((acc, a) => acc + Math.floor(Number(a.total_created || 0)), 0),
+    revenue: agentRecords.reduce((acc, a) => acc + Number(a.total_revenue || 0), 0),
+    low_quota: agentRecords.filter((a) => Math.floor(Number(a.quota_remaining || 0)) <= 5 && isRecordEnabled(a)).length,
+    low_balance: agentRecords.filter((a) => Number(a.balance || 0) <= 0 && isRecordEnabled(a)).length,
+    partial: !agentKeys.list_complete
+  };
   return {
     ok: true, period_days: days,
+    retention: { config: retentionConf, last: retentionLast && typeof retentionLast === 'object' ? retentionLast : null },
+    agents_summary: agentsSummary,
     totals: {
       revenue: sum(current), sales: current.length, new_sales: byType.buy, renewals: byType.renew,
       pending_orders: (pendingIds || []).length,
@@ -8787,28 +9050,110 @@ async function miniAppAdminSummary(env, days) {
   };
 }
 
-async function miniAppAdminCustomers(env, query, limit) {
+// وضعیت خلاصهٔ اشتراک‌های یک کاربر برای فهرست مدیریتی (بدون فراخوانی زندهٔ پنل).
+function customerSubscriptionSummary(user, plans, now, lookup) {
+  const ids = Array.isArray(user && user.subs) ? user.subs : [];
+  const get = typeof lookup === 'function' ? lookup : () => null;
+  let active = 0, expiring = 0, expired = 0, next = null;
+  for (const sid of ids) {
+    const sub = get(String(sid));
+    if (!sub || sub.purged_at) continue;
+    const plan = plans[String(sub.plan_id)] || {};
+    const days = Number(sub.days_at_renewal || plan.days || sub.free_days || 0);
+    const started = Number(sub.last_renewed_at || sub.created_at || 0);
+    if (!days || !started) continue;
+    const expiry = started + days * 86400000;
+    if (expiry > now) {
+      active++;
+      if (expiry - now <= 7 * 86400000) expiring++;
+      if (next == null || expiry < next) next = expiry;
+    } else expired++;
+  }
+  return { active: active, expiring_soon: expiring, expired: expired, next_expiry: next, total: active + expired };
+}
+
+async function miniAppAdminCustomers(env, query, limit, options) {
+  const opts = options && typeof options === 'object' ? options : {};
   const q = String(query || '').trim().toLowerCase().slice(0, 80);
-  const max = Math.max(1, Math.min(100, Number(limit) || 50));
+  const max = Math.max(1, Math.min(60, Number(limit) || 40));
+  const page = Math.max(1, Math.min(50, Number(opts.page) || 1));
+  const windowSize = Math.max(60, Math.min(500, Number(opts.window) || 200));
+  const now = Date.now();
   let candidates = [];
   if (/^\d{1,20}$/.test(q)) {
     const user = await getUser(env, q);
     if (user) candidates = [user];
   } else {
-    const index = await listIndexedValues(env, 'user_idx:', 200);
+    const index = await listIndexedValues(env, 'user_idx:', windowSize);
     const ids = index.items.map((r) => r && r.tg_id).filter(Boolean);
     candidates = await Promise.all(ids.map((id) => getUser(env, id)));
     candidates = candidates.filter(Boolean);
     if (q) candidates = candidates.filter((u) => [u.tg_id, u.username, u.first_name].join(' ').toLowerCase().includes(q));
   }
-  const count = await countPrefixBounded(env, 'u:', 10);
-  const items = candidates.sort((a,b) => Number(b.joined_at || 0) - Number(a.joined_at || 0)).slice(0, max).map((u) => ({
-    tg_id: String(u.tg_id), first_name: String(u.first_name || ''), username: String(u.username || ''),
-    balance: Number(u.balance || 0), total_spent: Number(u.total_spent || 0),
-    invited: Number(u.invited || 0), subscriptions: Array.isArray(u.subs) ? u.subs.length : 0,
-    banned: !!u.banned, joined_at: Number(u.joined_at || 0), last_activity_at: Number(u.last_activity_at || u.joined_at || 0)
+  const plans = await getPlans(env);
+  // اشتراک‌ها یک‌بار خوانده و در همین درخواست به اشتراک گذاشته می‌شوند.
+  const subCache = new Map();
+  const subIds = new Set();
+  for (const user of candidates) for (const sid of (Array.isArray(user.subs) ? user.subs : [])) subIds.add(String(sid));
+  await Promise.all(Array.from(subIds).map(async (sid) => {
+    const sub = await getSub(env, sid);
+    if (sub) subCache.set(sid, sub);
   }));
-  return { ok: true, items: items, registered_users: count.count, count_partial: count.partial, search_window: 200, note: 'فهرست متنی از کاربران ایندکس‌شده است؛ جست‌وجوی آیدی عددی مستقیماً در KV انجام می‌شود.' };
+  const rows = [];
+  for (const user of candidates) {
+    const summary = customerSubscriptionSummary(user, plans, now, (sid) => subCache.get(sid));
+    const agent = await getAgent(env, user.tg_id);
+    let status = 'none';
+    if (user.banned) status = 'banned';
+    else if (summary.active > 0) status = 'active';
+    else if (summary.expired > 0) status = 'expired';
+    rows.push({
+      tg_id: String(user.tg_id), first_name: String(user.first_name || ''), username: String(user.username || ''),
+      balance: Number(user.balance || 0), total_spent: Number(user.total_spent || 0),
+      invited: Number(user.invited || 0), subscriptions: summary.total,
+      active_subscriptions: summary.active, expiring_soon: summary.expiring_soon,
+      expired_subscriptions: summary.expired, next_expiry: summary.next_expiry,
+      status: status, is_agent: !!agent, agent_enabled: !!(agent && isRecordEnabled(agent)),
+      banned: !!user.banned, joined_at: Number(user.joined_at || 0),
+      last_activity_at: Number(user.last_activity_at || user.joined_at || 0)
+    });
+  }
+  const all = rows.slice();
+  let filtered = rows;
+  const status = String(opts.status || 'all');
+  if (status === 'active') filtered = rows.filter((u) => u.status === 'active');
+  else if (status === 'expired') filtered = rows.filter((u) => u.status === 'expired');
+  else if (status === 'banned') filtered = rows.filter((u) => u.status === 'banned');
+  else if (status === 'agent') filtered = rows.filter((u) => u.is_agent);
+  else if (status === 'expiring') filtered = rows.filter((u) => u.expiring_soon > 0);
+  else if (status === 'no_sub') filtered = rows.filter((u) => u.status === 'none');
+  const sort = String(opts.sort || 'recent');
+  if (sort === 'joined') filtered.sort((a, b) => b.joined_at - a.joined_at);
+  else if (sort === 'spend') filtered.sort((a, b) => b.total_spent - a.total_spent);
+  else if (sort === 'balance') filtered.sort((a, b) => b.balance - a.balance);
+  else if (sort === 'name') filtered.sort((a, b) => String(a.first_name || a.username).localeCompare(String(b.first_name || b.username), 'fa'));
+  else filtered.sort((a, b) => b.last_activity_at - a.last_activity_at);
+  const start = (page - 1) * max;
+  const items = filtered.slice(start, start + max);
+  const count = await countPrefixBounded(env, 'u:', 10);
+  return {
+    ok: true, items: items, registered_users: count.count, count_partial: count.partial,
+    page: page, page_size: max, matched: filtered.length, has_more: start + items.length < filtered.length,
+    search_window: windowSize,
+    filters: { status: status, sort: sort, query: q },
+    stats: {
+      scanned: all.length,
+      active: all.filter((u) => u.status === 'active').length,
+      expired: all.filter((u) => u.status === 'expired').length,
+      banned: all.filter((u) => u.status === 'banned').length,
+      agents: all.filter((u) => u.is_agent).length,
+      expiring: all.filter((u) => u.expiring_soon > 0).length,
+      no_sub: all.filter((u) => u.status === 'none').length,
+      balance_total: all.reduce((acc, u) => acc + u.balance, 0),
+      spend_total: all.reduce((acc, u) => acc + u.total_spent, 0)
+    },
+    note: 'فهرست از کاربران ایندکس‌شده ساخته می‌شود؛ برای جست‌وجوی آیدی عددی، مستقیم از KV خوانده می‌شود.'
+  };
 }
 
 async function miniAppAdminCustomerDetail(env, tgid) {
@@ -8910,6 +9255,20 @@ async function miniAppAdminCustomerDetail(env, tgid) {
   for (const sid of subIds) {
     const sub = await getSub(env, sid);
     if (!sub || String(sub.tg_id) !== id) continue;
+    if (sub.purged_at) {
+      const plan0 = plans[String(sub.plan_id)] || {};
+      const panel0 = panels[String(sub.panel_id)] || {};
+      subscriptions.push({
+        sid: String(sub.sid), plan_name: String(plan0.title || sub.plan_name || 'پلن حذف‌شده'),
+        panel_name: String(panel0.name || sub.panel_name || 'سرور حذف‌شده'),
+        status: 'purged', status_label: sub.purge_reason === 'free_expired' ? 'رایگان · حذف‌شده از پنل' : 'حذف‌شده از پنل',
+        usage_used: 0, usage_total: 0, usage_unlimited: false,
+        days_remaining: 0, expires_at: null, created_at: Number(sub.created_at || 0),
+        order_id: String(sub.order_id || ''), purged_at: Number(sub.purged_at || 0),
+        purge_reason: String(sub.purge_reason || '')
+      });
+      continue;
+    }
     const panel = panels[String(sub.panel_id)] || {};
     const plan = plans[String(sub.plan_id)] || {};
     let live = null;
@@ -9058,6 +9417,8 @@ async function miniAppCustomerData(env, user) {
   const subscriptions = await Promise.all(subIds.map(async (sid) => {
     const sub = await getSub(env, sid);
     if (!sub || String(sub.tg_id) !== tgId) return null;
+    // اشتراک حذف‌شده از پنل (پاک‌سازی خودکار) در فهرست مشتری نمایش داده نمی‌شود.
+    if (sub.purged_at) return null;
     const panel = panels[String(sub.panel_id || '')] || null;
     const plan = plans[String(sub.plan_id || '')] || null;
     let live = null;
@@ -9632,7 +9993,11 @@ function miniAppAdminSettingsView(cfg, env, secretReady) {
       free_subscription_gb: Number.isFinite(Number(cfg.free_subscription_gb)) ? Number(cfg.free_subscription_gb) : 1,
       free_subscription_days: Number.isInteger(Number(cfg.free_subscription_days)) ? Number(cfg.free_subscription_days) : 1,
       free_subscription_panel_id: String(cfg.free_subscription_panel_id || ''),
-      free_subscription_claim_policy: freeSubscriptionPolicy(cfg)
+      free_subscription_claim_policy: freeSubscriptionPolicy(cfg),
+      retention_enabled: cfg.retention_enabled !== false,
+      retention_free_delete: cfg.retention_free_delete !== false,
+      retention_paid_delete: cfg.retention_paid_delete !== false,
+      retention_paid_grace_days: retentionConfig(cfg).grace_days
     },
     protected: ['BOT_TOKEN', 'WEBHOOK_SECRET', 'SHETAB_API_SECRET', 'ADMIN_IDS', 'Cloudflare bindings']
   };
@@ -9721,6 +10086,16 @@ async function miniAppAdminUpdateSettings(env, body) {
     if (!panel || !isRecordEnabled(panel) || !panel.api_base || !panel.api_key || !panel.user_base) {
       return { data: { ok: false, error: 'free_subscription_panel_unavailable' }, status: 409 };
     }
+  }
+  for (const key of ['retention_enabled', 'retention_free_delete', 'retention_paid_delete']) {
+    if (!has(key)) continue;
+    if (typeof data[key] !== 'boolean') return { data: { ok: false, error: 'invalid_' + key }, status: 400 };
+    cfg[key] = data[key];
+  }
+  if (has('retention_paid_grace_days')) {
+    const v = Number(normDigits(data.retention_paid_grace_days));
+    if (!Number.isInteger(v) || v < 0 || v > 60) return { data: { ok: false, error: 'invalid_retention_grace_days' }, status: 400 };
+    cfg.retention_paid_grace_days = v;
   }
   if (has('card_number') && !cfg.card_number) cfg.card_auto_enabled = false;
   await saveCfg(env, cfg);
@@ -10034,8 +10409,34 @@ async function miniAppAdminCustomerAction(env, adminId, tgid, body) {
     });
     await recordCustomerActivity(env, userId, action === 'credit' ? 'wallet_credit_admin' : 'wallet_debit_admin', { amount: amount, actor_id: adminId });
     try { await msg(env, userId, (action === 'credit' ? '✅ ' : 'ℹ️ ') + 'کیف پول شما توسط مدیریت ' + (action === 'credit' ? 'به مبلغ ' : 'به میزان ') + fmtToman(amount) + (action === 'credit' ? ' شارژ شد.' : ' کاهش یافت.') + '\n💰 موجودی فعلی: ' + fmtToman(user.balance)); } catch (e) {}
+  } else if (action === 'promote_agent') {
+    if (isAdmin(env, userId)) return { data: { ok: false, error: 'admin_cannot_be_agent' }, status: 403 };
+    if (user.banned) return { data: { ok: false, error: 'agent_user_blocked' }, status: 409 };
+    if (await getAgent(env, userId)) return { data: { ok: false, error: 'agent_already_exists' }, status: 409 };
+    const created = await createAgentRecord(env, userId, user, adminId);
+    if (!created) return { data: { ok: false, error: 'agent_already_exists' }, status: 409 };
+    await recordCustomerActivity(env, userId, 'agent_promoted', { actor_id: adminId });
+    try { await msg(env, userId, '🤝 <b>دسترسی نمایندگی برای شما فعال شد.</b>\nاز Mini App بخش «نمایندگی» را باز کنید تا موجودی، سهمیه و ساخت اشتراک را ببینید.', KB([[BTN('🤝 پنل نمایندگی', 'agent')]])); } catch (e) {}
+    return { data: { ok: true, agent: miniAppAgentView(created, user) }, status: 200 };
+  } else if (action === 'demote_agent') {
+    const agent = await getAgent(env, userId);
+    if (!agent) return { data: { ok: false, error: 'agent_not_found' }, status: 404 };
+    if (Number(agent.balance || 0) > 0 || Math.floor(Number(agent.quota_remaining || 0)) > 0) {
+      return { data: { ok: false, error: 'agent_has_balance_or_quota' }, status: 409 };
+    }
+    await kvDel(env, 'agent:' + userId);
+    // رکورد کاربر و اشتراک‌های ساخته‌شده دست‌نخورده می‌مانند؛ فقط نقش نمایندگی برداشته می‌شود.
+    await recordCustomerActivity(env, userId, 'agent_demoted', { actor_id: adminId });
+    return { data: { ok: true, demoted: true }, status: 200 };
+  } else if (action === 'notify') {
+    const text = String(data.text || '').replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '').trim().slice(0, 800);
+    if (text.length < 2) return { data: { ok: false, error: 'invalid_notify_text' }, status: 400 };
+    try { await msg(env, userId, '📣 <b>پیام مدیریت</b>\n\n' + esc(text)); }
+    catch (e) { return { data: { ok: false, error: 'notify_failed' }, status: 502 }; }
+    await recordCustomerActivity(env, userId, 'admin_notified', { actor_id: adminId });
+    return { data: { ok: true, notified: true }, status: 200 };
   } else return { data: { ok: false, error: 'invalid_customer_action' }, status: 400 };
-  return { data: { ok: true, customer: { tg_id: String(user.tg_id), first_name: String(user.first_name || ''), username: String(user.username || ''), balance: Number(user.balance || 0), banned: !!user.banned } }, status: 200 };
+  return { data: { ok: true, customer: { tg_id: String(user.tg_id), first_name: String(user.first_name || ''), username: String(user.username || ''), balance: Number(user.balance || 0), banned: !!user.banned, is_agent: !!(await getAgent(env, userId)) } }, status: 200 };
 }
 
 async function miniAppAdminWithdrawals(env) {
@@ -10195,41 +10596,141 @@ async function miniAppAgentOverview(env, agent, user) {
     transactions: transactions.items, transactions_partial: transactions.partial
   };
 }
-async function miniAppAdminAgents(env, query) {
+// ── آمار نمایندگی: شمارش ساخت‌ها از ایندکس (بدون خواندن مقدارها) + تحلیل دفتر نماینده ──
+async function agentSubIndexStats(env, agentId, now) {
+  const prefix = 'agent_sub_idx:' + agentId + ':';
+  let res;
+  try { res = await env.DB.list({ prefix: prefix, limit: 500 }); } catch (e) { res = { keys: [], list_complete: true }; }
+  const rows = res.keys || [];
+  let total = 0, last7 = 0, last30 = 0, lastAt = 0;
+  for (const row of rows) {
+    const raw = String((row && row.name) || '').slice(prefix.length);
+    const rev = Number(raw.split(':')[0]);
+    if (!Number.isFinite(rev) || rev <= 0) continue;
+    const ts = INDEX_TIME_MAX - rev;
+    total++;
+    if (ts >= now - 7 * 86400000) last7++;
+    if (ts >= now - 30 * 86400000) last30++;
+    if (ts > lastAt) lastAt = ts;
+  }
+  return { total: total, last_7d: last7, last_30d: last30, last_at: lastAt, partial: !res.list_complete };
+}
+
+async function agentLedgerStats(env, agentId, now, limit) {
+  const index = await listIndexedValues(env, 'agent_ledger_idx:' + agentId + ':', limit || 200);
+  const rows = index.items.filter(Boolean);
+  const from30 = now - 30 * 86400000;
+  const series = [];
+  for (let i = 29; i >= 0; i--) series.push({ date: miniAppDayKey(now - i * 86400000), count: 0, revenue: 0 });
+  const byDay = new Map(series.map((r) => [r.date, r]));
+  const planCount = new Map();
+  let revenue = 0, sales = 0, revenue30 = 0, sales30 = 0, credit = 0, debit = 0, lastSaleAt = 0;
+  for (const row of rows) {
+    const type = String(row.type || '');
+    const amount = Number(row.amount || 0);
+    const at = Number(row.occurred_at || row.created_at || 0);
+    if (type === 'admin_credit') credit += amount;
+    else if (type === 'admin_debit') debit += amount;
+    if (type !== 'subscription_created') continue;
+    revenue += amount; sales++;
+    if (at > lastSaleAt) lastSaleAt = at;
+    const bucket = byDay.get(miniAppDayKey(at));
+    if (at >= from30) { revenue30 += amount; sales30++; }
+    if (bucket) { bucket.count++; bucket.revenue += amount; }
+    const planId = String(row.plan_id || '');
+    const entry = planCount.get(planId) || { plan_id: planId, count: 0, revenue: 0 };
+    entry.count++; entry.revenue += amount;
+    planCount.set(planId, entry);
+  }
+  const plans = await getPlans(env);
+  const topPlans = Array.from(planCount.values())
+    .map((row) => Object.assign(row, { title: String((plans[row.plan_id] && plans[row.plan_id].title) || 'پلن حذف‌شده') }))
+    .sort((a, b) => b.count - a.count).slice(0, 5);
+  return {
+    revenue: revenue, sales: sales, revenue_30d: revenue30, sales_30d: sales30,
+    credit_total: credit, debit_total: debit, last_sale_at: lastSaleAt,
+    chart: series, top_plans: topPlans, partial: index.has_more
+  };
+}
+
+async function miniAppAdminAgents(env, query, options) {
+  const opts = options && typeof options === 'object' ? options : {};
   const q = cleanText(query || '').toLowerCase().slice(0, 80);
+  const now = Date.now();
   const result = await env.DB.list({ prefix: 'agent:', limit: 500 });
   const values = await Promise.all((result.keys || []).map((key) => kvGet(env, key.name, null)));
   const agents = values.filter((agent) => agent && miniAppAgentId(agent.tg_id));
+  const withStats = opts.stats !== false && agents.length <= 120;
   const items = await Promise.all(agents.map(async (agent) => {
     const user = await getUser(env, agent.tg_id);
-    return miniAppAgentView(agent, user);
+    const view = miniAppAgentView(agent, user);
+    const sales = withStats ? await agentSubIndexStats(env, view.tg_id, now)
+      : { total: view.total_created, last_7d: 0, last_30d: 0, last_at: view.last_created_at };
+    return Object.assign(view, {
+      sales_total: sales.total, sales_7d: sales.last_7d, sales_30d: sales.last_30d,
+      last_sale_at: sales.last_at || view.last_created_at || 0
+    });
   }));
-  const filtered = items.filter((item) => !q || [item.tg_id, item.first_name, item.username].join(' ').toLowerCase().includes(q));
-  filtered.sort((a,b) => Number(b.created_at || 0) - Number(a.created_at || 0));
-  return { ok: true, items: filtered, partial: !result.list_complete, total: agents.length };
+  let filtered = items.filter((item) => !q || [item.tg_id, item.first_name, item.username].join(' ').toLowerCase().includes(q));
+  const status = String(opts.status || 'all');
+  if (status === 'active') filtered = filtered.filter((a) => a.enabled);
+  else if (status === 'disabled') filtered = filtered.filter((a) => !a.enabled);
+  else if (status === 'low_quota') filtered = filtered.filter((a) => a.quota_remaining <= 5);
+  else if (status === 'low_balance') filtered = filtered.filter((a) => a.balance <= 0);
+  const sort = String(opts.sort || 'newest');
+  if (sort === 'sales') filtered.sort((a, b) => b.sales_total - a.sales_total);
+  else if (sort === 'revenue') filtered.sort((a, b) => b.total_revenue - a.total_revenue);
+  else if (sort === 'balance') filtered.sort((a, b) => b.balance - a.balance);
+  else if (sort === 'last_sale') filtered.sort((a, b) => Number(b.last_sale_at || 0) - Number(a.last_sale_at || 0));
+  else filtered.sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0));
+  const sum = (list, key) => list.reduce((acc, row) => acc + Number(row[key] || 0), 0);
+  return {
+    ok: true, items: filtered, partial: !result.list_complete, total: agents.length,
+    totals: {
+      agents: agents.length, active: items.filter((a) => a.enabled).length,
+      disabled: items.filter((a) => !a.enabled).length,
+      sales: sum(items, 'sales_total'), sales_30d: sum(items, 'sales_30d'),
+      revenue: sum(items, 'total_revenue'), balance: sum(items, 'balance'), quota: sum(items, 'quota_remaining'),
+      low_quota: items.filter((a) => a.quota_remaining <= 5).length,
+      low_balance: items.filter((a) => a.balance <= 0).length
+    },
+    stats_partial: !withStats
+  };
 }
 async function miniAppAdminAgentDetail(env, tgid) {
   const id = miniAppAgentId(tgid);
   const agent = id ? await getAgent(env, id) : null;
   if (!agent) return { ok: false, error: 'agent_not_found' };
-  const [user, plans, panels, subscriptions, transactions] = await Promise.all([
+  const now = Date.now();
+  const [user, plans, panels, subscriptions, transactions, salesIndex, ledger] = await Promise.all([
     getUser(env, id), getPlans(env), getPanels(env),
-    miniAppAgentSubscriptions(env, id, 60), miniAppAgentTransactions(env, id, 60)
+    miniAppAgentSubscriptions(env, id, 60), miniAppAgentTransactions(env, id, 60),
+    agentSubIndexStats(env, id, now), agentLedgerStats(env, id, now, 200)
   ]);
   const planRows = Object.entries(plans || {}).map(([key, plan]) => {
-    const id = String(plan && plan.id || key);
+    const planRef = String(plan && plan.id || key);
     return {
-      id: id, title: String(plan && plan.title || ''), gb: Number(plan && plan.gb || 0),
+      id: planRef, title: String(plan && plan.title || ''), gb: Number(plan && plan.gb || 0),
       days: Number(plan && plan.days || 0), enabled: isRecordEnabled(plan), archived: !!(plan && plan.archived),
-      public_price: Number(plan && plan.price || 0), agent_price: miniAppAgentPlanPrice(agent, Object.assign({}, plan || {}, { id: id }))
+      public_price: Number(plan && plan.price || 0), agent_price: miniAppAgentPlanPrice(agent, Object.assign({}, plan || {}, { id: planRef }))
     };
   }).sort((a,b) => a.title.localeCompare(b.title, 'fa'));
+  const activeSubs = subscriptions.items.filter((row) => row && row.status === 'active').length;
+  const expiredSubs = subscriptions.items.filter((row) => row && row.status === 'expired').length;
   return {
     ok: true, agent: miniAppAgentView(agent, user),
     plans: planRows,
     panels: Object.entries(panels || {}).map(([key, panel]) => ({ id: String(panel.id || key), name: String(panel.name || ''), enabled: isRecordEnabled(panel) })),
     subscriptions: subscriptions.items, subscriptions_partial: subscriptions.partial,
-    transactions: transactions.items, transactions_partial: transactions.partial
+    transactions: transactions.items, transactions_partial: transactions.partial,
+    analytics: {
+      sales_total: salesIndex.total, sales_7d: salesIndex.last_7d, sales_30d: salesIndex.last_30d,
+      last_sale_at: salesIndex.last_at,
+      active_subs: activeSubs, expired_subs: expiredSubs, subs_partial: subscriptions.partial,
+      revenue: ledger.revenue, revenue_30d: ledger.revenue_30d, sales: ledger.sales, sales_ledger_30d: ledger.sales_30d,
+      credit_total: ledger.credit_total, debit_total: ledger.debit_total,
+      chart: ledger.chart, top_plans: ledger.top_plans, ledger_partial: ledger.partial
+    }
   };
 }
 async function miniAppAdminPromoteAgent(env, adminId, body) {
@@ -10422,6 +10923,8 @@ async function miniAppAgentCreateSubscription(env, agentId, body) {
     agent.balance = Number(agent.balance || 0) - price;
     agent.quota_remaining = quota - 1;
     agent.total_created = Math.max(0, Math.floor(Number(agent.total_created || 0))) + 1;
+    agent.total_revenue = Math.max(0, Number(agent.total_revenue || 0)) + price;
+    agent.last_created_at = now;
     await saveAgent(env, agent);
     accountingCommitted = true;
     await recordAgentLedger(env, owner, {
@@ -10630,7 +11133,10 @@ async function miniAppApi(request, env, url) {
       catch (e) { return null; }
     };
     if (path === '/api/miniapp/admin/agents') {
-      if (request.method === 'GET') return miniAppJson(await miniAppAdminAgents(env, url.searchParams.get('q') || ''), 200);
+      if (request.method === 'GET') return miniAppJson(await miniAppAdminAgents(env, url.searchParams.get('q') || '', {
+        status: url.searchParams.get('status') || 'all',
+        sort: url.searchParams.get('sort') || 'newest'
+      }), 200);
       if (request.method === 'POST') {
         const body = await readBody();
         if (!body) return miniAppJson({ ok: false, error: 'invalid_json' }, 400);
@@ -10822,7 +11328,12 @@ async function miniAppApi(request, env, url) {
       return miniAppJson({ ok: false, error: 'method_not_allowed' }, 405);
     }
     if (path === '/api/miniapp/admin/customers' && request.method === 'GET') {
-      return miniAppJson(await miniAppAdminCustomers(env, url.searchParams.get('q') || '', url.searchParams.get('limit') || 50), 200);
+      return miniAppJson(await miniAppAdminCustomers(env, url.searchParams.get('q') || '', url.searchParams.get('limit') || 50, {
+        status: url.searchParams.get('status') || 'all',
+        sort: url.searchParams.get('sort') || 'recent',
+        page: url.searchParams.get('page') || 1,
+        window: url.searchParams.get('window') || 200
+      }), 200);
     }
     const customerMatch = path.match(/^\/api\/miniapp\/admin\/customers\/([0-9]{1,20})$/);
     if (customerMatch && request.method === 'GET') {
@@ -10834,6 +11345,18 @@ async function miniAppApi(request, env, url) {
       if (!body) return miniAppJson({ ok: false, error: 'invalid_json' }, 400);
       const result = await miniAppAdminCustomerAction(env, identity.user.id, customerMatch[1], body);
       return miniAppJson(result.data, result.status);
+    }
+    if (path === '/api/miniapp/admin/retention') {
+      if (request.method === 'GET') return miniAppJson(await miniAppAdminRetentionView(env), 200);
+      if (request.method === 'POST') {
+        const body = await readBody();
+        if (!body) return miniAppJson({ ok: false, error: 'invalid_json' }, 400);
+        const action = String(body.action || 'run');
+        if (action === 'run') return miniAppJson(await retentionSweep(env, { dry_run: body.dry_run === true }), 200);
+        if (action === 'preview') return miniAppJson(await retentionSweep(env, { dry_run: true }), 200);
+        return miniAppJson({ ok: false, error: 'invalid_retention_action' }, 400);
+      }
+      return miniAppJson({ ok: false, error: 'method_not_allowed' }, 405);
     }
     if (path === '/api/miniapp/admin/settings') {
       if (request.method === 'GET') {
@@ -11793,7 +12316,15 @@ async function scheduledHandler(event, env) {
     try { await cronShetab(env); } catch (e) {}
     return;
   }
+  if (cron === RETENTION_CRON) {
+    try { await cronReminders(env); } catch (e) {}
+    try { await retentionSweep(env); } catch (e) {}
+    try { await cronShetab(env); } catch (e) {}
+    return;
+  }
   try { await cronReminders(env); } catch (e) {}
+  // اجرای روزانهٔ پاک‌سازی پنل؛ اگر تایمر اختصاصی هم نبود، همین‌جا انجام می‌شود.
+  try { await retentionSweep(env); } catch (e) {}
   // روی نصب‌های قدیمی که تایمر اختصاصی Shetab را ندارند، این کار هم همان‌جا انجام می‌شود.
   try { await cronShetab(env); } catch (e) {}
 }

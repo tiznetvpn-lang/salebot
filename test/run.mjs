@@ -25,7 +25,7 @@ if (!backupCronMatch || backupCronMatch[1] !== '0 */3 * * *') throw new Error('K
 if (!cronScriptSource.includes("'0 */3 * * *'")) throw new Error('زمان‌بندی scripts/run-cron.mjs با KV_BACKUP_CRON یکی نیست');
 if (!backupTimerUnit.includes('OnCalendar=*-*-* 00/3:00:00 UTC')) throw new Error('systemd timer بکاپ باید هر ۳ ساعت اجرا شود');
 if (!workerSource.includes('KV_BACKUP_MIN_INTERVAL_MS') || workerSource.includes('11 * 60 * 60 * 1000')) throw new Error('فاصلهٔ ایمنی بکاپ با بازهٔ ۳ ساعته هماهنگ نیست');
-src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser; globalThis.__normalizePhone = normalizePhone; globalThis.__isJoinGateMarkup = isJoinGateMarkup; globalThis.__isPhoneRequestMarkup = isPhoneRequestMarkup; globalThis.__accessGate = accessGate; globalThis.__DEFAULT_SETTINGS = DEFAULT_SETTINGS; globalThis.__btnSlotFor = btnSlotFor; globalThis.__decorateMarkup = decorateMarkup; globalThis.__btnStyleFor = btnStyleFor; globalThis.__resetBtnUI = () => { BTN_UI_CACHE = { at: 0, colors: true, icons: {} }; }; globalThis.__btnUI = btnUI; globalThis.__resetChatButtons = () => { resetChatButtonCache(); }; globalThis.__chatButtons = chatButtons;');
+src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser; globalThis.__normalizePhone = normalizePhone; globalThis.__isJoinGateMarkup = isJoinGateMarkup; globalThis.__isPhoneRequestMarkup = isPhoneRequestMarkup; globalThis.__accessGate = accessGate; globalThis.__DEFAULT_SETTINGS = DEFAULT_SETTINGS; globalThis.__btnSlotFor = btnSlotFor; globalThis.__decorateMarkup = decorateMarkup; globalThis.__btnStyleFor = btnStyleFor; globalThis.__resetBtnUI = () => { BTN_UI_CACHE = { at: 0, colors: true, icons: {} }; }; globalThis.__btnUI = btnUI; globalThis.__resetChatButtons = () => { resetChatButtonCache(); }; globalThis.__chatButtons = chatButtons; globalThis.__retentionSweep = retentionSweep; globalThis.__retentionConfig = retentionConfig; globalThis.__saveSub = saveSub; globalThis.__saveCfg = saveCfg; globalThis.__getCfg = getCfg; globalThis.__getAgent = getAgent;');
 // eslint-disable-next-line no-eval
 eval(src);
 const APP = globalThis.APP;
@@ -1194,7 +1194,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.33-ubuntu26.35';"), 'شمارهٔ نسخهٔ سرور 1.8.33-ubuntu26.35 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.34-ubuntu26.36';"), 'شمارهٔ نسخهٔ سرور 1.8.34-ubuntu26.36 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -2237,6 +2237,150 @@ assert(!secondAdminButtons.includes('a_admins') && ownerButtons.includes('a_admi
 env.ADMIN_IDS = savedAdminIds;
 assert(miniAppSource.includes('id="managersTab"') && miniAppSource.includes('data-manager-remove') && miniAppSource.includes("api('/api/miniapp/admin/managers'"),
   'تب «مدیران» در تنظیمات مینی‌اپ با افزودن و حذف فقط برای مدیر اصلی ساخته شده است');
+
+// ---------- نگهداری اشتراک‌ها: حذف خودکار انقضاشده‌ها از پنل ----------
+const retEnv = Object.assign({}, env, { DB: new MockKV() });
+const retPanelId = 'rpanel';
+await retEnv.DB.put('panels', JSON.stringify({ [retPanelId]: { id: retPanelId, name: 'سرور نگهداری', enabled: true, api_base: 'https://panel.test/RET', api_key: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', user_base: 'https://panel.test/sub' } }));
+await retEnv.DB.put('cfg', JSON.stringify(Object.assign({}, globalThis.__DEFAULT_SETTINGS)));
+const dayMs = 86400000;
+function isoDay(offsetDays) { return new Date(Date.now() + offsetDays * dayMs).toISOString().slice(0, 10); }
+let retSeq = 0;
+async function seedRetSub(opts) {
+  const sid = 'retsub' + String(++retSeq).padStart(3, '0');
+  const uuid = 'dddddddd-0000-0000-0000-' + String(retSeq).padStart(12, '0');
+  const sub = {
+    sid: sid, uuid: uuid, tg_id: String(opts.tgid || ''), panel_id: retPanelId,
+    plan_id: opts.plan_id || 'nope', created_at: Date.now() - 30 * dayMs,
+    free_subscription: opts.free === true, kind: opts.free === true ? 'free_subscription' : 'paid'
+  };
+  if (opts.tgid) {
+    const user = await kvJson('u:' + opts.tgid) || { tg_id: String(opts.tgid), first_name: 'R' + opts.tgid, balance: 0, subs: [] };
+    user.subs = Array.from(new Set([].concat(user.subs || [], sid)));
+    await retEnv.DB.put('u:' + opts.tgid, JSON.stringify(user));
+  }
+  await retEnv.DB.put('s:' + sid, JSON.stringify(sub));
+  if (opts.live !== false) {
+    hUsers.set(uuid, {
+      uuid: uuid, name: 'ret-' + sid, usage_limit_GB: 10, package_days: opts.package_days,
+      current_usage_GB: 1, start_date: opts.start_date || isoDay(-1), enable: true, is_active: true
+    });
+  }
+  return { sid: sid, uuid: uuid };
+}
+const retFreePast = await seedRetSub({ tgid: 5501, free: true, package_days: 5, start_date: isoDay(-6) });    // دیروز منقضی
+const retFreeToday = await seedRetSub({ tgid: 5502, free: true, package_days: 5, start_date: isoDay(-5) });   // امروز منقضی
+const retPaidGrace = await seedRetSub({ tgid: 5503, free: false, package_days: 30, start_date: isoDay(-32) }); // ۲ روز گذشته
+const retPaidLate = await seedRetSub({ tgid: 5504, free: false, package_days: 30, start_date: isoDay(-35) });  // ۵ روز گذشته
+const retPaidLate2 = await seedRetSub({ tgid: '', free: false, package_days: 30, start_date: isoDay(-40) });   // بدون tg_id
+const retActive = await seedRetSub({ tgid: 5505, free: false, package_days: 30, start_date: isoDay(-1) });
+const retMissing = await seedRetSub({ tgid: 5506, free: false, package_days: 30, live: false });
+const retUnknown = await seedRetSub({ tgid: 5507, free: true, package_days: 5, start_date: 'not-a-date' });
+const retAgentSub = await seedRetSub({ tgid: '', free: false, package_days: 30, start_date: isoDay(-35) });
+const retAgentRec = JSON.parse(await retEnv.DB.get('s:' + retAgentSub.sid, { type: 'text' }));
+retAgentRec.kind = 'agent_subscription'; retAgentRec.agent_id = '6601';
+await retEnv.DB.put('s:' + retAgentSub.sid, JSON.stringify(retAgentRec));
+
+const retViewDenied = await miniApi('/api/miniapp/admin/retention', user4Init);
+const retView = await miniApi('/api/miniapp/admin/retention', adminInit);
+assert(retViewDenied.status === 403 && retView.status === 200 && retView.json.config.enabled === true && retView.json.config.free_delete === true && retView.json.config.paid_delete === true && retView.json.config.grace_days === 3 && retView.json.cron === '30 5 * * *', 'دیدگاه نگهداری فقط برای مدیر است و پیش‌فرض‌ها (حذف رایگان، حذف پولی پس از ۳ روز) را نشان می‌دهد');
+const badGrace = await miniApi('/api/miniapp/admin/settings', adminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ retention_paid_grace_days: 99 }) });
+const goodGrace = await miniApi('/api/miniapp/admin/settings', adminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ retention_paid_grace_days: 3, retention_enabled: true, retention_free_delete: true, retention_paid_delete: true }) });
+assert(badGrace.status === 400 && badGrace.json.error === 'invalid_retention_grace_days' && goodGrace.status === 200 && goodGrace.json.settings.retention_paid_grace_days === 3 && goodGrace.json.settings.retention_enabled === true, 'تنظیمات نگهداری اعتبارسنجی می‌شود و در پاسخ ذخیره برمی‌گردد');
+
+const retDry = await globalThis.__retentionSweep(retEnv, { dry_run: true });
+assert(retDry.dry_run === true && retDry.eligible === 3 && retDry.deleted === 0 && retDry.in_grace === 2 && retDry.active === 1 && retDry.unknown === 1 && retDry.missing === 1 && retDry.agent_subs === 1, 'پیش‌نمایش پاک‌سازی هیچ چیزی را حذف نمی‌کند و شمارش‌ها دقیق است', JSON.stringify(retDry));
+assert(hUsers.has(retFreePast.uuid) && hUsers.has(retPaidLate.uuid), 'در حالت پیش‌نمایش، اشتراک‌های واجد شرایط هنوز در پنل باقی می‌مانند');
+const tgBeforeRetention = TG.length;
+const retRun = await globalThis.__retentionSweep(retEnv, {});
+assert(retRun.deleted === 3 && retRun.deleted_free === 1 && retRun.deleted_paid === 2 && retRun.failed === 0, 'اجرای واقعی رایگان منقضی و پولی‌های خارج از مهلت را از پنل حذف می‌کند', JSON.stringify(retRun));
+assert(!hUsers.has(retFreePast.uuid) && !hUsers.has(retPaidLate.uuid) && !hUsers.has(retPaidLate2.uuid), 'کاربران واجد شرایط واقعاً از پنل حذف شدند');
+assert(hUsers.has(retFreeToday.uuid) && hUsers.has(retPaidGrace.uuid) && hUsers.has(retActive.uuid) && hUsers.has(retUnknown.uuid) && hUsers.has(retAgentSub.uuid), 'رایگانِ پایان‌امروز، پولیِ در مهلت، فعال، تاریخ نامعتبر و اشتراک نماینده دست‌نخورده می‌مانند');
+const retFreeRec = await retEnv.DB.get('s:' + retFreePast.sid, { type: 'json' });
+const retPaidRec = await retEnv.DB.get('s:' + retPaidLate.sid, { type: 'json' });
+const retGraceRec = await retEnv.DB.get('s:' + retPaidGrace.sid, { type: 'json' });
+const retMissingRec = await retEnv.DB.get('s:' + retMissing.sid, { type: 'json' });
+assert(retFreeRec.purged_at > 0 && retFreeRec.purge_reason === 'free_expired' && retFreeRec.purged_by === 'system' && retPaidRec.purged_at > 0 && retPaidRec.purge_reason === 'unrenewed_after_grace' && retPaidRec.purge_grace_days === 3, 'رکورد اشتراک برای سابقه می‌ماند و با نشانهٔ پاک‌شده و علت مشخص می‌شود');
+assert(!retGraceRec.purged_at && retMissingRec.purged_at > 0 && retMissingRec.purge_reason === 'missing_in_panel', 'اشتراک حذف‌شده از قبل در پنل (۴۰۴) علامت‌گذاری می‌شود ولی اشتراک در مهلت پاک نمی‌شود');
+const retLog = JSON.parse(await retEnv.DB.get('system:retention_log', { type: 'text' }) || '[]');
+assert(Array.isArray(retLog) && retLog.length === 3 && retLog[0].sid && retLog.some((row) => row.free === true && row.reason === 'free_expired') && retLog.some((row) => row.free === false && row.grace_days === 3), 'گزارش آخرین حذف‌ها با شناسه و علت ذخیره می‌شود');
+const retMsgs = TG.slice(tgBeforeRetention).filter((x) => x.method === 'sendMessage');
+const retNotifiedPaid = retMsgs.some((x) => String(x.params.chat_id) === '5504' && String(x.params.text).includes('حذف شد'));
+const retNotifiedFree = retMsgs.some((x) => String(x.params.chat_id) === '5501');
+const retNotifiedAdmin = retMsgs.some((x) => String(x.params.chat_id) === String(ADMIN) && String(x.params.text).includes('پاک‌سازی خودکار پنل'));
+assert(retNotifiedPaid && !retNotifiedFree && retNotifiedAdmin, 'فقط مشتری پولیِ حذف‌شده و مدیر پیام می‌گیرند؛ اشتراک رایگان پیام اضافه نمی‌فرستد');
+const retRerun = await globalThis.__retentionSweep(retEnv, {});
+assert(retRerun.deleted === 0, 'اجرای دوباره چیزی را دوباره حذف نمی‌کند (idempotent)');
+await retEnv.DB.put('cfg', JSON.stringify(Object.assign({}, globalThis.__DEFAULT_SETTINGS, { retention_paid_delete: false })));
+const retPaidKeep = await globalThis.__retentionSweep(retEnv, {});
+assert(retPaidKeep.deleted === 0 && hUsers.has(retPaidGrace.uuid), 'خاموش‌کردن حذف پولی‌ها مانع پاک‌سازی آن‌ها می‌شود');
+await retEnv.DB.put('cfg', JSON.stringify(Object.assign({}, globalThis.__DEFAULT_SETTINGS, { retention_enabled: false })));
+const retDisabled = await globalThis.__retentionSweep(retEnv, {});
+assert(retDisabled.disabled === true && retDisabled.deleted === 0, 'کلید اصلی نگهداری می‌تواند کل فرایند را متوقف کند');
+
+// داشبورد پیشرفته: کارت نگهداری و خلاصهٔ نمایندگان در پاسخ summary
+const summaryAdvanced = await miniApi('/api/miniapp/admin/summary?days=30', adminInit);
+assert(summaryAdvanced.status === 200 && summaryAdvanced.json.retention && summaryAdvanced.json.retention.config.grace_days === 3 && summaryAdvanced.json.agents_summary && typeof summaryAdvanced.json.agents_summary.count === 'number' && typeof summaryAdvanced.json.agents_summary.revenue === 'number', 'داشبورد مدیر کارت نگهداری و خلاصهٔ نمایندگان را برمی‌گرداند');
+
+// مدیریت کاربران: فیلترها، صفحه‌بندی و آمار
+const customerListAll = await miniApi('/api/miniapp/admin/customers?limit=60', adminInit);
+const customerListAgents = await miniApi('/api/miniapp/admin/customers?status=agent&limit=60', adminInit);
+const customerListBySpend = await miniApi('/api/miniapp/admin/customers?sort=spend&limit=5', adminInit);
+const customerListNumeric = await miniApi('/api/miniapp/admin/customers?q=' + U4, adminInit);
+assert(customerListAll.status === 200 && customerListAll.json.stats && typeof customerListAll.json.registered_users === 'number' && Array.isArray(customerListAll.json.items) && 'active_subscriptions' in (customerListAll.json.items[0] || {}) && 'next_expiry' in (customerListAll.json.items[0] || {}), 'فهرست کاربران آمار، وضعیت اشتراک فعال و تاریخ انقضای بعدی را می‌دهد');
+assert(customerListAgents.json.items.every((u) => u.is_agent === true) && customerListBySpend.json.items.length <= 5 && customerListBySpend.json.items.every((u, i, arr) => i === 0 || arr[i - 1].total_spent >= u.total_spent), 'فیلتر «نماینده» و مرتب‌سازی بر اساس خرید کار می‌کند');
+assert(customerListNumeric.json.items.length === 1 && customerListNumeric.json.items[0].tg_id === String(U4) && customerListNumeric.json.has_more === false, 'جست‌وجوی آیدی عددی دقیقاً همان کاربر را برمی‌گرداند');
+const deniedCustomerList = await miniApi('/api/miniapp/admin/customers?limit=10', user4Init);
+assert(deniedCustomerList.status === 403, 'فهرست کاربران فقط برای مدیر است');
+
+// مدیریت کامل کاربران از داشبورد: ارتقا/برکناری نماینده و پیام مستقیم
+await sendText(778811, '/start');
+const promoteFromCustomers = await miniApi('/api/miniapp/admin/customers/778811', adminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'promote_agent' }) });
+const repeatPromote = await miniApi('/api/miniapp/admin/customers/778811', adminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'promote_agent' }) });
+const promotedAgent = await globalThis.__getAgent(env, 778811);
+await kv.put('agent:778811', JSON.stringify(Object.assign({}, promotedAgent, { quota_remaining: 5 })));
+const demoteWithQuota = await miniApi('/api/miniapp/admin/customers/778811', adminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'demote_agent' }) });
+assert(promoteFromCustomers.status === 200 && promoteFromCustomers.json.agent && promoteFromCustomers.json.agent.tg_id === '778811' && repeatPromote.status === 409 && repeatPromote.json.error === 'agent_already_exists' && promotedAgent && demoteWithQuota.status === 409 && demoteWithQuota.json.error === 'agent_has_balance_or_quota', 'مدیر می‌تواند کاربر را از داشبورد نماینده کند؛ ارتقای تکراری و برکناری تا وقتی سهمیه/موجودی دارد رد می‌شود');
+await kv.put('agent:778811', JSON.stringify(Object.assign({}, promotedAgent, { quota_remaining: 0, balance: 0 })));
+const demoteClean = await miniApi('/api/miniapp/admin/customers/778811', adminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'demote_agent' }) });
+assert(demoteClean.status === 200 && demoteClean.json.demoted === true && !(await globalThis.__getAgent(env, 778811)), 'نمایندهٔ بدون سهمیه و موجودی از داشبورد برکنار می‌شود');
+await miniApi('/api/miniapp/admin/customers/778811', adminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'promote_agent' }) });
+const notifyUser = await miniApi('/api/miniapp/admin/customers/' + U2, adminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'notify', text: 'سلام، تمدید کنید' }) });
+const notifyEmpty = await miniApi('/api/miniapp/admin/customers/' + U2, adminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'notify', text: ' ' }) });
+assert(notifyUser.status === 200 && notifyUser.json.notified === true && lastMsgTo(U2) && String(lastMsgTo(U2).params.text).includes('تمدید کنید') && notifyEmpty.status === 400, 'مدیر می‌تواند از داشبورد به کاربر پیام مستقیم بفرستد و پیام خالی رد می‌شود');
+
+// نمایندگان پیشرفته: آمار فروش، فیلتر و تحلیل ۳۰ روزه
+const agentsAdvanced = await miniApi('/api/miniapp/admin/agents?sort=sales', adminInit);
+assert(agentsAdvanced.status === 200 && agentsAdvanced.json.totals && typeof agentsAdvanced.json.totals.sales === 'number' && typeof agentsAdvanced.json.totals.revenue === 'number' && agentsAdvanced.json.items.every((a, i, arr) => i === 0 || arr[i - 1].sales_total >= a.sales_total), 'فهرست نمایندگان جمع کل فروش/درآمد و مرتب‌سازی فروش را دارد');
+const agentsLowQuota = await miniApi('/api/miniapp/admin/agents?status=low_quota', adminInit);
+assert(agentsLowQuota.status === 200 && agentsLowQuota.json.items.every((a) => a.quota_remaining <= 5) && agentsLowQuota.json.totals.low_quota === agentsLowQuota.json.items.length, 'فیلتر «سهمیهٔ کم» در فهرست نمایندگان دقیق است');
+const agentDetailAdvanced = await miniApi('/api/miniapp/admin/agents/778811', adminInit);
+assert(agentDetailAdvanced.status === 200 && agentDetailAdvanced.json.analytics && Array.isArray(agentDetailAdvanced.json.analytics.chart) && agentDetailAdvanced.json.analytics.chart.length === 30 && Array.isArray(agentDetailAdvanced.json.analytics.top_plans) && typeof agentDetailAdvanced.json.analytics.revenue === 'number' && typeof agentDetailAdvanced.json.analytics.sales_total === 'number' && String(agentDetailAdvanced.json.agent.tg_id) === '778811', 'پروندهٔ نماینده نمودار ۳۰ روزه، پرفروش‌ترین پلن‌ها و آمار مالی دارد');
+
+// ---------- پنل چت: نگهداری پنل ----------
+await sendText(ADMIN, '/admin');
+await press(ADMIN, 'a_set');
+const settingsKb = lookupButtons(lastMsgTo(ADMIN, 'editMessageText')).map((b) => b.callback_data);
+await press(ADMIN, 's_retn');
+const retentionChat = lastMsgTo(ADMIN, 'editMessageText');
+const retentionChatButtons = lookupButtons(retentionChat).map((b) => b.callback_data);
+assert(settingsKb.includes('s_retn') && String(retentionChat.params.text).includes('نگهداری و پاک‌سازی پنل') && retentionChatButtons.includes('s_retn_preview') && retentionChatButtons.includes('s_retn_run') && retentionChatButtons.includes('s_retn_g:3'), 'تنظیمات چت مسیر «نگهداری پنل» با پیش‌نمایش، اجرا و انتخاب مهلت دارد');
+await press(ADMIN, 's_retn_g:5');
+const cfgAfterGrace = await kvJson('cfg');
+await press(ADMIN, 's_retn_paid');
+const cfgAfterPaidOff = await kvJson('cfg');
+await press(ADMIN, 's_retn_paid');
+const cfgAfterPaidOn = await kvJson('cfg');
+await press(ADMIN, 's_retn_g:3');
+const cfgFinalGrace = await kvJson('cfg');
+assert(cfgAfterGrace.retention_paid_grace_days === 5 && cfgAfterPaidOff.retention_paid_delete === false && cfgAfterPaidOn.retention_paid_delete === true && cfgFinalGrace.retention_paid_grace_days === 3, 'تغییر مهلت و روشن/خاموش‌کردن حذف پولی از داخل چت ذخیره می‌شود');
+
+// ---------- رابط مینی‌اپ: داشبورد، مدیرت کاربران و نمایندگان ----------
+assert(miniAppSource.includes('id="retentionFacts"') && miniAppSource.includes('id="retentionPreviewBtn"') && miniAppSource.includes('id="retentionRunBtn"') && miniAppSource.includes('id="agentsSummaryGrid"') && miniAppSource.includes('function renderRetentionPanel') && miniAppSource.includes('function renderAgentsSummary'), 'داشبورد مینی‌اپ کارت نگهداری با پیش‌نمایش/اجرا و خلاصهٔ نمایندگان دارد');
+assert(miniAppSource.includes('id="customerStatusChips"') && ['all','active','expiring','expired','banned','agent'].every(x => miniAppSource.includes('data-customer-status="' + x + '"')) && miniAppSource.includes('id="customerSort"') && miniAppSource.includes('id="customerPrevBtn"') && miniAppSource.includes('id="customerNextBtn"') && miniAppSource.includes('id="customerPageInfo"'), 'فهرست کاربران مینی‌اپ فیلتر وضعیت، مرتب‌سازی و صفحه‌بندی دارد');
+assert(miniAppSource.includes('id="agentStatusFilter"') && miniAppSource.includes('id="agentSortFilter"') && miniAppSource.includes('id="agentAdminStats"') && miniAppSource.includes('class="analytics-chart"') && miniAppSource.includes('top_plans'), 'بخش نمایندگان مینی‌اپ آمار، فیلتر، مرتب‌سازی و تحلیل ۳۰ روزه دارد');
+assert(miniAppSource.includes('data-stab="retention"') && miniAppSource.includes('data-sgroup="retention"') && miniAppSource.includes('id="settingRetentionEnabled"') && miniAppSource.includes('id="settingRetentionGrace"') && miniAppSource.includes('retention_paid_grace_days') && miniAppSource.includes("const formGroups=['shop','pay','free','retention']"), 'تنظیمات مینی‌اپ گروه «نگهداری» را با کلیدها و مهلت ذخیره می‌کند');
+assert(miniAppSource.includes('data-customer-action="notify"') && miniAppSource.includes('promote_agent') && miniAppSource.includes('demote_agent') && miniAppSource.includes("toastMap[ctx.action]"), 'مدیر از پروندهٔ کاربر می‌تواند پیام بفرستد و نقش نمایندگی را تغییر دهد');
 
 // ---------- هیچ دکمهٔ شیشه‌ای در چت مشتری ----------
 const adminChatIds = new Set(['999', '777003']); // 777003 فقط در تست «مدیران» موقتاً ادمین می‌شود
