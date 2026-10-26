@@ -108,11 +108,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LOG=$(tail -n 120 /tmp/build.log 2>/dev/null || echo "no build log")
           {
             echo "### ❌ ساخت APK ناموفق بود"
+            echo
+            echo "**خطاهای کامپایل:**"
             echo '```'
-            echo "$LOG"
+            grep -E "^e: |^> Task .*FAILED|error:" /tmp/build.log 2>/dev/null | head -n 40 || true
+            echo '```'
+            echo
+            echo "**بخش What went wrong:**"
+            echo '```'
+            sed -n '/What went wrong/,/Try:/p' /tmp/build.log 2>/dev/null | head -n 40 || true
             echo '```'
           } > /tmp/digest.md
           gh api -X POST "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" \

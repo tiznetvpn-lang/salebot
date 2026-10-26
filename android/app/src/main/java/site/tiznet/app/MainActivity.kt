@@ -17,6 +17,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import android.content.res.ColorStateList
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.materialswitch.MaterialSwitch
@@ -276,7 +277,7 @@ class MainActivity : AppCompatActivity() {
         val tabs = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         listOf("همه" to "all", "در انتظار" to "pending", "تکمیل‌شده" to "approved", "ردشده" to "rejected")
             .forEach { (label, value) ->
-                val chip = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+                val chip = outlinedButton().apply {
                     text = label
                     isAllCaps = false
                     textSize = 12f
@@ -352,7 +353,7 @@ class MainActivity : AppCompatActivity() {
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
                     .apply { marginEnd = Ui.dp(context, 6) }
             }
-            val reject = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            val reject = outlinedButton().apply {
                 text = "رد"
                 isAllCaps = false
                 setOnClickListener { rejectOrder(id) }
@@ -598,7 +599,7 @@ class MainActivity : AppCompatActivity() {
         }
         syncBox.addView(syncButton)
         if (secretSet) {
-            val test = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+            val test = outlinedButton().apply {
                 text = "آزمایش اتصال"
                 isAllCaps = false
                 setOnClickListener { testConnection() }
@@ -617,7 +618,7 @@ class MainActivity : AppCompatActivity() {
         head.addView(Ui.text(this, "آخرین واریزها", 16f, R.color.tz_text, true).apply {
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         })
-        head.addView(MaterialButton(this, null, com.google.android.material.R.attr.materialButtonTextButtonStyle).apply {
+        head.addView(textButton().apply {
             text = "پاک‌کردن"
             isAllCaps = false
             setOnClickListener {
@@ -711,7 +712,7 @@ class MainActivity : AppCompatActivity() {
         about.addView(aboutBox)
         settingsContainer.addView(about)
 
-        val logout = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+        val logout = outlinedButton().apply {
             text = "خروج از حساب"
             isAllCaps = false
             setOnClickListener { confirmLogout() }
@@ -735,6 +736,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ── کمکی‌ها ────────────────────────────────────────────────────────────
+
+    private fun outlinedButton(): MaterialButton = MaterialButton(this).apply {
+        isAllCaps = false
+        strokeWidth = Ui.dp(this@MainActivity, 1)
+        strokeColor = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.tz_stroke))
+        backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(context, R.color.tz_surface_2))
+        setTextColor(ContextCompat.getColor(context, R.color.tz_text))
+    }
+
+    private fun textButton(): MaterialButton = MaterialButton(this).apply {
+        isAllCaps = false
+        backgroundTintList = ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
+        setTextColor(ContextCompat.getColor(context, R.color.tz_primary))
+    }
 
     private fun showError(container: LinearLayout, e: Exception) {
         container.removeAllViews()
