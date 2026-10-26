@@ -411,6 +411,15 @@
     .receipt-form label { color:#f8eeee; font-size:13px; }
     .receipt-form input,.receipt-form textarea { font-size:14px; }
     .order-state { font-size:14px; }
+    /* هشدار «مبلغ اختصاصی» پیش از صفحهٔ سفارش کارت‌به‌کارت خودکار */
+    .auto-warn-card { padding:15px; border-radius:16px; border:1px solid rgba(249, 226, 228, .26); background:linear-gradient(150deg,rgba(240, 86, 99, .20),rgba(255, 255, 255, .03)); }
+    .auto-warn-icon { width:40px; height:40px; display:flex; align-items:center; justify-content:center; border-radius:50%; font-size:21px; background:rgba(240, 86, 99, .22); border:1px solid rgba(249, 226, 228, .3); }
+    .auto-warn-card p { margin:12px 0 0; font-size:15px; line-height:2; color:#fefbfc; }
+    .auto-warn-quote { margin-top:10px !important; padding:10px 12px; border-radius:12px; font-size:14px !important; color:#ffdfe2 !important; background:rgba(25, 2, 5, .3); border:1px solid rgba(249, 226, 228, .16); }
+    .auto-warn-actions { display:flex; gap:9px; flex-wrap:wrap; margin-top:15px; }
+    .auto-warn-actions button { flex:1 1 140px; min-height:48px; border-radius:13px; cursor:pointer; font-size:15px; font-weight:700; }
+    .auto-warn-actions [data-auto-transfer-accept] { border:0; background:linear-gradient(115deg,#e2cacc,#f05663); color:#760811; }
+    .auto-warn-actions [data-auto-transfer-back] { border:1px solid rgba(245, 234, 235, .28); background:rgba(136, 20, 30, .18); color:#f5ecec; }
     .toast { background:#810812; border-color:rgba(229, 208, 209, .4); font-size:14px; }
     .brand-showcase { background:rgba(255, 255, 255, .035); }
     .donut:before { background:#920915; }
@@ -5085,6 +5094,8 @@
       if(orderPollTimer){clearInterval(orderPollTimer);orderPollTimer=null;}
       if(receiptObjectUrl){URL.revokeObjectURL(receiptObjectUrl);receiptObjectUrl='';}
       adminModalContext=null;subscriptionActionContext=null;modalAction='';
+      // اگر کاربر با کلیک بیرون/بستن، هشدار را رد کرد، هیچ سفارشی ساخته نمی‌شود.
+      pendingAutoTransfer=null;
     }
     function stopOrderPolling() { if(orderPollTimer){clearInterval(orderPollTimer);orderPollTimer=null;} }
     function scheduleOrderPolling(order) {
@@ -5427,11 +5438,14 @@
       const wallet=balance>=price;
       let html='<div class="payment-options">';
       html+=`<button class="payment-option" data-pay-method="wallet" ${wallet?'':'disabled'}><span class="payment-icon">◈</span><span><strong>کیف پول · ${money(balance)}</strong><small>${wallet?'پرداخت فوری از موجودی؛ تحویل پس از تأیید سفارش':'موجودی کافی نیست؛ انتخاب کنید تا موجودی دوباره بررسی شود'}</small></span></button>`;
-      if(options.manual)html+='<button class="payment-option" data-pay-method="manual"><span class="payment-icon">▣</span><span><strong>کارت‌به‌کارت دستی</strong><small>نمایش مبلغ دقیق و شماره کارت؛ ارسال عکس رسید یا کد پیگیری همین‌جا برای ادمین</small></span></button>';
-      if(options.automatic)html+='<button class="payment-option" data-pay-method="shetab"><span class="payment-icon">⚡</span><span><strong>کارت‌به‌کارت خودکار</strong><small>مبلغ یکتای انتقال؛ تأیید خودکار از اتصال بانکی فعال فروشگاه</small></span></button>';
+      // کارت‌به‌کارت فقط «خودکار» است. مسیر دستی هیچ‌وقت کنار خودکار نمایش داده نمی‌شود؛
+      // فقط اگر سوییچ خودکار سمت سرور خاموش باشد، همان روش قبلی به‌عنوان پشتیبان می‌ماند
+      // تا فروش قطع نشود.
+      if(options.automatic)html+='<button class="payment-option" data-pay-method="shetab"><span class="payment-icon">⚡</span><span><strong>کارت‌به‌کارت خودکار</strong><small>مبلغ اختصاصی و شماره کارت در صفحهٔ سفارش؛ تأیید خودکار با پیامک بانک</small></span></button>';
+      else if(options.manual)html+='<button class="payment-option" data-pay-method="manual"><span class="payment-icon">▣</span><span><strong>کارت‌به‌کارت (بررسی دستی)</strong><small>پرداخت خودکار هنوز روشن نیست؛ عکس رسید یا کد پیگیری را همین‌جا بفرستید</small></span></button>';
       html+='</div>';
       if(!options.manual&&!options.automatic)html+='<div class="order-state warn">در حال حاضر پرداخت بانکی برای سفارش جدید فعال نیست. سفارش‌های باز قبلی از بخش پیگیری قابل مشاهده‌اند.</div>';
-      html+=upgrading?'<div class="order-summary-box"><strong>مبلغ کامل پلن جدید</strong><br>تخفیفِ باقیمانده یا کسرِ قیمت پلن قبلی اعمال نمی‌شود. پس از تأیید، حجم و مدت پلن جدید از امروز تنظیم می‌شود؛ معادل ریالی مبلغ نیز پیش از انتقال نمایش داده خواهد شد.</div>':'<div class="order-summary-box"><strong>قبل از پرداخت</strong><br>مبلغ پایهٔ پلن به تومان نمایش داده شده است. اگر بانک مبلغ را به ریال می‌خواهد، معادل ریالی هم پیش از انتقال نشان داده می‌شود.</div>';
+      html+=upgrading?'<div class="order-summary-box"><strong>مبلغ کامل پلن جدید</strong><br>تخفیفِ باقیمانده یا کسرِ قیمت پلن قبلی اعمال نمی‌شود. پس از تأیید، حجم و مدت پلن جدید از امروز تنظیم می‌شود؛ معادل ریالی مبلغ نیز پیش از انتقال نمایش داده خواهد شد.</div>':'<div class="order-summary-box"><strong>قبل از پرداخت</strong><br>پرداخت کارت‌به‌کارت خودکار است: پس از تأیید هشدار، شماره کارت و مبلغ اختصاصی (تومان و ریال) در صفحهٔ سفارش با دکمهٔ کپی نمایش داده می‌شود.</div>';
       modalBodyElement.innerHTML=html;setModalAction('','');
     }
     // شارژ کیف پول داخل خودِ اپ. قبلاً این دکمه با لینک t.me کاربر را از اپ بیرون
@@ -5448,8 +5462,8 @@
       html+='</div>';
       html+='<div class="receipt-form"><label for="walletTopupAmount">یا مبلغ دلخواه (تومان)</label><input id="walletTopupAmount" type="text" inputmode="numeric" autocomplete="off" placeholder="مثلاً 150000"></div>';
       html+='<div class="payment-options">';
-      if(options.automatic)html+='<button class="payment-option" data-topup-method="shetab"><span class="payment-icon">⚡</span><span><strong>پرداخت خودکار</strong><small>مبلغ یکتا؛ با رسیدن پیامک بانک، موجودی خودکار اضافه می‌شود</small></span></button>';
-      if(options.manual)html+='<button class="payment-option" data-topup-method="manual"><span class="payment-icon">▣</span><span><strong>کارت‌به‌کارت دستی</strong><small>نمایش کارت و مبلغ دقیق؛ عکس رسید یا کد پیگیری را همین‌جا بفرستید</small></span></button>';
+      if(options.automatic)html+='<button class="payment-option" data-topup-method="shetab"><span class="payment-icon">⚡</span><span><strong>کارت‌به‌کارت خودکار</strong><small>مبلغ اختصاصی و شماره کارت در صفحهٔ سفارش؛ با پیامک بانک خودکار تأیید می‌شود</small></span></button>';
+      else if(options.manual)html+='<button class="payment-option" data-topup-method="manual"><span class="payment-icon">▣</span><span><strong>کارت‌به‌کارت (بررسی دستی)</strong><small>پرداخت خودکار هنوز روشن نیست؛ عکس رسید یا کد پیگیری را همین‌جا بفرستید</small></span></button>';
       html+='</div>';
       if(!options.automatic&&!options.manual)html+='<div class="order-state warn">در حال حاضر پرداخت بانکی فعال نیست؛ برای شارژ با پشتیبانی تماس بگیرید.</div>';
       html+='<small id="walletTopupError" style="color:#ead9da;line-height:1.8"></small>';
@@ -5464,8 +5478,52 @@
       setModalAction('','');
       openModal();
     }
-    async function submitWalletTopup(method) {
-      if(walletTopupBusy)return;
+    /**
+     * هشدار «مبلغ اختصاصی» — یک صفحهٔ کوچک بین انتخاب کارت‌به‌کارت خودکار و ساخت سفارش.
+     * مسیر: انتخاب روش → همین هشدار → دکمهٔ تأیید → صفحهٔ اختصاصی سفارش (کارت + مبلغ ریالی).
+     * هیچ سفارشی قبل از تأیید ساخته نمی‌شود، پس مبلغ یکتا هم بی‌دلیل رزرو نمی‌ماند.
+     */
+    let pendingAutoTransfer=null;
+    function renderAutoTransferWarning(mode,amount) {
+      const topup=mode==='topup';
+      const value=Number(amount||0);
+      pendingAutoTransfer={mode:topup?'topup':'checkout',amount:topup?value:0};
+      modalTitleElement.textContent='پرداخت کارت‌به‌کارت خودکار';
+      modalTextElement.textContent=topup?('شارژ کیف پول · '+money(value)):'مبلغ اختصاصی همین سفارش در صفحهٔ بعد ساخته می‌شود.';
+      modalBodyElement.innerHTML='<div class="auto-warn-card">'
+        +'<div class="auto-warn-icon" aria-hidden="true">⚠️</div>'
+        +'<p>مبلغ کارت‌به‌کارت را دقیقاً براساس مبلغ اختصاصی انجام دهید؛ در غیر این صورت پرداخت شما تأیید نمی‌شود.</p>'
+        +'<p class="auto-warn-quote">«شماره کارت و مبلغ به ریال قابل کپی هست.»</p>'
+        +'</div>'
+        +'<div class="auto-warn-actions">'
+        +'<button type="button" data-auto-transfer-accept>تأیید</button>'
+        +'<button type="button" data-auto-transfer-back>بازگشت</button>'
+        +'</div>';
+      setModalAction('','');openModal();
+    }
+    function acceptAutoTransfer() {
+      const pending=pendingAutoTransfer||{mode:'checkout',amount:0};
+      pendingAutoTransfer=null;
+      if(pending.mode==='topup'){submitWalletTopup('shetab',pending.amount);return;}
+      if(!checkoutContext){toast('پلن انتخاب‌شده بسته شد؛ یک‌بار دیگر پلن را انتخاب کنید.');closeModal();return;}
+      startCheckout('shetab');
+    }
+    function cancelAutoTransfer() {
+      const pending=pendingAutoTransfer||{mode:'checkout',amount:0};
+      pendingAutoTransfer=null;
+      if(pending.mode==='topup'){
+        modalTitleElement.textContent='شارژ کیف پول';
+        modalTextElement.textContent='مبلغ و روش پرداخت را انتخاب کنید';
+        modalBodyElement.innerHTML=walletTopupMarkup();
+        const input=document.getElementById('walletTopupAmount');
+        if(input&&pending.amount)input.value=String(pending.amount);
+        setModalAction('','');
+        return;
+      }
+      renderCheckoutChooser();
+    }
+    // خواندن و بررسی مبلغ شارژ؛ هم پیش از هشدار و هم هنگام ثبت سفارش استفاده می‌شود.
+    function readTopupAmount() {
       const input=document.getElementById('walletTopupAmount');
       const errorEl=document.getElementById('walletTopupError');
       const amount=parseInt(String(input&&input.value||'').replace(/[^\d]/g,''),10);
@@ -5473,8 +5531,15 @@
       const min=Number(info.min||10000),max=Number(info.max||50000000);
       if(!Number.isFinite(amount)||amount<min||amount>max){
         if(errorEl)errorEl.textContent='مبلغ باید بین '+money(min)+' و '+money(max)+' تومان باشد.';
-        return;
+        return null;
       }
+      return amount;
+    }
+    async function submitWalletTopup(method,amountOverride) {
+      if(walletTopupBusy)return;
+      const errorEl=document.getElementById('walletTopupError');
+      const amount=Number.isFinite(amountOverride)?amountOverride:readTopupAmount();
+      if(amount===null)return;
       walletTopupBusy=true;
       modalBodyElement.innerHTML='<div class="empty-state">در حال ساخت سفارش شارژ…</div>';
       try{
@@ -5487,6 +5552,9 @@
         modalBodyElement.innerHTML=walletTopupMarkup();
         const box=document.getElementById('walletTopupError');
         if(box)box.textContent=checkoutErrorText(e.message);
+        // مبلغی که مشتری وارد کرده بود دوباره پر می‌شود تا دوباره تایپ نکند.
+        const amountInput=document.getElementById('walletTopupAmount');
+        if(amountInput)amountInput.value=String(amount);
       }
     }
     function orderStateMessage(order) {
@@ -5926,9 +5994,19 @@
       const renew=e.target.closest('[data-renew-sub]');if(renew){openPlanCheckout(renew.dataset.panelId,renew.dataset.planId,renew.dataset.renewSub);return;}
       const quickTile=e.target.closest('[data-customer-quick]');if(quickTile){handleCustomerQuick(quickTile.dataset.customerQuick);return;}
       const follow=e.target.closest('[data-track-order]');if(follow){openOrderTracking(follow.dataset.trackOrder);return;}
-      const method=e.target.closest('[data-pay-method]');if(method&&!method.disabled){startCheckout(method.dataset.payMethod);return;}
+      const method=e.target.closest('[data-pay-method]');if(method&&!method.disabled){
+        // کارت‌به‌کارت خودکار: اول هشدار مبلغ اختصاصی، بعد صفحهٔ سفارش.
+        if(method.dataset.payMethod==='shetab'){renderAutoTransferWarning('checkout');return;}
+        startCheckout(method.dataset.payMethod);return;
+      }
       const topupAmount=e.target.closest('[data-topup-amount]');if(topupAmount){const input=document.getElementById('walletTopupAmount');if(input){input.value=String(topupAmount.dataset.topupAmount||'');try{input.focus();}catch(_){}}document.querySelectorAll('[data-topup-amount]').forEach(b=>b.classList.toggle('is-active',b===topupAmount));return;}
-      const topupMethod=e.target.closest('[data-topup-method]');if(topupMethod&&!topupMethod.disabled){submitWalletTopup(topupMethod.dataset.topupMethod);return;}
+      const topupMethod=e.target.closest('[data-topup-method]');if(topupMethod&&!topupMethod.disabled){
+        const topupKind=topupMethod.dataset.topupMethod;
+        if(topupKind==='shetab'){const amount=readTopupAmount();if(amount===null)return;renderAutoTransferWarning('topup',amount);return;}
+        submitWalletTopup(topupKind);return;
+      }
+      if(e.target.closest('[data-auto-transfer-accept]')){acceptAutoTransfer();return;}
+      if(e.target.closest('[data-auto-transfer-back]')){cancelAutoTransfer();return;}
       const retry=e.target.closest('[data-retry-checkout]');if(retry&&checkoutContext){startCheckout(checkoutContext.method);return;}
       const openUrl=e.target.closest('[data-open-url]');if(openUrl){openExternal(openUrl.dataset.openUrl);return;}
       const copy=e.target.closest('[data-copy-text]');if(copy){copyValue(copy.dataset.copyText);return;}
