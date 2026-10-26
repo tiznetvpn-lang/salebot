@@ -138,6 +138,19 @@ jobs:
             echo '```'
             sed -n '/What went wrong/,/Try:/p' /tmp/build.log 2>/dev/null | head -n 40 || true
             echo '```'
+            echo
+            echo "**بازرسی APK:**"
+            echo '```'
+            APK="out/$(ls out 2>/dev/null | head -1)"
+            if [ -f "$APK" ]; then
+              "$SDK/build-tools/34.0.0/aapt" dump badging "$APK" 2>&1 | grep -E "^package:|uses-permission|^sdkVersion|^targetSdkVersion" || true
+              echo '--- manifest ---'
+              "$SDK/build-tools/34.0.0/aapt" dump xmltree "$APK" AndroidManifest.xml 2>&1 | grep -E "E: (service|receiver)|GuardService|BootReceiver|dataSync" | head -n 20 || true
+            else
+              echo "APK ساخته نشد؛ بازرسی ممکن نیست."
+              ls -la out 2>/dev/null || true
+            fi
+            echo '```'
           } > /tmp/digest.md
           gh api -X POST "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" \
             -F "body=@/tmp/digest.md" > /dev/null 2>&1 || true
