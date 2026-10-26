@@ -11,3 +11,13 @@ backups/
 *.json.gz
 *.log
 .DS_Store
+
+# اپ اندروید — خروجی‌های ساخت هرگز کامیت نمی‌شوند
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/.kotlin/
+*.apk
+*.aab

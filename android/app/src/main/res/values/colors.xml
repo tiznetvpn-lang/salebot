@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- همان پالت مینی‌اپ: قرمز پررنگ براق روی زمینهٔ قرمز تیره -->
+    <color name="tz_bg">#4A0911</color>
+    <color name="tz_surface">#5A0C16</color>
+    <color name="tz_surface_2">#6E101C</color>
+    <color name="tz_stroke">#8E1626</color>
+    <color name="tz_primary">#FF2D3F</color>
+    <color name="tz_primary_dark">#C20D21</color>
+    <color name="tz_text">#FFF5F6</color>
+    <color name="tz_muted">#F0C9CE</color>
+    <color name="tz_ok">#FF9AA6</color>
+    <color name="tz_warn">#FFC2A8</color>
+</resources>

@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.39-ubuntu26.41';
+const VERSION = '1.8.40-ubuntu26.42';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -11491,6 +11491,27 @@ async function miniAppApi(request, env, url) {
       } catch (e) {
         return miniAppJson({ ok: false, error: 'report_delivery_failed' }, 502);
       }
+    }
+    // اپ اندروید «تیزنت» برای تأیید خودکار واریز، دقیقاً همین قرارداد Shetab را صدا می‌زند.
+    // این endpoint همان دو مقدار لازم را به نشست مدیریتی می‌دهد (Secret قبلاً هم در چت
+    // با دکمهٔ کپی به همان مدیر داده می‌شود؛ اینجا فقط خودکار می‌شود).
+    if (path === '/api/miniapp/admin/shetab-app') {
+      if (request.method !== 'GET') return miniAppJson({ ok: false, error: 'method_not_allowed' }, 405);
+      const ensured = await ensureShetabSecret(env);
+      const cfgNow = await getCfg(env);
+      const lastEvt = await kvGet(env, 'shetab_last_event', null);
+      return miniAppJson({
+        ok: true,
+        version: VERSION,
+        endpoint: shetabEndpointUrl(env, url.origin),
+        secret: ensured.secret,
+        card_number: String(cfgNow.card_number || ''),
+        card_holder: String(cfgNow.card_holder || ''),
+        auto_enabled: cfgNow.card_auto_enabled === true,
+        confirmation_url: shetabEndpointUrl(env, url.origin),
+        status_url: String(shetabEndpointUrl(env, url.origin) || '').replace(/\/confirm$/, '/status'),
+        last_event_at: lastEvt && lastEvt.at ? Number(lastEvt.at) : 0
+      }, 200);
     }
     if (path === '/api/miniapp/admin/orders' && request.method === 'GET') {
       const daysRaw = url.searchParams.get('days');
