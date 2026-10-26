@@ -54,22 +54,41 @@ class MainActivity : AppCompatActivity() {
     private lateinit var headerTitle: TextView
     private lateinit var headerSub: TextView
 
+    private lateinit var nav: BottomNavigationView
     private var currentTab = R.id.navDashboard
     private var ordersFilter = "all"
     private var customerQuery = ""
     private var loading = false
 
-    private val smsPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) {
-            toast("اجازهٔ خواندن پیامک داده شد.")
-        } else {
-            toast("بدون اجازهٔ پیامک، تأیید خودکار واریز کار نمی‌کند.")
-            prefs.smsConfirmEnabled = false
-        }
-        renderSms()
-    }
+    /** کاری که بعد از پاسخ دیالوگ سیستمی باتری اجرا می‌شود. */
+    private var afterBattery: (() -> Unit)? = null
 
-    private val notifPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    /**
+     * مسیر مجوزها: پیامک و اعلان با یک درخواست، بعد دیالوگ «اجرا در پس‌زمینه».
+     * هر مرحله مستقل است؛ اگر کاربر یکی را رد کند بقیهٔ اپ سالم می‌ماند.
+     */
+    private val runtimePermissions =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+            val smsOk = result[Manifest.permission.RECEIVE_SMS] ?: Perms.sms(this)
+            if (!smsOk) {
+                prefs.smsConfirmEnabled = false
+                toast("بدون اجازهٔ پیامک، تأیید خودکار واریز ممکن نیست.")
+            }
+            // یک‌بار پرسیدیم؛ اگر کاربر رد کرد دیگر در هر باز شدن اپ مزاحم نمی‌شویم و
+            // راهنمای زرد در تب «پیامک بانکی» می‌ماند تا خودش دوباره اقدام کند.
+            prefs.setupDone = true
+            askBattery { if (smsOk) enableAutomation() else renderSms() }
+        }
+
+    private val batteryLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            val next = afterBattery
+            afterBattery = null
+            if (!Perms.battery(this)) {
+                toast("اجازهٔ اجرای پس‌زمینه داده نشد؛ تأیید پیامک ممکن است با تأخیر انجام شود.")
+            }
+            if (next != null) next() else renderSms()
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -97,18 +116,126 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<MaterialButton>(R.id.refreshButton).setOnClickListener { refreshCurrent() }
 
-        val nav = findViewById<BottomNavigationView>(R.id.bottomNav)
+        nav = findViewById(R.id.bottomNav)
         nav.setOnItemSelectedListener { item ->
             select(item.itemId)
             true
         }
         nav.selectedItemId = R.id.navDashboard
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        // اگر نشست قبلی با سرویس روشن بسته شده، همین‌جا دوباره بالا می‌آید.
+        if (prefs.guardEnabled && prefs.smsConfirmEnabled) GuardService.start(this)
+
+        // اولین اجرا: خودِ اپ مجوز پیامک و اجرای پس‌زمینه را می‌خواهد (نه اینکه کاربر دنبالش بگردد).
+        if (!prefs.setupDone) {
+            window.decorView.postDelayed({
+                if (!isFinishing && !prefs.setupDone) startSetup()
+            }, 600)
+        }
+    }
+
+    // ── مجوزها و اجرای پس‌زمینه ─────────────────────────────────────────────
+
+    /** درخواست مجوزهای زمان‌اجرا، بعد دیالوگ معافیت باتری. */
+    private fun startSetup() {
+        val missing = Perms.missingRuntime(this)
+        if (missing.isNotEmpty()) {
+            runtimePermissions.launch(missing)
+            return
+        }
+        askBattery { enableAutomation() }
+    }
+
+    private fun askBattery(after: () -> Unit) {
+        if (Perms.battery(this)) {
+            after()
+            return
+        }
+        afterBattery = after
+        try {
+            batteryLauncher.launch(Perms.batteryIntent(this))
+        } catch (e: Exception) {
+            afterBattery = null
+            after()
+        }
+    }
+
+    /** همهٔ مجوزها داده شد: سوییچ روشن، سرویس بالا، Secret همگام و در پایان بررسی سلامت. */
+    private fun enableAutomation() {
+        if (!Perms.sms(this)) {
+            prefs.smsConfirmEnabled = false
+            renderSms()
+            return
+        }
+        prefs.smsConfirmEnabled = true
+        prefs.guardEnabled = true
+        prefs.setupDone = true
+        GuardService.start(this)
+        val done: () -> Unit = {
+            renderSms()
+            showHealth()
+        }
+        if (prefs.shetabSecret.isBlank()) syncSecret(silent = true) { done() } else done()
+    }
+
+    private fun toggleGuard(on: Boolean) {
+        prefs.guardEnabled = on
+        if (on) {
+            GuardService.start(this)
+            toast("سرویس همیشه‌فعال روشن شد.")
+        } else {
+            GuardService.stop(this)
+            toast("سرویس همیشه‌فعال خاموش شد.")
+        }
+        renderSms()
+    }
+
+    /** گزارش وضعیت کامل؛ همان چیزی که کاربر برای «بدون مشکل کار کند» لازم دارد. */
+    private fun showHealth() {
+        ui.launch {
+            val rows = Perms.checklist(this@MainActivity)
+            val lines = ArrayList<String>()
+            for (row in rows) lines.add((if (row.ok) "✅  " else "⚠️  ") + row.title)
+            lines.add((if (prefs.shetabSecret.isNotBlank()) "✅  " else "⚠️  ") + "اتصال Shetab (Secret)")
+            lines.add((if (prefs.smsConfirmEnabled) "✅  " else "⚠️  ") + "سوییچ تأیید خودکار")
+            if (prefs.shetabSecret.isBlank()) {
+                lines.add("⚠️  سرور آزمایش نشد؛ اول Secret را همگام کنید")
+            } else {
+                lines.add(try {
+                    val result = Api.health(prefs.baseUrl, prefs.shetabSecret)
+                    if (result.status == 200 && result.json.optBoolean("success", false)) {
+                        "✅  سرور جواب داد · نسخهٔ " + Ui.toFa(result.json.optString("version").ifBlank { "—" })
+                    } else {
+                        "⚠️  سرور کد " + result.status + " برگرداند"
+                    }
+                } catch (e: Exception) {
+                    "⚠️  اتصال به سرور برقرار نشد"
+                })
+            }
+            val ready = rows.all { it.ok } && prefs.smsConfirmEnabled && prefs.shetabSecret.isNotBlank()
+            if (!isFinishing) {
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle(if (ready) "همه‌چیز آماده است ✅" else "چند مورد مانده")
+                    .setMessage(lines.joinToString("\n"))
+                    .setPositiveButton("باشه", null)
+                    .setNeutralButton("راهنمای پس‌زمینه") { _, _ -> showBackgroundHelp() }
+                    .show()
             }
         }
+    }
+
+    /** راهنمای کوتاه مخصوص برند گوشی؛ برای MIUI/EMUI که خودکار جلوی اپ را می‌گیرند. */
+    private fun showBackgroundHelp() {
+        AlertDialog.Builder(this)
+            .setTitle("اجرا در پس‌زمینه")
+            .setMessage(
+                Perms.vendorHint() +
+                    "\n\nاگر این موارد انجام شود، پیامک واریز حتی وقتی اپ بسته است هم تأیید می‌شود."
+            )
+            .setPositiveButton("تنظیم خودکار اجرا") { _, _ -> Perms.openAutostart(this) }
+            .setNegativeButton("تنظیمات باتری") { _, _ -> askBattery { renderSms() } }
+            .setNeutralButton("بستن", null)
+            .show()
     }
 
     // ── ناوبری ─────────────────────────────────────────────────────────────
@@ -530,13 +657,103 @@ class MainActivity : AppCompatActivity() {
 
     private fun renderSms() {
         smsContainer.removeAllViews()
-        val hasPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) ==
-            PackageManager.PERMISSION_GRANTED
+        val smsOk = Perms.sms(this)
 
-        val statusCard = Ui.card(this)
-        val statusBox = Ui.row(this)
-        statusBox.addView(Ui.text(this, "تأیید خودکار واریز", 16f, R.color.tz_text, true))
-        statusBox.addView(
+        // چک‌لیست مجوزها: هر ردیف با یک دکمه که همان درخواست سیستمی را باز می‌کند.
+        val setupCard = Ui.card(this)
+        val setupBox = Ui.row(this)
+        setupBox.addView(Ui.text(this, "راه‌اندازی و مجوزها", 16f, R.color.tz_text, true))
+        setupBox.addView(
+            Ui.text(
+                this,
+                "تأیید خودکار واریز وقتی بی‌وقفه کار می‌کند که هر چهار مورد زیر سبز باشد. اپ خودش درخواست هر مجوز را نشان می‌دهد.",
+                12f,
+                R.color.tz_muted
+            )
+        )
+        var allOk = true
+        for (row in Perms.checklist(this)) {
+            if (!row.ok) allOk = false
+            val line = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, Ui.dp(this@MainActivity, 6), 0, 0)
+            }
+            line.addView(
+                Ui.text(
+                    this,
+                    (if (row.ok) "✅  " else "⚠️  ") + row.title,
+                    13f,
+                    if (row.ok) R.color.tz_text else R.color.tz_warn
+                ).apply {
+                    layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                }
+            )
+            if (!row.ok || row.kind == Perms.KIND_GUARD) {
+                line.addView(textButton().apply {
+                    text = if (row.kind == Perms.KIND_GUARD) (if (row.ok) "خاموش" else "روشن") else "اجازه"
+                    isAllCaps = false
+                    setOnClickListener {
+                        when (row.kind) {
+                            Perms.KIND_SMS, Perms.KIND_NOTIFY -> startSetup()
+                            Perms.KIND_BATTERY -> askBattery { renderSms() }
+                            else -> toggleGuard(!row.ok)
+                        }
+                    }
+                })
+            }
+            setupBox.addView(line)
+        }
+        setupBox.addView(Ui.gap(this, 8))
+        setupBox.addView(MaterialButton(this).apply {
+            text = if (allOk) "بررسی سلامت" else "راه‌اندازی کامل با یک دکمه"
+            isAllCaps = false
+            setOnClickListener { if (allOk) showHealth() else startSetup() }
+        })
+        if (!allOk) {
+            setupBox.addView(outlinedButton().apply {
+                text = "بررسی سلامت"
+                isAllCaps = false
+                setOnClickListener { showHealth() }
+            })
+        }
+        setupBox.addView(textButton().apply {
+            text = "راهنمای اجرا در پس‌زمینه"
+            isAllCaps = false
+            setOnClickListener { showBackgroundHelp() }
+        })
+        setupCard.addView(setupBox)
+        smsContainer.addView(setupCard)
+
+        // سوییچ اصلی تأیید خودکار
+        val autoCard = Ui.card(this)
+        val autoBox = Ui.row(this)
+        val switchRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        switchRow.addView(
+            Ui.text(this, "تأیید خودکار واریز", 15f, R.color.tz_text, true).apply {
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            }
+        )
+        switchRow.addView(MaterialSwitch(this).apply {
+            isChecked = prefs.smsConfirmEnabled && smsOk
+            setOnCheckedChangeListener { _, checked ->
+                if (checked && !smsOk) {
+                    startSetup()
+                } else if (checked && !Perms.battery(this@MainActivity)) {
+                    prefs.smsConfirmEnabled = true
+                    askBattery { renderSms() }
+                } else {
+                    prefs.smsConfirmEnabled = checked
+                    if (checked) GuardService.start(this@MainActivity) else GuardService.stop(this@MainActivity)
+                    renderSms()
+                }
+            }
+        })
+        autoBox.addView(switchRow)
+        autoBox.addView(
             Ui.text(
                 this,
                 "پیامک بانکی خوانده می‌شود، مبلغ به تومان تبدیل می‌شود و با همان قرارداد Shetab به سرور می‌رود؛ تحویل سفارش را خود ربات انجام می‌دهد.",
@@ -544,37 +761,8 @@ class MainActivity : AppCompatActivity() {
                 R.color.tz_muted
             )
         )
-        val switchRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, Ui.dp(this@MainActivity, 8), 0, 0)
-        }
-        switchRow.addView(Ui.text(this, if (hasPermission) "فعال" else "بدون اجازهٔ پیامک", 13f, R.color.tz_text).apply {
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-        })
-        val toggle = MaterialSwitch(this).apply {
-            isChecked = prefs.smsConfirmEnabled && hasPermission
-            setOnCheckedChangeListener { _, checked ->
-                if (checked && !hasPermission) {
-                    smsPermission.launch(Manifest.permission.RECEIVE_SMS)
-                } else {
-                    prefs.smsConfirmEnabled = checked
-                }
-            }
-        }
-        switchRow.addView(toggle)
-        statusBox.addView(switchRow)
-
-        if (!hasPermission) {
-            val grant = MaterialButton(this).apply {
-                text = "دادن اجازهٔ خواندن پیامک"
-                isAllCaps = false
-                setOnClickListener { smsPermission.launch(Manifest.permission.RECEIVE_SMS) }
-            }
-            statusBox.addView(grant)
-        }
-        statusCard.addView(statusBox)
-        smsContainer.addView(statusCard)
+        autoCard.addView(autoBox)
+        smsContainer.addView(autoCard)
 
         val syncCard = Ui.card(this)
         val syncBox = Ui.row(this)
@@ -645,24 +833,25 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun syncSecret() {
+    private fun syncSecret(silent: Boolean = false, onDone: (() -> Unit)? = null) {
         ui.launch {
             try {
                 val data = Api.shetabApp(prefs)
                 val secret = data.optString("secret")
                 if (secret.isBlank()) {
-                    toast("سرور Secret برنگرداند.")
-                    return@launch
+                    if (!silent) toast("سرور Secret برنگرداند.")
+                } else {
+                    prefs.shetabSecret = secret
+                    prefs.shetabEndpoint = data.optString("endpoint").ifBlank { Api.endpointFor(prefs.baseUrl) }
+                    prefs.lastSecretSyncAt = System.currentTimeMillis()
+                    if (!silent) toast("Secret همگام شد؛ حالا سوییچ را روشن کنید.")
                 }
-                prefs.shetabSecret = secret
-                prefs.shetabEndpoint = data.optString("endpoint").ifBlank { Api.endpointFor(prefs.baseUrl) }
-                prefs.lastSecretSyncAt = System.currentTimeMillis()
-                toast("Secret همگام شد؛ حالا سوییچ را روشن کنید.")
-                renderSms()
             } catch (e: Api.ApiError) {
-                toast(Api.errorText(e.code))
+                if (!silent) toast(Api.errorText(e.code))
             } catch (e: Exception) {
-                toast("خطای شبکه: " + (e.message ?: "بدون پاسخ"))
+                if (!silent) toast("خطای شبکه: " + (e.message ?: "بدون پاسخ"))
+            } finally {
+                if (onDone != null) onDone() else renderSms()
             }
         }
     }
@@ -708,6 +897,28 @@ class MainActivity : AppCompatActivity() {
         )
         about.addView(aboutBox)
         settingsContainer.addView(about)
+
+        val perms = Ui.card(this)
+        val permsBox = Ui.row(this)
+        permsBox.addView(Ui.text(this, "مجوزها و اجرای پس‌زمینه", 16f, R.color.tz_text, true))
+        val smsOk = Perms.sms(this)
+        permsBox.addView(
+            Ui.text(
+                this,
+                (if (smsOk) "✅ اجازهٔ پیامک داده شده" else "⚠️ اجازهٔ پیامک داده نشده") + " · " +
+                    (if (Perms.battery(this)) "✅ معاف از محدودیت باتری" else "⚠️ محدودیت باتری فعال") + " · " +
+                    (if (GuardService.isRunning(this)) "✅ سرویس زنده" else "⚠️ سرویس خاموش"),
+                12f,
+                if (smsOk) R.color.tz_muted else R.color.tz_warn
+            )
+        )
+        permsBox.addView(MaterialButton(this).apply {
+            text = "مدیریت مجوزها"
+            isAllCaps = false
+            setOnClickListener { nav.selectedItemId = R.id.navSms }
+        })
+        perms.addView(permsBox)
+        settingsContainer.addView(perms)
 
         val logout = outlinedButton().apply {
             text = "خروج از حساب"
@@ -778,6 +989,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // اگر کاربر از تنظیمات سیستم برگشت، وضعیت تازه دیده شود و سرویس دوباره بالا بیاید.
+        if (prefs.guardEnabled && prefs.smsConfirmEnabled && Perms.sms(this)) GuardService.start(this)
         if (currentTab == R.id.navSms && ::smsContainer.isInitialized) renderSms()
     }
 

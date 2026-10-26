@@ -69,6 +69,16 @@ class Prefs(context: Context) {
         get() = sp.getLong(KEY_SECRET_AT, 0L)
         set(value) = sp.edit().putLong(KEY_SECRET_AT, valueL(value)).apply()
 
+    /** سرویس همیشه‌فعال (اعلان دائمی) روشن باشد؟ پیش‌فرض بله. */
+    var guardEnabled: Boolean
+        get() = sp.getBoolean(KEY_GUARD, true)
+        set(value) = sp.edit().putBoolean(KEY_GUARD, value).apply()
+
+    /** آیا کاربر یک‌بار مسیر مجوزها (پیامک + اعلان + باتری) را کامل کرده است؟ */
+    var setupDone: Boolean
+        get() = sp.getBoolean(KEY_SETUP, false)
+        set(value) = sp.edit().putBoolean(KEY_SETUP, value).apply()
+
     fun clearSession() {
         sp.edit().remove(KEY_COOKIE).remove(KEY_ACCOUNT).remove(KEY_ACCOUNT_ID).remove(KEY_ROLE).apply()
     }
@@ -142,6 +152,8 @@ class Prefs(context: Context) {
         private const val KEY_SECRET = "shetab_secret"
         private const val KEY_ENDPOINT = "shetab_endpoint"
         private const val KEY_SECRET_AT = "shetab_secret_synced_at"
+        private const val KEY_GUARD = "guard_enabled"
+        private const val KEY_SETUP = "setup_done"
         private const val KEY_LOG = "sms_log"
         private const val KEY_SENT = "sms_sent"
         private const val LOG_ROWS = 40
