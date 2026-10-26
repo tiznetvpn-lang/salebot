@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.36-ubuntu26.38';
+const VERSION = '1.8.37-ubuntu26.39';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -10973,6 +10973,7 @@ async function miniAppAgentRenewSubscription(env, agentId, sid, body) {
   const data = body && typeof body === 'object' ? body : {};
   const requestId = miniAppRequestId(data.request_id);
   const subId = String(sid || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
+  const requestedPlanId = String(data.plan_id || '').slice(0, 40);
   if (!owner || !subId || !requestId) return { data: { ok: false, error: 'invalid_agent_request' }, status: 400 };
   const mutexKey = owner + ':' + subId;
   const lockKey = 'agent_renew_lock:' + mutexKey;
@@ -10999,11 +11000,14 @@ async function miniAppAgentRenewSubscription(env, agentId, sid, body) {
     if (!sub || String(sub.agent_id || '') !== owner) return { data: { ok: false, error: 'agent_subscription_not_found' }, status: 404 };
     if (sub.purged_at) return { data: { ok: false, error: 'agent_subscription_purged' }, status: 409 };
     const [plans, panels] = await Promise.all([getPlans(env), getPanels(env)]);
-    plan = plans[String(sub.plan_id || '')];
+    // نماینده هنگام تمدید می‌تواند هر پلن فعالِ همین سرور را انتخاب کند (نه فقط پلن فعلی).
+    const chosenPlanId = requestedPlanId || String(sub.plan_id || '');
+    plan = plans[chosenPlanId];
     panel = panels[String(sub.panel_id || '')];
     if (!isRecordEnabled(plan) || !isRecordEnabled(panel)) return { data: { ok: false, error: 'agent_product_unavailable' }, status: 404 };
+    if (!planAssignedToPanel(plan, String(panel.id || sub.panel_id || ''))) return { data: { ok: false, error: 'agent_plan_panel_mismatch' }, status: 400 };
     if (!panel.api_base || !panel.api_key) return { data: { ok: false, error: 'agent_panel_unavailable' }, status: 503 };
-    price = await miniAppAgentPlanPrice(agent, plan);
+    price = await miniAppAgentPlanPrice(agent, Object.assign({}, plan, { id: String(plan.id || chosenPlanId) }));
     if (!price) return { data: { ok: false, error: 'invalid_agent_price' }, status: 409 };
     if (Number(agent.balance || 0) < price) return { data: { ok: false, error: 'agent_balance_insufficient', balance: Number(agent.balance || 0), price: price }, status: 409 };
     await kvPut(env, requestKey, { state: 'processing', created_at: Date.now() }, 86400);
@@ -11012,7 +11016,8 @@ async function miniAppAgentRenewSubscription(env, agentId, sid, body) {
     committed = true;
     await hPatchUser(panel, sub.uuid, { gb: plan.gb, days: plan.days });
     const now = Date.now();
-    sub.plan_id = String(plan.id || sub.plan_id || '');
+    sub.plan_id = String(plan.id || chosenPlanId || '');
+    sub.plan_name = String(plan.title || sub.plan_name || '');
     sub.agent_price = price;
     sub.last_renewed_at = now;
     sub.days_at_renewal = Number(plan.days) || 0;
@@ -11025,8 +11030,8 @@ async function miniAppAgentRenewSubscription(env, agentId, sid, body) {
     await saveAgent(env, agent);
     await recordAgentLedger(env, owner, {
       id: 'renew-' + subId + '-' + now, type: 'subscription_renewed', direction: 'out', amount: price,
-      balance_after: Number(agent.balance || 0), plan_id: String(plan.id || ''),
-      subscription_sid: subId, description: 'تمدید اشتراک ' + String(sub.customer_name || ''), actor_id: owner
+      balance_after: Number(agent.balance || 0), plan_id: String(plan.id || chosenPlanId || ''),
+      subscription_sid: subId, description: 'تمدید اشتراک ' + String(sub.customer_name || '') + ' با پلن ' + String(plan.title || ''), actor_id: owner
     });
     await kvPut(env, requestKey, { state: 'done', sid: subId, created_at: now }, 86400);
     const freshAgent = await getAgent(env, owner) || agent;
