@@ -82,6 +82,28 @@ jobs:
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           ls -lh out
 
+      # اثبات قابل‌بررسی: همان مجوزها و سرویس/گیرنده‌هایی که در manifest است، واقعاً داخل APK است.
+      - name: Verify APK permissions
+        run: |
+          set -euo pipefail
+          APK="out/$(ls out | head -1)"
+          AAPT="$SDK/build-tools/34.0.0/aapt"
+          BADGING="$("$AAPT" dump badging "$APK")"
+          echo "$BADGING" | grep -E "^package:|^sdkVersion|^targetSdkVersion|uses-permission" || true
+          echo '--- services/receivers ---'
+          XML="$("$AAPT" dump xmltree "$APK" AndroidManifest.xml)"
+          echo "$XML" | grep -E "E: (service|receiver)|A: android:name|foregroundServiceType|SMS_RECEIVED" | head -40 || true
+          # اگر مجوزی داخل APK نباشد، ساخت شکست می‌خورد: سبز بودن CI یعنی مجوزها واقعاً هست.
+          for p in RECEIVE_SMS POST_NOTIFICATIONS REQUEST_IGNORE_BATTERY_OPTIMIZATIONS \
+                   FOREGROUND_SERVICE FOREGROUND_SERVICE_DATA_SYNC RECEIVE_BOOT_COMPLETED; do
+            echo "$BADGING" | grep -q "android.permission.$p" || { echo "❌ مجوز $p داخل APK نیست"; exit 1; }
+          done
+          echo "$XML" | grep -q "GuardService" || { echo "❌ سرویس همیشه‌فعال داخل APK نیست"; exit 1; }
+          # aapt مقدار enum را عددی چاپ می‌کند (dataSync = 0x1)، پس همان نام ویژگی را می‌سنجیم.
+          echo "$XML" | grep -q "foregroundServiceType" || { echo "❌ foregroundServiceType داخل APK نیست"; exit 1; }
+          echo "$XML" | grep -q "SMS_RECEIVED" || { echo "❌ گیرندهٔ پیامک داخل APK نیست"; exit 1; }
+          echo "✅ مجوز پیامک، اعلان، معافیت باتری، سرویس پس‌زمینه، بوت و گیرندهٔ پیامک داخل APK تأیید شد"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -117,6 +139,19 @@ jobs:
             echo "**بخش What went wrong:**"
             echo '```'
             sed -n '/What went wrong/,/Try:/p' /tmp/build.log 2>/dev/null | head -n 40 || true
+            echo '```'
+            echo
+            echo "**بازرسی APK:**"
+            echo '```'
+            APK="out/$(ls out 2>/dev/null | head -1)"
+            if [ -f "$APK" ]; then
+              "$SDK/build-tools/34.0.0/aapt" dump badging "$APK" 2>&1 | grep -E "^package:|uses-permission|^sdkVersion|^targetSdkVersion" || true
+              echo '--- manifest ---'
+              "$SDK/build-tools/34.0.0/aapt" dump xmltree "$APK" AndroidManifest.xml 2>&1 | grep -E "E: (service|receiver)|GuardService|BootReceiver|foregroundServiceType|SMS_RECEIVED" | head -n 20 || true
+            else
+              echo "APK ساخته نشد؛ بازرسی ممکن نیست."
+              ls -la out 2>/dev/null || true
+            fi
             echo '```'
           } > /tmp/digest.md
           gh api -X POST "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" \

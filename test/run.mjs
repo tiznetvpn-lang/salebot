@@ -1222,7 +1222,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.41-ubuntu26.43';"), 'شمارهٔ نسخهٔ سرور 1.8.41-ubuntu26.43 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.42-ubuntu26.44';"), 'شمارهٔ نسخهٔ سرور 1.8.42-ubuntu26.44 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -2551,6 +2551,52 @@ const customerInline = TG.filter((x) => ['sendMessage', 'editMessageText', 'edit
   && !adminChatIds.has(String(x.params.chat_id))
   && x.params.reply_markup && Array.isArray(x.params.reply_markup.inline_keyboard) && x.params.reply_markup.inline_keyboard.length);
 assert(customerInline.length === 0, 'هیچ پیامی به مشتری دکمهٔ شیشه‌ای (inline) ندارد؛ ناوبری فقط با کیبورد پایین چت و مینی‌اپ است');
+
+// ---------- اپ اندروید: مجوز پیامک و اجرای پس‌زمینه در زمان اجرا ----------
+const androidRoot = path.join(here, '..', 'android');
+const androidAppRoot = path.join(androidRoot, 'app', 'src', 'main');
+const readAndroid = (rel) => fs.readFileSync(path.join(androidAppRoot, rel), 'utf8');
+const androidManifest = readAndroid('AndroidManifest.xml');
+const androidMainKt = readAndroid(path.join('java', 'site', 'tiznet', 'app', 'MainActivity.kt'));
+const androidPermsKt = readAndroid(path.join('java', 'site', 'tiznet', 'app', 'Perms.kt'));
+const androidGuardKt = readAndroid(path.join('java', 'site', 'tiznet', 'app', 'GuardService.kt'));
+const androidBootKt = readAndroid(path.join('java', 'site', 'tiznet', 'app', 'BootReceiver.kt'));
+const androidGradleProps = fs.readFileSync(path.join(androidRoot, 'gradle.properties'), 'utf8');
+assert(
+  ['RECEIVE_SMS', 'POST_NOTIFICATIONS', 'REQUEST_IGNORE_BATTERY_OPTIMIZATIONS', 'FOREGROUND_SERVICE',
+    'FOREGROUND_SERVICE_DATA_SYNC', 'RECEIVE_BOOT_COMPLETED'].every((p) => androidManifest.includes('android.permission.' + p)),
+  'اپ اندروید مجوز پیامک، اعلان، معافیت باتری و سرویس پس‌زمینه را در manifest اعلام می‌کند');
+assert(
+  androidManifest.includes('android:foregroundServiceType="dataSync"')
+  && androidManifest.includes('android:name=".GuardService"')
+  && androidManifest.includes('android:name=".BootReceiver"')
+  && androidManifest.includes('android.intent.action.BOOT_COMPLETED')
+  && androidManifest.includes('android.intent.action.MY_PACKAGE_REPLACED'),
+  'سرویس همیشه‌فعال و شروع دوبارهٔ آن بعد از ری‌استارت/آپدیت در manifest ثبت شده است');
+assert(
+  androidMainKt.includes('RequestMultiplePermissions')
+  && androidMainKt.includes('startSetup()')
+  && androidMainKt.includes('askBattery')
+  && androidMainKt.includes('enableAutomation')
+  && androidMainKt.includes('!prefs.setupDone'),
+  'اپ در اولین اجرا خودش مجوز پیامک و اجرای پس‌زمینه را می‌خواهد و بعد تأیید خودکار را روشن می‌کند');
+assert(
+  androidPermsKt.includes('isIgnoringBatteryOptimizations')
+  && androidPermsKt.includes('ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS')
+  && androidPermsKt.includes('openAutostart')
+  && androidPermsKt.includes('ACTION_BOOT_COMPLETED') === false,
+  'درخواست معافیت باتری با دیالوگ سیستمی و راهنمای Autostart سازنده انجام می‌شود');
+assert(
+  androidGuardKt.includes('startForeground')
+  && androidGuardKt.includes('FOREGROUND_SERVICE_TYPE_DATA_SYNC')
+  && androidGuardKt.includes('START_STICKY')
+  && androidBootKt.includes('BOOT_COMPLETED')
+  && androidBootKt.includes('GuardService.start'),
+  'سرویس پس‌زمینه پایدار است و بعد از بوت دوباره بالا می‌آید');
+const androidVersionCode = Number((androidGradleProps.match(/tiznet\.versionCode=(\d+)/) || [])[1] || 0);
+assert(androidVersionCode >= 2, 'versionCode اپ اندروید با هر انتشار یکی زیاد می‌شود (فعلی: ' + androidVersionCode + ')');
+const androidVersionName = String((androidGradleProps.match(/tiznet\.versionName=([\w.]+)/) || [])[1] || '');
+assert(/^\d+\.\d+\.\d+$/.test(androidVersionName), 'versionName اپ اندروید سه‌بخشی است: ' + androidVersionName);
 
 console.log('— تمام —');
 if (process.exitCode) console.error('❌ بعضی تست‌ها شکست خوردند');
