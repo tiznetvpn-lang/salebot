@@ -64,6 +64,13 @@ jobs:
           echo "/opt/gradle-8.7/bin" >> "$GITHUB_PATH"
           /opt/gradle-8.7/bin/gradle --version
 
+      # تحلیل پیامک بانکی قلب اپ است؛ اگر تست‌های JVM رد شوند، APK ساخته و منتشر نمی‌شود.
+      - name: Unit tests (bank SMS parsing)
+        working-directory: android
+        run: |
+          set -o pipefail
+          gradle :app:testReleaseUnitTest --no-daemon --stacktrace --console=plain 2>&1 | tee /tmp/tests.log
+
       - name: Build release APK
         working-directory: android
         run: |
@@ -139,6 +146,12 @@ jobs:
             echo "**بخش What went wrong:**"
             echo '```'
             sed -n '/What went wrong/,/Try:/p' /tmp/build.log 2>/dev/null | head -n 40 || true
+            echo '```'
+            echo
+            echo "**تست‌های JVM پیامک بانکی:**"
+            echo '```'
+            grep -E "FAILED|expected:|AssertionError|Exception" /tmp/tests.log 2>/dev/null | head -n 30 || true
+            grep -h -A3 "<failure" android/app/build/test-results/testReleaseUnitTest/*.xml 2>/dev/null | head -n 40 || true
             echo '```'
             echo
             echo "**بازرسی APK:**"
