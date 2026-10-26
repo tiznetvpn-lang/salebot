@@ -1222,7 +1222,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.44-ubuntu26.46';"), 'شمارهٔ نسخهٔ سرور 1.8.44-ubuntu26.46 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.45-ubuntu26.47';"), 'شمارهٔ نسخهٔ سرور 1.8.45-ubuntu26.47 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -1542,6 +1542,166 @@ const walletMiniCheckout = await miniApi('/api/miniapp/checkout', userInit, {
 });
 const walletMiniOrder = walletMiniCheckout.json && walletMiniCheckout.json.order;
 assert(walletMiniCheckout.status === 200 && walletMiniOrder && walletMiniOrder.status === 'approved' && (await kvJson('u:' + U1)).balance === walletBeforeMiniApp.balance - purchasable.price, 'پرداخت مستقیم با کیف پول داخل Mini App موجودی را یک‌بار کم و سفارش را تحویل می‌دهد');
+// ---------- مینی‌اپ: جعبهٔ کد تخفیف پیش از انتخاب روش پرداخت + تب تنظیمات ----------
+const discountBoxIdx = miniAppSource.indexOf('function renderDiscountBox(');
+const checkoutChooserIdx = miniAppSource.indexOf('function renderCheckoutChooser()');
+const discountBoxSource = miniAppSource.slice(discountBoxIdx, checkoutChooserIdx);
+assert(discountBoxIdx > 0 && checkoutChooserIdx > discountBoxIdx
+  && discountBoxSource.includes('id="discountCodeInput"') && discountBoxSource.includes('data-discount-apply')
+  && discountBoxSource.includes('اعمال کد تخفیف'),
+  'صفحهٔ پرداخت مینی‌اپ یک جعبهٔ کد تخفیف با دکمهٔ «اعمال کد تخفیف» دارد');
+assert(discountBoxSource.includes('مبلغ پلن') && discountBoxSource.includes('تخفیف') && discountBoxSource.includes('مبلغ نهایی'),
+  'پس از اعمال کد، مبلغ پایه، مقدار تخفیف و مبلغ نهایی به مشتری نشان داده می‌شود');
+assert(miniAppSource.includes("html=renderDiscountBox(price,payable,discount)") && miniAppSource.includes("html+='<div class=\"payment-options\">'"),
+  'جعبهٔ کد تخفیف پیش از انتخاب روش پرداخت و بالای همان صفحه رندر می‌شود');
+const chooserForDiscount = miniAppSource.slice(checkoutChooserIdx, miniAppSource.indexOf('function walletTopupMarkup()', checkoutChooserIdx));
+assert(chooserForDiscount.includes('checkoutContext.discount') && chooserForDiscount.includes('money(payable)'),
+  'مبلغ نمایش‌داده‌شده در انتخاب روش پرداخت همان مبلغ پس از تخفیف است');
+assert(miniAppSource.includes('async function applyDiscountCode()') && miniAppSource.includes("api('/api/miniapp/discount/check'")
+  && miniAppSource.includes("if(e.target.closest('[data-discount-apply]')){applyDiscountCode();") && miniAppSource.includes("e.target.id==='discountCodeInput'"),
+  'دکمهٔ «اعمال کد تخفیف» (و Enter) کد را سمت سرور بررسی می‌کند و نتیجه را در صفحهٔ پرداخت نگه می‌دارد');
+assert(miniAppSource.includes("discount_code:(checkoutContext.discount&&checkoutContext.discount.code)||undefined"),
+  'کد تخفیف تأییدشده همراه ساخت سفارش به سرور فرستاده می‌شود');
+assert(miniAppSource.includes('function removeDiscountCode()') && miniAppSource.includes('data-discount-remove'),
+  'مشتری می‌تواند کد تخفیف را بردارد و مبلغ به حالت قبل برگردد');
+assert(miniAppSource.includes('data-stab="discounts"') && miniAppSource.includes('data-sgroup="discounts"'),
+  'در تنظیمات مینی‌اپ یک تب «تخفیف» وجود دارد');
+const discountsPanelIdx = miniAppSource.indexOf('id="discountsPanel"');
+const discountsPanelSource = miniAppSource.slice(discountsPanelIdx, miniAppSource.indexOf('id="plansPage"', discountsPanelIdx) > 0 ? miniAppSource.indexOf('</section>', discountsPanelIdx) : miniAppSource.length);
+assert(miniAppSource.includes('id="discountCode"') && miniAppSource.includes('id="discountType"')
+  && miniAppSource.includes('id="discountValue"') && miniAppSource.includes('id="discountLimit"') && miniAppSource.includes('id="discountExpiry"')
+  && miniAppSource.includes('value="percent"') && miniAppSource.includes('value="amount"'),
+  'فرم کد تخفیف نوع درصدی/مبلغی، مقدار، تعداد استفاده برای هر اکانت و تاریخ انقضا را می‌گیرد');
+assert(miniAppSource.includes('تعداد استفاده برای هر اکانت') && miniAppSource.includes('تاریخ انقضا'),
+  'برچسب‌های «تعداد استفاده برای هر اکانت» و «تاریخ انقضا» در تب تخفیف دیده می‌شوند');
+assert(miniAppSource.includes('async function loadManagedDiscounts()') && miniAppSource.includes("api('/api/miniapp/admin/discounts')")
+  && miniAppSource.includes("action:'save',code:code,type:type,value:value,per_account_limit:limit,expires_at:expiry.value"),
+  'تب تخفیف کدها را از سرور می‌خواند و با نوع/مقدار/سقف/انقضا ذخیره می‌کند');
+assert(miniAppSource.includes("data-discount-toggle=") && miniAppSource.includes("data-discount-delete=") && miniAppSource.includes("data-discount-edit="),
+  'هر کد تخفیف در تب تنظیمات دکمهٔ ویرایش، فعال/غیرفعال و حذف دارد');
+assert(miniAppSource.includes("if(name==='discounts'){loadManagedDiscounts()") && miniAppSource.includes("e.target.id==='discountForm'"),
+  'تب تخفیف هنگام باز شدن بارگذاری می‌شود و فرم آن به مسیر ذخیره وصل است');
+// ---------- کد تخفیف: پیش‌نمایش، ساخت سفارش، سقف هر حساب و آزادسازی ----------
+const dcUserInit = await signedInitData(120, { first_name: 'DiscountCustomer', username: 'discount_customer' });
+const dcPrice = Number(purchasable.price);
+const dcPost = (path, initData, body) => miniApi(path, initData, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+});
+const dcDenied = await dcPost('/api/miniapp/admin/discounts', userInit, { action: 'save', code: 'HACK', type: 'percent', value: 50 });
+assert(dcDenied.status === 403, 'ساخت کد تخفیف فقط برای مدیر است');
+const dcCreate = await dcPost('/api/miniapp/admin/discounts', adminInit, {
+  action: 'save', code: 'off20', type: 'percent', value: 20, per_account_limit: 1
+});
+assert(dcCreate.status === 200 && dcCreate.json.item && dcCreate.json.item.code === 'OFF20'
+  && dcCreate.json.item.type === 'percent' && dcCreate.json.item.value === 20
+  && dcCreate.json.item.enabled === true && dcCreate.json.item.per_account_limit === 1,
+  'مدیر می‌تواند کد تخفیف درصدی با سقف یک‌بار برای هر حساب بسازد (کد یکدست‌سازی می‌شود)');
+const dcList = await miniApi('/api/miniapp/admin/discounts', adminInit);
+assert(dcList.status === 200 && dcList.json.items.some((x) => x.code === 'OFF20') && dcList.json.stats.total >= 1,
+  'فهرست کدهای تخفیف با آمار استفاده به پنل مدیر برمی‌گردد');
+const dcExpectedDiscount = Math.floor(dcPrice * 20 / 100);
+const dcPreview = await dcPost('/api/miniapp/discount/check', dcUserInit, {
+  code: 'off20', panel_id: purchasable.panel_id, plan_id: purchasable.plan_id
+});
+assert(dcPreview.status === 200 && dcPreview.json.discount === dcExpectedDiscount
+  && dcPreview.json.payable === dcPrice - dcExpectedDiscount && dcPreview.json.base_amount === dcPrice,
+  'پیش‌نمایش کد تخفیف همان مبلغ تخفیف و مبلغ قابل پرداخت را برمی‌گرداند که در سفارش اعمال می‌شود');
+const dcUnknown = await dcPost('/api/miniapp/discount/check', dcUserInit, {
+  code: 'NOPE99', panel_id: purchasable.panel_id, plan_id: purchasable.plan_id
+});
+assert(dcUnknown.status === 409 && dcUnknown.json.error === 'discount_not_found', 'کد ناشناخته با خطای مشخص رد می‌شود');
+const dcCheckout = await dcPost('/api/miniapp/checkout', dcUserInit, {
+  method: 'manual', panel_id: purchasable.panel_id, plan_id: purchasable.plan_id, discount_code: 'OFF20', request_id: 'discount-order-0001'
+});
+const dcOrder = dcCheckout.json && dcCheckout.json.order;
+assert(dcCheckout.status === 200 && dcOrder && dcOrder.amount === dcPrice - dcExpectedDiscount
+  && dcOrder.list_amount === dcPrice && dcOrder.discount_amount === dcExpectedDiscount
+  && dcOrder.discount_code === 'OFF20' && dcOrder.pay_amount > dcOrder.amount,
+  'سفارش با مبلغ پس از تخفیف ساخته می‌شود، مبلغ پایه و کد تخفیف برای گزارش در آن می‌ماند');
+const dcOrderStored = await kvJson('o:' + (dcOrder && dcOrder.id));
+assert(dcOrderStored && dcOrderStored.amount === dcPrice - dcExpectedDiscount && dcOrderStored.discount_code === 'OFF20'
+  && Number((await kvJson('discounts')).OFF20.used['120']) === 1,
+  'استفاده از کد در لحظهٔ ساخت سفارش برای همان حساب شمارش می‌شود');
+const dcRepeatSame = await dcPost('/api/miniapp/checkout', dcUserInit, {
+  method: 'manual', panel_id: purchasable.panel_id, plan_id: purchasable.plan_id, discount_code: 'OFF20', request_id: 'discount-order-0001'
+});
+assert(dcRepeatSame.status === 200 && dcRepeatSame.json.order.id === dcOrder.id
+  && Number((await kvJson('discounts')).OFF20.used['120']) === 1,
+  'تکرار همان درخواست با کد تخفیف، همان سفارش باز را برمی‌گرداند و استفادهٔ کد دوباره شمرده نمی‌شود');
+const dcSecondUse = await dcPost('/api/miniapp/checkout', dcUserInit, {
+  method: 'manual', panel_id: purchasable.panel_id, plan_id: managedPlanId, discount_code: 'OFF20', request_id: 'discount-order-0002'
+});
+assert(dcSecondUse.status === 409 && dcSecondUse.json.error === 'discount_limit_reached',
+  'سقف استفادهٔ هر حساب جلوی استفادهٔ دوم همان کد را می‌گیرد');
+const dcOtherUser = await signedInitData(121, { first_name: 'SecondDiscount', username: 'second_discount' });
+const dcOtherPreview = await dcPost('/api/miniapp/discount/check', dcOtherUser, {
+  code: 'OFF20', panel_id: purchasable.panel_id, plan_id: purchasable.plan_id
+});
+assert(dcOtherPreview.status === 200 && dcOtherPreview.json.remaining === 1, 'سقف استفاده برای هر حساب جداست و حساب دیگر هنوز می‌تواند کد را بزند');
+const dcReject = await dcPost('/api/miniapp/admin/orders/' + dcOrder.id, adminInit, { action: 'reject', reason: 'تست آزادسازی تخفیف' });
+const dcPreviewAfterReject = await dcPost('/api/miniapp/discount/check', dcUserInit, {
+  code: 'OFF20', panel_id: purchasable.panel_id, plan_id: purchasable.plan_id
+});
+assert(dcReject.status === 200 && dcPreviewAfterReject.status === 200,
+  'رد سفارش، استفادهٔ کد تخفیف را آزاد می‌کند تا حساب بی‌دلیل از سقف رد نشود');
+const dcPlainOrder = await dcPost('/api/miniapp/checkout', dcUserInit, {
+  method: 'manual', panel_id: purchasable.panel_id, plan_id: purchasable.plan_id, request_id: 'discount-order-0003'
+});
+assert(dcPlainOrder.status === 200 && dcPlainOrder.json.order.amount === dcPrice && !dcPlainOrder.json.order.discount_code,
+  'سفارش بدون کد تخفیف مبلغ کامل را می‌گیرد');
+const dcReplaced = await dcPost('/api/miniapp/checkout', dcUserInit, {
+  method: 'manual', panel_id: purchasable.panel_id, plan_id: purchasable.plan_id, discount_code: 'OFF20', request_id: 'discount-order-0004'
+});
+assert(dcReplaced.status === 200 && dcReplaced.json.order.id !== dcPlainOrder.json.order.id
+  && dcReplaced.json.order.discount_amount === dcExpectedDiscount
+  && (await kvJson('o:' + dcPlainOrder.json.order.id)).status === 'cancelled',
+  'افزودن کد تخفیف، سفارش باز قبلی را با مبلغ قدیمی نگه نمی‌دارد و سفارش تازه با مبلغ تخفیف‌دار می‌سازد');
+const dcCash = await dcPost('/api/miniapp/admin/discounts', adminInit, { action: 'save', code: 'CASH50', type: 'amount', value: 50000, per_account_limit: 2 });
+const dcCashPreview = await dcPost('/api/miniapp/discount/check', dcUserInit, {
+  code: 'CASH50', panel_id: purchasable.panel_id, plan_id: purchasable.plan_id
+});
+assert(dcCash.status === 200 && dcCash.json.item.type === 'amount' && dcCashPreview.status === 200
+  && dcCashPreview.json.discount === 50000 && dcCashPreview.json.payable === dcPrice - 50000,
+  'کد تخفیف مبلغی هم کار می‌کند و مبلغ ثابت را از قیمت پلن کم می‌کند');
+const dcExpiredCreate = await dcPost('/api/miniapp/admin/discounts', adminInit, { action: 'save', code: 'OLD10', type: 'percent', value: 10, expires_at: Date.now() - 60000 });
+const dcExpiredPreview = await dcPost('/api/miniapp/discount/check', dcUserInit, {
+  code: 'OLD10', panel_id: purchasable.panel_id, plan_id: purchasable.plan_id
+});
+const dcPastCreate = await dcPost('/api/miniapp/admin/discounts', adminInit, { action: 'save', code: 'PAST10', type: 'percent', value: 10, expires_at: Date.now() - 5 * 86400000 });
+assert(dcExpiredCreate.status === 200 && dcExpiredPreview.status === 409 && dcExpiredPreview.json.error === 'discount_expired'
+  && dcPastCreate.status === 400 && dcPastCreate.json.error === 'discount_expiry_in_past',
+  'کد منقضی رد می‌شود و ثبت تاریخ انقضای گذشته پذیرفته نمی‌شود');
+const dcTooBig = await dcPost('/api/miniapp/admin/discounts', adminInit, { action: 'save', code: 'BIGONE', type: 'amount', value: 100000000 });
+const dcTooBigPreview = await dcPost('/api/miniapp/discount/check', dcUserInit, {
+  code: 'BIGONE', panel_id: purchasable.panel_id, plan_id: purchasable.plan_id
+});
+assert(dcTooBig.status === 200 && dcTooBigPreview.status === 409 && dcTooBigPreview.json.error === 'discount_too_large',
+  'تخفیفی که کل مبلغ سفارش را صفر کند اعمال نمی‌شود (مبلغ یکتای بانکی باید معنا داشته باشد)');
+const dcToggle = await dcPost('/api/miniapp/admin/discounts', adminInit, { action: 'toggle', code: 'CASH50' });
+const dcDisabledPreview = await dcPost('/api/miniapp/discount/check', dcUserInit, {
+  code: 'CASH50', panel_id: purchasable.panel_id, plan_id: purchasable.plan_id
+});
+const dcToggleBack = await dcPost('/api/miniapp/admin/discounts', adminInit, { action: 'toggle', code: 'CASH50' });
+assert(dcToggle.status === 200 && dcToggle.json.item.enabled === false && dcDisabledPreview.json.error === 'discount_disabled' && dcToggleBack.json.item.enabled === true,
+  'خاموش/روشن‌کردن کد تخفیف همان لحظه روی بررسی مشتری اثر می‌گذارد');
+const dcDelete = await dcPost('/api/miniapp/admin/discounts', adminInit, { action: 'delete', code: 'BIGONE' });
+const dcListAfterDelete = await miniApi('/api/miniapp/admin/discounts', adminInit);
+assert(dcDelete.status === 200 && !dcListAfterDelete.json.items.some((x) => x.code === 'BIGONE'), 'حذف کد تخفیف از پنل مدیر کار می‌کند');
+// خرید با کیف پول: فقط مبلغ پس از تخفیف کسر می‌شود.
+const dcWalletUserInit = await signedInitData(122, { first_name: 'WalletDiscount', username: 'wallet_discount' });
+await miniApi('/api/miniapp/bootstrap', dcWalletUserInit);
+const dcWalletRecord = await kvJson('u:122') || {};
+await kv.put('u:122', Object.assign({}, dcWalletRecord, { balance: dcPrice }));
+const dcWalletCode = await dcPost('/api/miniapp/admin/discounts', adminInit, { action: 'save', code: 'WALLET10', type: 'percent', value: 10, per_account_limit: 1 });
+const dcWalletCheckout = await dcPost('/api/miniapp/checkout', dcWalletUserInit, {
+  method: 'wallet', panel_id: purchasable.panel_id, plan_id: purchasable.plan_id, discount_code: 'WALLET10', request_id: 'discount-wallet-0001'
+});
+const dcWalletExpected = dcPrice - Math.floor(dcPrice * 10 / 100);
+assert(dcWalletCode.status === 200 && dcWalletCheckout.status === 200
+  && dcWalletCheckout.json.order.status === 'approved' && dcWalletCheckout.json.order.amount === dcWalletExpected
+  && Number((await kvJson('u:122')).balance) === dcPrice - dcWalletExpected,
+  'خرید با کیف پول فقط مبلغ پس از تخفیف را کسر می‌کند و سفارش با همان مبلغ تأیید می‌شود');
+
 const staleInit = await signedInitData(U1, {}, 90000);
 const staleApi = await miniApi('/api/miniapp/bootstrap', staleInit);
 assert(staleApi.status === 401, 'initData قدیمی/منقضی‌شده رد می‌شود');
@@ -2552,13 +2712,20 @@ const chooserSource = miniAppSource.slice(chooserStart, chooserEnd);
 assert(chooserStart > 0 && chooserEnd > chooserStart,
   'تابع انتخاب روش پرداخت مینی‌اپ پیدا می‌شود');
 assert(chooserSource.includes("data-pay-method=\"shetab\"") && chooserSource.includes('کارت‌به‌کارت خودکار')
-  && chooserSource.indexOf("data-pay-method=\"shetab\"") < chooserSource.indexOf('else if(options.manual)'),
-  'در انتخاب روش پرداخت، کارت‌به‌کارت خودکار جای دستی را گرفته و دستی فقط پشتیبان است');
+  && chooserSource.indexOf("data-pay-method=\"shetab\"") < chooserSource.indexOf("data-pay-method=\"manual\"")
+  && chooserSource.includes('if(options.manual)') && !chooserSource.includes('else if(options.manual)'),
+  'در انتخاب روش پرداخت، کارت‌به‌کارت خودکار اول می‌آید و کارت‌به‌کارت دستی هم مستقل از آن نمایش داده می‌شود');
+const chooserAutoIdx = chooserSource.indexOf("if(options.automatic)");
+const chooserManualIdx = chooserSource.indexOf("if(options.manual)");
+const chooserManualEnd = chooserSource.indexOf("html+='</div>';", chooserManualIdx);
+assert(chooserAutoIdx > 0 && chooserManualIdx > chooserAutoIdx && chooserManualEnd > chooserManualIdx,
+  'روشن‌بودن کارت‌به‌کارت خودکار دیگر شرط نمایش کارت‌به‌کارت دستی نیست (باگ «دستی فعال است ولی دیده نمی‌شود»)');
 const topupStart = miniAppSource.indexOf('function walletTopupMarkup()');
 const topupSource = miniAppSource.slice(topupStart, miniAppSource.indexOf('function openWalletTopup()', topupStart));
 assert(topupSource.includes("data-topup-method=\"shetab\"")
-  && topupSource.indexOf('data-topup-method=\"shetab\"') < topupSource.indexOf('else if(options.manual)'),
-  'شارژ کیف پول هم اول کارت‌به‌کارت خودکار را پیشنهاد می‌دهد');
+  && topupSource.indexOf("data-topup-method=\"shetab\"") < topupSource.indexOf("data-topup-method=\"manual\"")
+  && topupSource.includes('if(options.manual)') && !topupSource.includes('else if(options.manual)'),
+  'شارژ کیف پول هم اول کارت‌به‌کارت خودکار را پیشنهاد می‌دهد و دستی را مستقل نمایش می‌دهد');
 assert(miniAppSource.includes('function renderAutoTransferWarning(')
   && miniAppSource.includes('مبلغ کارت‌به‌کارت را دقیقاً براساس مبلغ اختصاصی انجام دهید')
   && miniAppSource.includes('در غیر این صورت پرداخت شما تأیید نمی‌شود')

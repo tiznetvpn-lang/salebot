@@ -299,6 +299,21 @@
     .payment-option small { margin-top:3px; color:#be868b; font-size:9px; line-height:1.6; }
     .order-summary-box,.payment-instructions { margin-top:13px; padding:13px; border-radius:13px; border:1px solid rgba(255, 255, 255, .08); background:rgba(255, 255, 255, .025); line-height:1.9; font-size:11px; }
     .order-summary-box strong { color:#ffffff; }
+    .discount-box { margin-top:14px; padding:13px; border-radius:14px; border:1px dashed rgba(241, 126, 136, .45); background:rgba(237, 49, 64, .07); }
+    .discount-box.applied { border-style:solid; border-color:rgba(241, 126, 136, .55); background:rgba(237, 49, 64, .12); }
+    .discount-label { display:block; color:#f3e3e4; font-size:11px; margin-bottom:8px; }
+    .discount-row { display:flex; gap:8px; align-items:stretch; }
+    .discount-row input { flex:1 1 auto; min-width:0; padding:10px 11px; border-radius:10px; border:1px solid rgba(255, 255, 255, .16); background:#45080d; color:#fff5f6; font-size:12px; letter-spacing:.6px; }
+    .discount-apply { flex:0 0 auto; border:0; border-radius:10px; padding:10px 13px; background:#f05663; color:#2a0407; font-weight:800; font-size:11px; cursor:pointer; white-space:nowrap; }
+    .discount-apply[disabled] { opacity:.6; cursor:progress; }
+    .discount-head { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:11px; color:#fff5f6; }
+    .discount-code-chip { padding:3px 8px; border-radius:8px; background:rgba(255, 255, 255, .1); font-family:monospace; letter-spacing:.6px; direction:ltr; }
+    .discount-rows { display:grid; gap:5px; margin-top:9px; font-size:11px; color:#e6d3d4; }
+    .discount-rows > div { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .discount-rows .discount-off { color:#ffc9ce; }
+    .discount-rows .discount-final { margin-top:3px; padding-top:6px; border-top:1px solid rgba(255, 255, 255, .12); color:#ffffff; font-weight:800; }
+    .discount-remove { margin-top:9px; border:0; background:transparent; color:#f0a3a9; font-size:10px; padding:2px 0; cursor:pointer; text-decoration:underline; }
+    .discount-error { display:block; margin-top:7px; min-height:1px; color:#ffd0d4; font-size:10px; line-height:1.7; }
     .payment-amount { color:#f05663; font-size:17px; font-weight:850; }
     .copy-line { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:9px; padding:9px 10px; border:1px solid rgba(255, 255, 255, .07); border-radius:10px; background:#45080d; direction:ltr; }
     .copy-line code { color:#faf5f5; font-size:12px; overflow-wrap:anywhere; text-align:left; }
@@ -404,6 +419,11 @@
     .payment-option strong { font-size:15px; }
     .payment-option small { color:#e9d5d7; font-size:13px; }
     .payment-icon { color:#e1c6c9; background:rgba(223, 196, 198, .16); }
+    .discount-box { padding:15px; }
+    .discount-label,.discount-head,.discount-rows { font-size:13px; }
+    .discount-row input { font-size:14px; padding:12px; }
+    .discount-apply { font-size:13px; padding:12px 16px; }
+    .discount-remove,.discount-error { font-size:12px; }
     .order-summary-box,.payment-instructions { background:rgba(125, 19, 28, .22); border-color:rgba(249, 240, 241, .2); font-size:14px; }
     .payment-amount { color:#e1c6c9; font-size:20px; }
     .copy-line,.receipt-form input,.receipt-form textarea { background:#7c0812; border-color:rgba(249, 240, 241, .24); color:#ffffff; }
@@ -3271,6 +3291,7 @@
       <div class="settings-tabs" role="tablist" aria-label="بخش‌های تنظیمات">
         <button class="settings-tab active" type="button" role="tab" aria-selected="true" data-stab="shop">فروشگاه</button>
         <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="pay">پرداخت</button>
+        <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="discounts">تخفیف</button>
         <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="free">اشتراک رایگان</button>
         <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="retention">نگهداری</button>
         <button class="settings-tab" type="button" role="tab" aria-selected="false" data-stab="look">دکمه‌ها</button>
@@ -3384,6 +3405,26 @@
           <span id="managerMessage" class="form-message" role="status" aria-live="polite"></span>
         </div>
         <div class="mini-note">مدیر تازه همان دسترسی کامل پنل را دارد (سفارش‌ها، پلن‌ها، تنظیمات، پیام همگانی و بکاپ KV). مدیران دائمی از <code>ADMIN_IDS</code> می‌آیند و از اینجا حذف نمی‌شوند.</div>
+      </article>
+      <article class="panel hidden" id="discountsPanel" data-sgroup="discounts" style="margin-top:14px">
+        <div class="panel-head"><div><h3>کدهای تخفیف</h3><p>این کدها در صفحهٔ پرداخت مینی‌اپ، پیش از انتخاب روش پرداخت، به مشتری نشان داده می‌شوند.</p></div><span class="status" id="discountsVerdict">—</span></div>
+        <form id="discountForm">
+          <div class="settings-grid">
+            <label>کد تخفیف<input id="discountCode" type="text" dir="ltr" maxlength="24" placeholder="OFF20" autocomplete="off" spellcheck="false" required></label>
+            <label>نوع تخفیف<select id="discountType"><option value="percent">درصدی</option><option value="amount">مبلغی (تومان)</option></select></label>
+            <label><span id="discountValueLabel">درصد تخفیف</span><input id="discountValue" type="text" inputmode="numeric" maxlength="12" placeholder="20" autocomplete="off" required></label>
+            <label>تعداد استفاده برای هر اکانت<input id="discountLimit" type="text" inputmode="numeric" maxlength="3" value="1" placeholder="1" autocomplete="off" required></label>
+            <label>تاریخ انقضا (میلادی)<input id="discountExpiry" type="date" dir="ltr" autocomplete="off"></label>
+            <label>یادداشت (اختیاری)<input id="discountNote" type="text" maxlength="120" placeholder="مثلاً کمپین مهر" autocomplete="off"></label>
+          </div>
+          <div class="form-actions">
+            <button class="btn-primary" id="discountSave" type="submit"><span>ثبت کد تخفیف</span></button>
+            <button class="outline-btn hidden" id="discountCancelEdit" type="button">لغو ویرایش</button>
+            <span id="discountMessage" class="form-message" role="status" aria-live="polite"></span>
+          </div>
+        </form>
+        <div class="managed-list" id="managedDiscountsList"><div class="empty-state">در حال بارگذاری…</div></div>
+        <div class="mini-note">کد تخفیف روی خرید، تمدید و ارتقای پلن اعمال می‌شود؛ شارژ کیف پول تخفیف ندارد. بدون تاریخ انقضا، کد تا غیرفعال‌شدن معتبر می‌ماند. سقف استفاده برای هر حساب جداست و با رد یا لغو سفارش، همان استفاده آزاد می‌شود.</div>
       </article>
     </section>
 
@@ -3628,6 +3669,10 @@
     let adminBusy = false;
     let orderRefreshBusy = false;
     let walletTopupBusy = false;
+    let discountBusy = false;
+    let managedDiscounts = [];
+    let editingDiscountCode = '';
+    let discountSaving = false;
     let livePollTimer = null;
     let livePollBusy = false;
     let dashboardDrill = null;
@@ -4039,7 +4084,8 @@
         financial_order_locked:'پس از ثبت رسید یا پرداخت، ویرایش مبلغ و محصول قفل می‌شود.',invalid_order_product:'پلن یا سرور انتخاب‌شده فعال نیست یا با هم سازگار نیستند.',
         customer_not_found:'مشتری پیدا نشد.',invalid_customer_amount:'مبلغ واردشده معتبر نیست.',insufficient_customer_balance:'موجودی مشتری برای این کسر کافی نیست.',admin_cannot_be_banned:'حساب مدیر قابل مسدودسازی نیست.',
         withdrawal_not_pending:'این درخواست قبلاً پردازش شده است.',withdrawal_action_processing:'درخواست برداشت دیگری در حال پردازش است؛ کمی صبر کنید.',
-        order_not_found:'سفارش پیدا نشد.','HTTP 502':'Worker پاسخ قطعی نداد؛ ابتدا وضعیت فعلی سفارش را بررسی کنید.'
+        order_not_found:'سفارش پیدا نشد.','HTTP 502':'Worker پاسخ قطعی نداد؛ ابتدا وضعیت فعلی سفارش را بررسی کنید.',
+        invalid_discount_code:'کد تخفیف باید ۳ تا ۲۴ نویسهٔ انگلیسی/عدد باشد (مثل OFF20).',invalid_discount_type:'نوع تخفیف معتبر نیست.',invalid_discount_value:'مقدار تخفیف معتبر نیست؛ درصدی بین ۱ تا ۹۵ و مبلغی حداقل ۱٬۰۰۰ تومان.',invalid_discount_limit:'تعداد استفاده برای هر اکانت باید بین ۱ تا ۱۰۰ باشد.',invalid_discount_expiry:'تاریخ انقضا معتبر نیست.',discount_expiry_in_past:'تاریخ انقضا نمی‌تواند در گذشته باشد.',discount_not_found:'کد تخفیف پیدا نشد؛ فهرست را تازه کنید.',discount_codes_full:'سقف ۲۰۰ کد تخفیف پر شده است؛ چند کد قدیمی را حذف کنید.',invalid_discount_action:'درخواست کد تخفیف معتبر نیست.'
       };
       let text=texts[code]||String(code||'عملیات انجام نشد.');
       if(detail)text+=' جزئیات Worker: '+String(detail).slice(0,300);
@@ -4711,6 +4757,145 @@
       if(!liveMode||!adminRole){managedPlans=[];renderManagedPlans();return;}
       const data=await api('/api/miniapp/admin/plans/manage');managedPlans=data.items||[];if(!livePanels.some(p=>Object.prototype.hasOwnProperty.call(p,'api_base')))livePanels=data.panels||[];renderManagedPlans();
     }
+    // ---------- کدهای تخفیف (تب تنظیمات) ----------
+    function discountTypeText(item) {
+      return item.type==='amount'?money(Number(item.value||0))+' تخفیف':fmt(Number(item.value||0))+'٪ تخفیف';
+    }
+    function discountDayText(ms) {
+      const value=Number(ms||0);
+      if(!value)return 'بدون انقضا';
+      try{return new Intl.DateTimeFormat('fa-IR',{dateStyle:'medium',timeZone:'Asia/Tehran'}).format(new Date(value));}
+      catch(_){return '—';}
+    }
+    function renderManagedDiscounts() {
+      const el=document.getElementById('managedDiscountsList');if(!el)return;
+      const verdict=document.getElementById('discountsVerdict');
+      const now=Date.now();
+      if(verdict){
+        const active=managedDiscounts.filter(d=>d.enabled&&(!d.expires_at||d.expires_at>now)).length;
+        verdict.textContent=managedDiscounts.length?(fmt(active)+' فعال از '+fmt(managedDiscounts.length)):'بدون کد';
+        verdict.className='status '+(active?'paid':'pending');
+      }
+      if(!managedDiscounts.length){el.innerHTML='<div class="empty-state">هنوز کد تخفیفی ساخته نشده است. با فرم بالا اولین کد را بسازید.</div>';return;}
+      el.innerHTML=managedDiscounts.map(d=>{
+        const expired=d.expires_at&&d.expires_at<=now;
+        const state=!d.enabled?'غیرفعال':expired?'منقضی':'فعال';
+        const cls=!d.enabled?'pending':expired?'failed':'paid';
+        const meta=[discountTypeText(d),'سقف '+fmt(d.per_account_limit||1)+' بار برای هر حساب','انقضا: '+discountDayText(d.expires_at),'استفاده‌شده: '+fmt(d.used_total||0)+' بار'];
+        if(d.note)meta.push(d.note);
+        return `<div class="managed-item"><div class="managed-main"><strong dir="ltr">${esc(d.code)}</strong>${meta.map(m=>'<span class="managed-meta">'+esc(m)+'</span>').join('')}</div><span class="status ${cls}">${state}</span><div class="managed-actions"><button class="table-action" data-discount-edit="${esc(d.code)}">ویرایش</button><button class="table-action" data-discount-toggle="${esc(d.code)}">${d.enabled?'غیرفعال':'فعال'}</button><button class="table-action danger" data-discount-delete="${esc(d.code)}">حذف</button></div></div>`;
+      }).join('');
+    }
+    async function loadManagedDiscounts() {
+      if(!liveMode||!adminRole){managedDiscounts=[];renderManagedDiscounts();return;}
+      const data=await api('/api/miniapp/admin/discounts');
+      managedDiscounts=Array.isArray(data.items)?data.items:[];
+      renderManagedDiscounts();
+    }
+    function discountValueLabel() {
+      const type=document.getElementById('discountType');
+      const label=document.getElementById('discountValueLabel');
+      const value=document.getElementById('discountValue');
+      const isPercent=!type||type.value!=='amount';
+      if(label)label.textContent=isPercent?'درصد تخفیف':'مبلغ تخفیف (تومان)';
+      if(value)value.placeholder=isPercent?'20':'50000';
+    }
+    function resetDiscountForm() {
+      editingDiscountCode='';
+      const ids=['discountCode','discountValue','discountExpiry','discountNote'];
+      ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+      const type=document.getElementById('discountType');if(type)type.value='percent';
+      const limit=document.getElementById('discountLimit');if(limit)limit.value='1';
+      const code=document.getElementById('discountCode');if(code)code.readOnly=false;
+      const save=document.getElementById('discountSave');if(save)save.querySelector('span').textContent='ثبت کد تخفیف';
+      const cancel=document.getElementById('discountCancelEdit');if(cancel)cancel.classList.add('hidden');
+      discountValueLabel();
+    }
+    function editDiscount(code) {
+      const item=managedDiscounts.find(d=>String(d.code)===String(code));if(!item)return;
+      editingDiscountCode=String(item.code);
+      const codeInput=document.getElementById('discountCode');
+      if(codeInput){codeInput.value=item.code;codeInput.readOnly=true;}
+      const type=document.getElementById('discountType');if(type)type.value=item.type==='amount'?'amount':'percent';
+      const value=document.getElementById('discountValue');if(value)value.value=String(item.value||'');
+      const limit=document.getElementById('discountLimit');if(limit)limit.value=String(item.per_account_limit||1);
+      const note=document.getElementById('discountNote');if(note)note.value=item.note||'';
+      const expiry=document.getElementById('discountExpiry');
+      if(expiry){
+        if(item.expires_at){
+          try{expiry.value=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(item.expires_at));}
+          catch(_){expiry.value='';}
+        }else expiry.value='';
+      }
+      const save=document.getElementById('discountSave');if(save)save.querySelector('span').textContent='ذخیرهٔ تغییرات';
+      const cancel=document.getElementById('discountCancelEdit');if(cancel)cancel.classList.remove('hidden');
+      discountValueLabel();
+      const message=document.getElementById('discountMessage');if(message)message.textContent='در حال ویرایش کد '+item.code+'؛ برای کد جدید فرم را لغو کنید.';
+      const panel=document.getElementById('discountForm');if(panel&&panel.scrollIntoView)try{panel.scrollIntoView({block:'start',behavior:'smooth'});}catch(_){}
+    }
+    function readDiscountExpiry() {
+      const input=document.getElementById('discountExpiry');
+      const raw=String(input&&input.value||'').trim();
+      if(!raw)return {ok:true,value:0};
+      // پایان همان روز به وقت تهران؛ تاریخ ورودی میلادی است و در فهرست شمسی نشان داده می‌شود.
+      const ms=Date.parse(raw+'T23:59:59.000+03:30');
+      if(!Number.isFinite(ms))return {ok:false,value:0};
+      return {ok:true,value:ms};
+    }
+    async function submitDiscountForm() {
+      if(discountSaving)return;
+      const message=document.getElementById('discountMessage');
+      const code=String((document.getElementById('discountCode')||{}).value||'').trim().toUpperCase().replace(/[^A-Z0-9_-]/g,'');
+      const type=String((document.getElementById('discountType')||{}).value||'percent');
+      const rawValue=String((document.getElementById('discountValue')||{}).value||'').replace(/[^\d]/g,'');
+      const rawLimit=String((document.getElementById('discountLimit')||{}).value||'1').replace(/[^\d]/g,'');
+      const note=String((document.getElementById('discountNote')||{}).value||'').trim();
+      const expiry=readDiscountExpiry();
+      const fail=(text)=>{if(message)message.textContent=text;toast(text);};
+      if(!/^[A-Z0-9_-]{3,24}$/.test(code)){fail('کد تخفیف باید ۳ تا ۲۴ نویسهٔ انگلیسی/عدد باشد (مثل OFF20).');return;}
+      if(!rawValue){fail('مقدار تخفیف را وارد کنید.');return;}
+      const value=Number(rawValue);
+      if(type==='percent'&&(value<1||value>95)){fail('درصد تخفیف باید بین ۱ تا ۹۵ باشد.');return;}
+      if(type==='amount'&&(value<1000||value>1000000000)){fail('مبلغ تخفیف باید بین ۱٬۰۰۰ تا ۱٬۰۰۰٬۰۰۰٬۰۰۰ تومان باشد.');return;}
+      const limit=Number(rawLimit||'1');
+      if(!Number.isInteger(limit)||limit<1||limit>100){fail('تعداد استفاده برای هر اکانت باید بین ۱ تا ۱۰۰ باشد.');return;}
+      if(!expiry.ok){fail('تاریخ انقضا معتبر نیست.');return;}
+      discountSaving=true;
+      const button=document.getElementById('discountSave');
+      if(button){button.disabled=true;}
+      if(message)message.textContent='در حال ذخیره…';
+      try{
+        const result=await api('/api/miniapp/admin/discounts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save',code:code,type:type,value:value,per_account_limit:limit,expires_at:expiry.value,note:note})});
+        discountSaving=false;
+        if(button)button.disabled=false;
+        resetDiscountForm();
+        await loadManagedDiscounts().catch(()=>{});
+        const saved=(result&&result.item)||{code:code};
+        if(message)message.textContent='کد '+saved.code+' ذخیره شد.';
+        toast('کد تخفیف '+saved.code+' ذخیره شد.');
+      }catch(e){
+        discountSaving=false;
+        if(button)button.disabled=false;
+        const text=adminErrorText(e.message,e.data&&e.data.detail);
+        if(message)message.textContent=text;
+        toast(text);
+      }
+    }
+    async function discountAction(code,action) {
+      const message=document.getElementById('discountMessage');
+      if(action==='delete'&&!confirm('کد تخفیف '+code+' حذف شود؟ استفاده‌های ثبت‌شده در سفارش‌های قبلی پاک نمی‌شوند.'))return;
+      try{
+        await api('/api/miniapp/admin/discounts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:action,code:code})});
+        if(action==='delete'&&editingDiscountCode===code)resetDiscountForm();
+        await loadManagedDiscounts().catch(()=>{});
+        if(message)message.textContent=action==='delete'?'کد '+code+' حذف شد.':'وضعیت کد '+code+' تغییر کرد.';
+        toast(action==='delete'?'کد تخفیف حذف شد.':'وضعیت کد تخفیف به‌روز شد.');
+      }catch(e){
+        const text=adminErrorText(e.message,e.data&&e.data.detail);
+        if(message)message.textContent=text;
+        toast(text);
+      }
+    }
     function renderManagedPanels() {
       const el=document.getElementById('managedPanelsList');if(!el)return;
       if(!livePanels.length){el.innerHTML='<div class="empty-state">سروری ثبت نشده است. با افزودن سرور، پلن‌های فعال در فروشگاه نمایش داده می‌شوند.</div>';return;}
@@ -5124,7 +5309,16 @@
         manual_order_not_open:'این سفارش دیگر در انتظار رسید دستی نیست. وضعیت فعلی آن را به‌روزرسانی کنید.',
         receipt_too_large:'حجم تصویر رسید نباید بیشتر از ۵ مگابایت باشد.',
         receipt_image_type:'تصویر رسید باید JPG، JPEG یا PNG باشد.',
-        receipt_required:'یک عکس رسید یا شمارهٔ پیگیری وارد کنید.'
+        receipt_required:'یک عکس رسید یا شمارهٔ پیگیری وارد کنید.',
+        discount_code_required:'کد تخفیف را وارد کنید.',
+        discount_not_found:'این کد تخفیف وجود ندارد یا حذف شده است.',
+        discount_disabled:'این کد تخفیف توسط فروشگاه غیرفعال شده است.',
+        discount_expired:'تاریخ این کد تخفیف گذشته است.',
+        discount_limit_reached:'سهمیهٔ استفاده از این کد برای حساب شما تمام شده است.',
+        discount_zero:'این کد برای مبلغ پلن انتخابی تخفیفی ندارد.',
+        discount_too_large:'تخفیف این کد برای این سفارش قابل اعمال نیست؛ پلن دیگری انتخاب کنید.',
+        discount_codes_full:'سقف تعداد کدهای تخفیف پر شده است.',
+        discount_rate_limited:'تعداد تلاش برای بررسی کد تخفیف زیاد شده؛ یک ساعت دیگر دوباره امتحان کنید.'
       };
       return messages[code]||'اتصال کامل نشد. اگر سفارش در فهرست شما دیده می‌شود، همان را پیگیری کنید و دوباره پرداخت نکنید.';
     }
@@ -5156,7 +5350,7 @@
       modalTitleElement.textContent='مدیریت سفارش · #'+String(order.id);modalTextElement.textContent=[order.first_name,order.username?'@'+order.username:'',order.tg_id].filter(Boolean).join(' · ');
       const paymentNames={manual:'کارت‌به‌کارت دستی',shetab:'کارت‌به‌کارت خودکار',wallet:'کیف پول'};
       const paymentStatusNames={paid:'پرداخت‌شده',review:'رسید در انتظار بررسی',awaiting_receipt:'در انتظار رسید',waiting:'در انتظار پرداخت',processing:'در حال پردازش',refunded:'برگشت داده‌شده'};
-      let html=`<div class="order-summary-box"><div>وضعیت: <strong>${esc(statusText(order))}</strong></div><div>نوع: <strong>${esc(order.type_label||typeText(order))}</strong></div><div>پلن و سرور: <strong>${esc([order.plan_title,order.panel_name].filter(Boolean).join(' · ')||'—')}</strong></div><div>مبلغ پایه: <strong>${money(order.amount||0)}</strong>${order.pay_amount!=null?` · مبلغ انتقال: <strong>${money(order.pay_amount)}</strong>`:''}</div><div>پرداخت: <strong>${esc(paymentNames[order.payment_method]||order.payment_method||'نامشخص')}</strong> · <span>${esc(paymentStatusNames[order.payment_status]||order.payment_status||'—')}</span></div><div>ثبت: <strong>${esc(fmtDate(order.created_at))}</strong></div><div>مشتری: <strong>${esc(order.first_name||'کاربر')} · ${esc(order.tg_id)}</strong>${order.username?` · @${esc(order.username)}`:''}</div></div>`;
+      let html=`<div class="order-summary-box"><div>وضعیت: <strong>${esc(statusText(order))}</strong></div><div>نوع: <strong>${esc(order.type_label||typeText(order))}</strong></div><div>پلن و سرور: <strong>${esc([order.plan_title,order.panel_name].filter(Boolean).join(' · ')||'—')}</strong></div><div>مبلغ سفارش: <strong>${money(order.amount||0)}</strong>${order.pay_amount!=null?` · مبلغ انتقال: <strong>${money(order.pay_amount)}</strong>`:''}</div>${Number(order.discount_amount||0)>0?`<div>کد تخفیف: <strong dir="ltr">${esc(order.discount_code||'')}</strong> · تخفیف <strong>−${money(order.discount_amount)}</strong> از ${money(order.list_amount||0)}</div>`:''}<div>پرداخت: <strong>${esc(paymentNames[order.payment_method]||order.payment_method||'نامشخص')}</strong> · <span>${esc(paymentStatusNames[order.payment_status]||order.payment_status||'—')}</span></div><div>ثبت: <strong>${esc(fmtDate(order.created_at))}</strong></div><div>مشتری: <strong>${esc(order.first_name||'کاربر')} · ${esc(order.tg_id)}</strong>${order.username?` · @${esc(order.username)}`:''}</div></div>`;
       if(order.manual_approval)html+=`<div class="order-state good">تأیید پرداخت دستی ثبت شده · مدیر ${esc(order.manual_approved_by||'—')} · ${esc(fmtDate(order.manual_approved_at))}${order.manual_approval_note?`<br>یادداشت: ${esc(order.manual_approval_note)}`:''}</div>`;
       if(order.status==='approved')html+='<div class="order-state good">✅ وضعیت تکمیل سفارش در Worker ثبت شده است. تأیید یا تحویل را دوباره اجرا نکنید.</div>';
       if(order.notification_warning)html+='<div class="order-state warn">سفارش تأیید شده است؛ فقط اطلاع‌رسانی جانبی با مشکل روبه‌رو بود. از تأیید مجدد خودداری کنید.</div>';
@@ -5423,8 +5617,68 @@
       const plans=Array.isArray(customerData&&customerData.plans)?customerData.plans:[];
       const product=plans.find(p=>String(p.panel_id)===String(panelId)&&String(p.plan_id)===String(planId));
       if(!product){toast('این پلن دیگر فعال نیست؛ صفحه را تازه‌سازی کنید.');return;}
-      checkoutContext={panel_id:String(panelId),plan_id:String(planId),sub_sid:subSid?String(subSid):'',product:product,mode:mode==='upgrade'?'upgrade':'',method:'',requestId:''};
+      checkoutContext={panel_id:String(panelId),plan_id:String(planId),sub_sid:subSid?String(subSid):'',product:product,mode:mode==='upgrade'?'upgrade':'',method:'',requestId:'',discount:null,discountDraft:''};
       activeOrderId='';stopOrderPolling();renderCheckoutChooser();openModal();
+    }
+    /**
+     * جعبهٔ کد تخفیف، بالای انتخاب روش پرداخت. مشتری کد را همین‌جا وارد می‌کند و
+     * «اعمال کد تخفیف» می‌زند؛ مبلغ از سمت سرور محاسبه می‌شود (نه در مرورگر) و
+     * بعد از اعمال، مبلغ نهایی در همهٔ روش‌های پرداخت ملاک است.
+     */
+    function renderDiscountBox(price,payable,discount) {
+      if(discount){
+        return '<div class="discount-box applied">'
+          +'<div class="discount-head"><strong>کد تخفیف اعمال شد</strong><span class="discount-code-chip">'+esc(discount.code)+'</span></div>'
+          +'<div class="discount-rows">'
+          +'<div><span>مبلغ پلن</span><span>'+money(price)+'</span></div>'
+          +'<div class="discount-off"><span>تخفیف</span><span>−'+money(Number(discount.discount||0))+'</span></div>'
+          +'<div class="discount-final"><span>مبلغ نهایی</span><span>'+money(payable)+'</span></div>'
+          +'</div>'
+          +'<button type="button" class="discount-remove" data-discount-remove>حذف کد تخفیف</button>'
+          +'<small id="discountError" class="discount-error" role="status" aria-live="polite"></small>'
+          +'</div>';
+      }
+      return '<div class="discount-box">'
+        +'<label class="discount-label" for="discountCodeInput">کد تخفیف دارید؟</label>'
+        +'<div class="discount-row">'
+        +'<input id="discountCodeInput" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="24" placeholder="کد تخفیف" value="'+esc((checkoutContext&&checkoutContext.discountDraft)||'')+'">'
+        +'<button type="button" class="discount-apply" data-discount-apply>اعمال کد تخفیف</button>'
+        +'</div>'
+        +'<small id="discountError" class="discount-error" role="status" aria-live="polite"></small>'
+        +'</div>';
+    }
+    async function applyDiscountCode() {
+      if(!checkoutContext||discountBusy)return;
+      const input=document.getElementById('discountCodeInput');
+      const raw=String((input&&input.value)||checkoutContext.discountDraft||'').trim();
+      const code=raw.toUpperCase().replace(/[^A-Z0-9_-]/g,'');
+      const errorEl=document.getElementById('discountError');
+      if(!code){if(errorEl)errorEl.textContent=checkoutErrorText('discount_code_required');return;}
+      discountBusy=true;
+      const button=document.querySelector('[data-discount-apply]');
+      if(button){button.disabled=true;button.textContent='در حال بررسی…';}
+      if(errorEl)errorEl.textContent='';
+      try{
+        const result=await api('/api/miniapp/discount/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code,panel_id:checkoutContext.panel_id,plan_id:checkoutContext.plan_id,sub_sid:checkoutContext.sub_sid||undefined})});
+        discountBusy=false;
+        checkoutContext.discount=result;
+        checkoutContext.discountDraft='';
+        // مبلغ عوض شد؛ شناسهٔ درخواست قبلی نباید سفارش بازِ بدون تخفیف را برگرداند.
+        checkoutContext.requestId='';
+        renderCheckoutChooser();
+        toast('کد تخفیف اعمال شد؛ '+money(Number(result&&result.discount||0))+' کاهش مبلغ.');
+      }catch(e){
+        discountBusy=false;
+        checkoutContext.discountDraft=code;
+        if(errorEl)errorEl.textContent=checkoutErrorText(e.message);
+        if(button){button.disabled=false;button.textContent='اعمال کد تخفیف';}
+      }
+    }
+    function removeDiscountCode() {
+      if(!checkoutContext)return;
+      checkoutContext.discount=null;checkoutContext.discountDraft='';checkoutContext.requestId='';
+      renderCheckoutChooser();
+      toast('کد تخفیف برداشته شد؛ مبلغ پلن به حالت قبل برگشت.');
     }
     function renderCheckoutChooser() {
       if(!checkoutContext)return;
@@ -5433,19 +5687,22 @@
       const price=Number(p.price||0);
       const upgrading=checkoutContext.mode==='upgrade';
       modalTitleElement.textContent=upgrading?'ارتقای پلن':checkoutContext.sub_sid?'تمدید اشتراک':'انتخاب روش پرداخت';
-      modalTextElement.textContent=(p.title||'پلن')+' · '+(p.panel_name||'سرور')+' · '+fmt(p.days||0)+' روز · '+money(price)+(upgrading?' · مبلغ کامل':'');
+      modalTextElement.textContent=(p.title||'پلن')+' · '+(p.panel_name||'سرور')+' · '+fmt(p.days||0)+' روز · '+(discount?money(payable)+' (با تخفیف)':money(price)+(upgrading?' · مبلغ کامل':''));
       const options=customerData&&customerData.payment_options||{};
-      const wallet=balance>=price;
-      let html='<div class="payment-options">';
+      // کد تخفیف روی مبلغِ پلن اعمال می‌شود؛ تا وقتی اعمال نشده، مبلغ پایه همان قیمت پلن است.
+      const discount=checkoutContext.discount||null;
+      const payable=discount?Number(discount.payable||0):price;
+      const wallet=balance>=payable;
+      let html=renderDiscountBox(price,payable,discount);
+      html+='<div class="payment-options">';
       html+=`<button class="payment-option" data-pay-method="wallet" ${wallet?'':'disabled'}><span class="payment-icon">◈</span><span><strong>کیف پول · ${money(balance)}</strong><small>${wallet?'پرداخت فوری از موجودی؛ تحویل پس از تأیید سفارش':'موجودی کافی نیست؛ انتخاب کنید تا موجودی دوباره بررسی شود'}</small></span></button>`;
-      // کارت‌به‌کارت فقط «خودکار» است. مسیر دستی هیچ‌وقت کنار خودکار نمایش داده نمی‌شود؛
-      // فقط اگر سوییچ خودکار سمت سرور خاموش باشد، همان روش قبلی به‌عنوان پشتیبان می‌ماند
-      // تا فروش قطع نشود.
+      // خودکار و دستی دو روش مستقل‌اند: اگر مدیر هر دو را فعال کرده باشد هر دو دیده می‌شوند
+      // (خودکار اول). قبلاً else if بود و روشن‌بودن خودکار، دستی را بی‌صدا پنهان می‌کرد.
       if(options.automatic)html+='<button class="payment-option" data-pay-method="shetab"><span class="payment-icon">⚡</span><span><strong>کارت‌به‌کارت خودکار</strong><small>مبلغ اختصاصی و شماره کارت در صفحهٔ سفارش؛ تأیید خودکار با پیامک بانک</small></span></button>';
-      else if(options.manual)html+='<button class="payment-option" data-pay-method="manual"><span class="payment-icon">▣</span><span><strong>کارت‌به‌کارت (بررسی دستی)</strong><small>پرداخت خودکار هنوز روشن نیست؛ عکس رسید یا کد پیگیری را همین‌جا بفرستید</small></span></button>';
+      if(options.manual)html+='<button class="payment-option" data-pay-method="manual"><span class="payment-icon">▣</span><span><strong>کارت‌به‌کارت (بررسی دستی)</strong><small>پرداخت خودکار روشن نبود یا نمی‌خواهید از آن استفاده کنید؛ عکس رسید یا کد پیگیری را همین‌جا بفرستید</small></span></button>';
       html+='</div>';
       if(!options.manual&&!options.automatic)html+='<div class="order-state warn">در حال حاضر پرداخت بانکی برای سفارش جدید فعال نیست. سفارش‌های باز قبلی از بخش پیگیری قابل مشاهده‌اند.</div>';
-      html+=upgrading?'<div class="order-summary-box"><strong>مبلغ کامل پلن جدید</strong><br>تخفیفِ باقیمانده یا کسرِ قیمت پلن قبلی اعمال نمی‌شود. پس از تأیید، حجم و مدت پلن جدید از امروز تنظیم می‌شود؛ معادل ریالی مبلغ نیز پیش از انتقال نمایش داده خواهد شد.</div>':'<div class="order-summary-box"><strong>قبل از پرداخت</strong><br>پرداخت کارت‌به‌کارت خودکار است: پس از تأیید هشدار، شماره کارت و مبلغ اختصاصی (تومان و ریال) در صفحهٔ سفارش با دکمهٔ کپی نمایش داده می‌شود.</div>';
+      html+=discount?'<div class="order-summary-box"><strong>مبلغ قابل پرداخت: '+money(payable)+'</strong><br>'+money(price)+' − '+money(Number(discount.discount||0))+' تخفیف کد '+esc(discount.code)+'. همین مبلغ در صفحهٔ سفارش و برای کارت‌به‌کارت خودکار ملاک است.</div>':(upgrading?'<div class="order-summary-box"><strong>مبلغ کامل پلن جدید</strong><br>تخفیفِ باقیمانده یا کسرِ قیمت پلن قبلی اعمال نمی‌شود. پس از تأیید، حجم و مدت پلن جدید از امروز تنظیم می‌شود؛ معادل ریالی مبلغ نیز پیش از انتقال نمایش داده خواهد شد.</div>':'<div class="order-summary-box"><strong>قبل از پرداخت</strong><br>پرداخت کارت‌به‌کارت خودکار است: پس از تأیید هشدار، شماره کارت و مبلغ اختصاصی (تومان و ریال) در صفحهٔ سفارش با دکمهٔ کپی نمایش داده می‌شود.</div>');
       modalBodyElement.innerHTML=html;setModalAction('','');
     }
     // شارژ کیف پول داخل خودِ اپ. قبلاً این دکمه با لینک t.me کاربر را از اپ بیرون
@@ -5463,7 +5720,7 @@
       html+='<div class="receipt-form"><label for="walletTopupAmount">یا مبلغ دلخواه (تومان)</label><input id="walletTopupAmount" type="text" inputmode="numeric" autocomplete="off" placeholder="مثلاً 150000"></div>';
       html+='<div class="payment-options">';
       if(options.automatic)html+='<button class="payment-option" data-topup-method="shetab"><span class="payment-icon">⚡</span><span><strong>کارت‌به‌کارت خودکار</strong><small>مبلغ اختصاصی و شماره کارت در صفحهٔ سفارش؛ با پیامک بانک خودکار تأیید می‌شود</small></span></button>';
-      else if(options.manual)html+='<button class="payment-option" data-topup-method="manual"><span class="payment-icon">▣</span><span><strong>کارت‌به‌کارت (بررسی دستی)</strong><small>پرداخت خودکار هنوز روشن نیست؛ عکس رسید یا کد پیگیری را همین‌جا بفرستید</small></span></button>';
+      if(options.manual)html+='<button class="payment-option" data-topup-method="manual"><span class="payment-icon">▣</span><span><strong>کارت‌به‌کارت (بررسی دستی)</strong><small>عکس رسید یا کد پیگیری را همین‌جا بفرستید؛ ادمین دستی تأیید می‌کند</small></span></button>';
       html+='</div>';
       if(!options.automatic&&!options.manual)html+='<div class="order-state warn">در حال حاضر پرداخت بانکی فعال نیست؛ برای شارژ با پشتیبانی تماس بگیرید.</div>';
       html+='<small id="walletTopupError" style="color:#ead9da;line-height:1.8"></small>';
@@ -5646,12 +5903,12 @@
       modalTitleElement.textContent='پیگیری سفارش · #'+activeOrderId;
       modalTextElement.textContent=[order.plan_title,order.panel_name].filter(Boolean).join(' · ')||'وضعیت و اطلاعات پرداخت سفارش';
       const state=orderStateMessage(order);
-      let html=`<div class="order-summary-box"><div>نوع سفارش: <strong>${esc(order.type_label||typeText(order))}</strong></div><div>وضعیت: <strong>${esc(statusText(order))}</strong></div><div>${order.type==='charge'?'مبلغ شارژ':'مبلغ پلن'}: <strong>${money(order.amount||0)}</strong></div><div>روش پرداخت: <strong>${esc(order.payment_method==='manual'?'کارت‌به‌کارت دستی':order.payment_method==='shetab'?'کارت‌به‌کارت خودکار':order.payment_method==='wallet'?'کیف پول':'نامشخص')}</strong></div><div>زمان ثبت: <strong>${esc(fmtDate(order.created_at))}</strong></div></div>`;
+      let html=`<div class="order-summary-box"><div>نوع سفارش: <strong>${esc(order.type_label||typeText(order))}</strong></div><div>وضعیت: <strong>${esc(statusText(order))}</strong></div><div>${order.type==='charge'?'مبلغ شارژ':'مبلغ پلن'}: <strong>${money(order.amount||0)}</strong></div>${Number(order.discount_amount||0)>0?'<div>تخفیف کد '+esc(order.discount_code||'')+': <strong>−'+money(order.discount_amount)+'</strong> (مبلغ پیش از تخفیف '+money(order.list_amount||0)+')</div>':''}<div>روش پرداخت: <strong>${esc(order.payment_method==='manual'?'کارت‌به‌کارت دستی':order.payment_method==='shetab'?'کارت‌به‌کارت خودکار':order.payment_method==='wallet'?'کیف پول':'نامشخص')}</strong></div><div>زمان ثبت: <strong>${esc(fmtDate(order.created_at))}</strong></div></div>`;
       html+=`<div class="order-state ${state.kind}">${esc(state.text)}</div>`;
       if(payment&&order.status==='pending'){
         const exact=Number(payment.amount_toman||order.pay_amount||order.amount||0);
         const rialAmount=String(Math.round(Number(payment.amount_rial||exact*10)));
-        html+='<div class="payment-instructions"><div>'+(order.type==='charge'?'مبلغ شارژ درخواستی':'مبلغ پایهٔ پلن')+': <strong>'+money(order.amount||0)+'</strong></div><div>مبلغ دقیق انتقال: <strong class="payment-amount">'+money(exact)+'</strong></div>';
+        html+='<div class="payment-instructions"><div>'+(order.type==='charge'?'مبلغ شارژ درخواستی':'مبلغ نهایی سفارش')+': <strong>'+money(order.amount||0)+'</strong>'+(Number(order.discount_amount||0)>0?' <small>('+money(order.list_amount||0)+' − '+money(order.discount_amount)+' تخفیف)</small>':'')+'</div><div>مبلغ دقیق انتقال: <strong class="payment-amount">'+money(exact)+'</strong></div>';
         if(payment.card_number)html+='<div style="margin-top:10px">شماره کارت</div><div class="copy-line"><code>'+esc(payment.card_number)+'</code><button type="button" data-copy-text="'+esc(payment.card_number)+'">کپی شماره کارت</button></div>';
         html+='<div style="margin-top:12px">مبلغ انتقال به ریال</div><div class="copy-line"><code>'+fmt(rialAmount)+' ریال</code><button type="button" data-copy-text="'+rialAmount+'">کپی مبلغ ریالی</button></div>';
         if(payment.card_holder)html+='<div style="margin-top:8px">به‌نام: <strong>'+esc(payment.card_holder)+'</strong></div>';
@@ -5699,7 +5956,7 @@
       setModalAction('','');
       modalBodyElement.innerHTML='<div class="empty-state">در حال ساخت سفارش امن…</div>';
       try{
-        const result=await api('/api/miniapp/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:method,panel_id:checkoutContext.panel_id,plan_id:checkoutContext.plan_id,sub_sid:checkoutContext.sub_sid||undefined,request_id:checkoutContext.requestId})});
+        const result=await api('/api/miniapp/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method:method,panel_id:checkoutContext.panel_id,plan_id:checkoutContext.plan_id,sub_sid:checkoutContext.sub_sid||undefined,discount_code:(checkoutContext.discount&&checkoutContext.discount.code)||undefined,request_id:checkoutContext.requestId})});
         renderOrderDetails(result);
         if(result.order&&result.order.status==='approved'){
           try{await loadCustomer();}catch(_){}
@@ -5714,6 +5971,13 @@
           modalTextElement.textContent='برای جلوگیری از پرداخت تکراری، ارتقای جدید ساخته نشد.';
           modalBodyElement.innerHTML='<div class="order-state warn">'+esc(checkoutErrorText(e.message))+'</div>'+(pendingId?'<button class="payment-option" style="margin-top:12px" data-track-order="'+esc(pendingId)+'"><span class="payment-icon">↻</span><span><strong>پیگیری سفارش #'+esc(pendingId)+'</strong><small>وضعیت همان سفارش را بررسی کنید؛ پرداخت را تکرار نکنید.</small></span></button>':'');
           setModalAction('','');return;
+        }
+        if(['discount_not_found','discount_disabled','discount_expired','discount_limit_reached','discount_zero','discount_too_large'].includes(e.message)){
+          checkoutContext.requestId='';checkoutContext.discount=null;checkoutContext.discountDraft='';
+          renderCheckoutChooser();
+          const box=document.getElementById('discountError');
+          if(box)box.textContent=checkoutErrorText(e.message);
+          toast(checkoutErrorText(e.message));return;
         }
         if(['manual_payment_disabled','automatic_payment_disabled','plan_unavailable','plan_panel_mismatch','subscription_not_found'].includes(e.message)){
           checkoutContext.requestId='';renderCheckoutChooser();toast(checkoutErrorText(e.message));return;
@@ -5974,6 +6238,9 @@
       const recheckOrder=e.target.closest('[data-order-recheck]');if(recheckOrder){openAdminOrder(recheckOrder.dataset.orderRecheck);return;}
       const manageOrder=e.target.closest('[data-order-admin]');if(manageOrder){openAdminOrder(manageOrder.dataset.orderAdmin);return;}
       const customerRow=e.target.closest('[data-customer-open]');if(customerRow&&!e.target.closest('button,a,input,select,textarea')){openCustomerManager(customerRow.dataset.customerOpen);return;}
+      const discountEdit=e.target.closest('[data-discount-edit]');if(discountEdit){editDiscount(discountEdit.dataset.discountEdit);return;}
+      const discountToggle=e.target.closest('[data-discount-toggle]');if(discountToggle){discountAction(discountToggle.dataset.discountToggle,'toggle');return;}
+      const discountDelete=e.target.closest('[data-discount-delete]');if(discountDelete){discountAction(discountDelete.dataset.discountDelete,'delete');return;}
       const planEdit=e.target.closest('[data-plan-edit]');if(planEdit){const p=managedPlans.find(x=>String(x.id)===String(planEdit.dataset.planEdit));if(p)openPlanEditor(p);return;}
       const planToggle=e.target.closest('[data-plan-toggle]');if(planToggle){planAction(planToggle.dataset.planToggle,'toggle');return;}
       const panelEdit=e.target.closest('[data-panel-edit]');if(panelEdit){editPanel(panelEdit.dataset.panelEdit);return;}
@@ -5994,6 +6261,8 @@
       const renew=e.target.closest('[data-renew-sub]');if(renew){openPlanCheckout(renew.dataset.panelId,renew.dataset.planId,renew.dataset.renewSub);return;}
       const quickTile=e.target.closest('[data-customer-quick]');if(quickTile){handleCustomerQuick(quickTile.dataset.customerQuick);return;}
       const follow=e.target.closest('[data-track-order]');if(follow){openOrderTracking(follow.dataset.trackOrder);return;}
+      if(e.target.closest('[data-discount-apply]')){applyDiscountCode();return;}
+      if(e.target.closest('[data-discount-remove]')){removeDiscountCode();return;}
       const method=e.target.closest('[data-pay-method]');if(method&&!method.disabled){
         // کارت‌به‌کارت خودکار: اول هشدار مبلغ اختصاصی، بعد صفحهٔ سفارش.
         if(method.dataset.payMethod==='shetab'){renderAutoTransferWarning('checkout');return;}
@@ -6015,6 +6284,8 @@
       if(e.target===modalElement)closeModal();
     });
     document.addEventListener('keydown',e=>{
+      // Enter داخل ورودی کد تخفیف همان دکمهٔ «اعمال کد تخفیف» است.
+      if(e.key==='Enter'&&e.target&&e.target.id==='discountCodeInput'){e.preventDefault();applyDiscountCode();return;}
       if(e.key!=='Enter'&&e.key!==' ')return;
       if(e.target.closest('button,a,input,select,textarea'))return;
       const target=e.target.closest('[data-dashboard-drill],[data-drill-method],[data-drill-plan],[data-drill-panel],[data-drill-label],[data-drill-order],.cv-sub[data-subscription-detail]');
@@ -6024,6 +6295,7 @@
       if(!e.target)return;
       if(e.target.id==='receiptForm'){e.preventDefault();submitReceipt(e.target);}
       else if(e.target.id==='adminPlanForm'){e.preventDefault();submitPlanForm(e.target);}
+      else if(e.target.id==='discountForm'){e.preventDefault();submitDiscountForm();}
       else if(e.target.id==='adminOrderEditForm'){e.preventDefault();submitAdminOrderEdit(e.target);}
       else if(e.target.id==='agentPromoteForm'){e.preventDefault();promoteAgent(e.target);}
       else if(e.target.id==='agentPricingForm'){e.preventDefault();submitAgentPricing(e.target);}
@@ -6109,6 +6381,10 @@
     if(domainCheckBtn)domainCheckBtn.addEventListener('click',()=>loadDomainStatus(true));
     const managerAddBtn=document.getElementById('managerAdd');
     if(managerAddBtn)managerAddBtn.addEventListener('click',addManager);
+    const discountTypeEl=document.getElementById('discountType');
+    if(discountTypeEl)discountTypeEl.addEventListener('change',discountValueLabel);
+    const discountCancelEl=document.getElementById('discountCancelEdit');
+    if(discountCancelEl)discountCancelEl.addEventListener('click',()=>{resetDiscountForm();const m=document.getElementById('discountMessage');if(m)m.textContent='';});
     const btnLookSaveEl=document.getElementById('btnLookSave');
     if(btnLookSaveEl)btnLookSaveEl.addEventListener('click',()=>saveButtonLook());
     // مینی‌اپ نمی‌تواند شناسهٔ ایموجی پریمیومی را بخواند؛ با یک لمس ادمین به حالت گرفتن در چت می‌رود.
@@ -6128,6 +6404,7 @@
       if(name==='domain'&&!domainStatusLoaded){domainStatusLoaded=true;loadDomainStatus(false).catch(()=>{});}
       if(name==='backup'){loadBackupStatus().catch(()=>{});}
       if(name==='managers'){loadManagers().catch(()=>{});}
+      if(name==='discounts'){loadManagedDiscounts().catch(()=>{});}
     }
     let domainStatusLoaded=false;
     function domainRow(label,value,cls,fa){
