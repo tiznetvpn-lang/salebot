@@ -807,6 +807,8 @@ assert(String(appGuide.params.text).includes('اتصال اپ Shetab Verificatio
 const appQrButton = appGuideButtons.find((b) => b.callback_data === 'a_shqr');
 assert(appQrButton && String(appGuide.params.text).includes('ذخیره تنظیمات'),
   'صفحهٔ اتصال اپ دکمهٔ «QR آدرس» و یادآوری ترتیب «ذخیره تنظیمات → تست اتصال» را دارد');
+assert(String(appGuide.params.text).includes('github.com/tiznetvpn-lang/salebot/releases/latest'),
+  'صفحهٔ اتصال اپ لینک دانلود اپ اندروید تیزنت را دارد');
 await press(ADMIN, 'a_shqr');
 const qrShot = TG.filter((x) => x.method === 'sendPhoto' && String(x.params.chat_id) === String(ADMIN) && x.params.photo_name === 'tiznetvpn-shetab-endpoint-qr.png').at(-1);
 assert(qrShot && qrShot.params.photo_type === 'image/png' && qrShot.params.photo !== '[file:0]'
@@ -1220,7 +1222,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.40-ubuntu26.42';"), 'شمارهٔ نسخهٔ سرور 1.8.40-ubuntu26.42 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.41-ubuntu26.43';"), 'شمارهٔ نسخهٔ سرور 1.8.41-ubuntu26.43 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
