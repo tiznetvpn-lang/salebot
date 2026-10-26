@@ -2,6 +2,9 @@ name: Android APK
 
 # ساخت APK امضاشدهٔ اپ «تیزنت». خروجی همیشه به‌صورت Artifact و — اگر روی تگ اجرا شود —
 # به‌عنوان Asset ریلیز گیت‌هاب در دسترس است تا نصب/آپدیت بدون Android Studio ممکن باشد.
+#
+# نکته: این workflow عمداً به اکشن‌های شخص‌ثالث وابسته نیست؛ SDK اندروید از تصویر خود
+# رانر و Gradle از توزیع رسمی گرفته می‌شود تا شکست بیرونی، ساخت را نخواباند.
 
 on:
   workflow_dispatch:
@@ -10,7 +13,6 @@ on:
     paths:
       - 'android/**'
       - '.github/workflows/android.yml'
-      - 'package.json'
 
 permissions:
   contents: write
@@ -33,20 +35,42 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Locate Android SDK
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          if [ -z "$SDK" ] || [ ! -d "$SDK" ]; then
+            echo "Android SDK روی تصویر رانر نبود؛ نسخهٔ رسمی دانلود می‌شود."
+            SDK="$HOME/android-sdk"
+            mkdir -p "$SDK/cmdline-tools"
+            curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/clt.zip
+            unzip -q /tmp/clt.zip -d /tmp/clt
+            mv /tmp/clt/cmdline-tools "$SDK/cmdline-tools/latest"
+          fi
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          echo "SDK=$SDK" >> "$GITHUB_ENV"
 
-      - name: Install SDK packages
-        run: sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+      - name: Install platform 34 and build-tools
+        run: |
+          set -euo pipefail
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+          "$SDK/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /tmp/sdk.log 2>&1 \
+            || { echo "sdkmanager failed"; tail -n 40 /tmp/sdk.log; exit 1; }
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.7'
+      - name: Install Gradle
+        run: |
+          set -euo pipefail
+          curl -fsSL https://services.gradle.org/distributions/gradle-8.7-bin.zip -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /opt
+          echo "/opt/gradle-8.7/bin" >> "$GITHUB_PATH"
+          /opt/gradle-8.7/bin/gradle --version
 
       - name: Build release APK
         working-directory: android
-        run: gradle :app:assembleRelease --no-daemon --stacktrace
+        run: |
+          set -o pipefail
+          gradle :app:assembleRelease --no-daemon --stacktrace --console=plain 2>&1 | tee /tmp/build.log
 
       - name: Collect APK
         id: apk
@@ -76,3 +100,20 @@ jobs:
           body: |
             APK امضاشدهٔ اپ اندروید «تیزنت» برای اتصال مستقیم به همین سرور.
             نصب: فایل را روی گوشی باز کنید و اجازهٔ نصب از منابع ناشناس را بدهید.
+
+      # چون لاگ اکشن‌ها از بیرون همیشه خواندنی نیست، خطای ساخت به‌صورت کامنت روی
+      # همان کامیت نوشته می‌شود تا بدون باز کردن مرورگر هم قابل بررسی باشد.
+      - name: Report failure on the commit
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          LOG=$(tail -n 120 /tmp/build.log 2>/dev/null || echo "no build log")
+          {
+            echo "### ❌ ساخت APK ناموفق بود"
+            echo '```'
+            echo "$LOG"
+            echo '```'
+          } > /tmp/digest.md
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/comments" \
+            -F "body=@/tmp/digest.md" > /dev/null 2>&1 || true
