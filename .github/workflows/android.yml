@@ -87,11 +87,20 @@ jobs:
         run: |
           set -euo pipefail
           APK="out/$(ls out | head -1)"
-          "$SDK/build-tools/34.0.0/aapt" dump badging "$APK" \
-            | grep -E "^package:|^sdkVersion|^targetSdkVersion|uses-permission" || true
+          AAPT="$SDK/build-tools/34.0.0/aapt"
+          BADGING="$("$AAPT" dump badging "$APK")"
+          echo "$BADGING" | grep -E "^package:|^sdkVersion|^targetSdkVersion|uses-permission" || true
           echo '--- services/receivers ---'
-          "$SDK/build-tools/34.0.0/aapt" dump xmltree "$APK" AndroidManifest.xml \
-            | grep -E "E: (service|receiver)|A: android:name|foregroundServiceType" | head -40 || true
+          XML="$("$AAPT" dump xmltree "$APK" AndroidManifest.xml)"
+          echo "$XML" | grep -E "E: (service|receiver)|A: android:name|foregroundServiceType" | head -40 || true
+          # اگر مجوزی داخل APK نباشد، ساخت شکست می‌خورد: سبز بودن CI یعنی مجوزها واقعاً هست.
+          for p in RECEIVE_SMS POST_NOTIFICATIONS REQUEST_IGNORE_BATTERY_OPTIMIZATIONS \
+                   FOREGROUND_SERVICE FOREGROUND_SERVICE_DATA_SYNC RECEIVE_BOOT_COMPLETED; do
+            echo "$BADGING" | grep -q "android.permission.$p" || { echo "❌ مجوز $p داخل APK نیست"; exit 1; }
+          done
+          echo "$XML" | grep -q "GuardService" || { echo "❌ سرویس همیشه‌فعال داخل APK نیست"; exit 1; }
+          echo "$XML" | grep -q "dataSync" || { echo "❌ foregroundServiceType=dataSync داخل APK نیست"; exit 1; }
+          echo "✅ مجوز پیامک، اعلان، معافیت باتری، سرویس پس‌زمینه و بوت داخل APK تأیید شد"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
