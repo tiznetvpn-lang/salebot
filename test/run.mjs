@@ -1222,7 +1222,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.45-ubuntu26.47';"), 'شمارهٔ نسخهٔ سرور 1.8.45-ubuntu26.47 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.46-ubuntu26.48';"), 'شمارهٔ نسخهٔ سرور 1.8.46-ubuntu26.48 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -1581,6 +1581,42 @@ assert(miniAppSource.includes("data-discount-toggle=") && miniAppSource.includes
   'هر کد تخفیف در تب تنظیمات دکمهٔ ویرایش، فعال/غیرفعال و حذف دارد');
 assert(miniAppSource.includes("if(name==='discounts'){loadManagedDiscounts()") && miniAppSource.includes("e.target.id==='discountForm'"),
   'تب تخفیف هنگام باز شدن بارگذاری می‌شود و فرم آن به مسیر ذخیره وصل است');
+// اجرای واقعی renderCheckoutChooser در Node با DOM ساختگی: خطای «استفاده پیش از تعریف»
+// (TDZ) و رندرنشدن کارت دستی را همان‌جا می‌گیرد، نه با grep.
+function runChooser(paymentOptions, discount) {
+  const body = miniAppSource.slice(discountBoxIdx, checkoutChooserIdx)
+    + miniAppSource.slice(checkoutChooserIdx, miniAppSource.indexOf('function walletTopupMarkup()', checkoutChooserIdx))
+    + '\nrenderCheckoutChooser();\nreturn modalBodyElement.innerHTML;';
+  const factory = new Function('modalTitleElement', 'modalTextElement', 'modalBodyElement', 'setModalAction',
+    'customerData', 'checkoutContext', 'fmt', 'money', 'esc', 'renderDiscountBox', body);
+  try {
+    return { html: factory({ textContent: '' }, { textContent: '' }, { innerHTML: '' }, () => {},
+      { customer: { balance: 0 }, payment_options: paymentOptions },
+      { product: { title: 'پلن تست', panel_name: 'سرور تست', days: 30, price: 120000 }, sub_sid: '', mode: '', discount: discount || null, discountDraft: '' },
+      (n) => String(n), (n) => String(n) + ' تومان', (v) => String(v == null ? '' : v), () => '') };
+  } catch (e) {
+    // هر خطای زمان اجرا (مثل استفاده از متغیر پیش از تعریف) به‌صورت assert شکست می‌خورد.
+    return { error: 'runtime: ' + String((e && e.message) || e) };
+  }
+}
+const chooserBoth = runChooser({ automatic: true, manual: true }, null);
+const chooserBothHtml = chooserBoth.html || '';
+assert(!chooserBoth.error && chooserBothHtml.includes('data-pay-method="shetab"')
+  && chooserBothHtml.includes('data-pay-method="manual"'),
+  'در حالت روشن‌بودن هر دو روش، صفحهٔ پرداخت هم کارت‌به‌کارت خودکار و هم دستی را نشان می‌دهد (اجرای واقعی تابع)' + (chooserBoth.error ? ' — ' + chooserBoth.error : ''));
+const chooserManualOnly = runChooser({ automatic: false, manual: true }, null);
+const chooserManualOnlyHtml = chooserManualOnly.html || '';
+assert(!chooserManualOnly.error && chooserManualOnlyHtml.includes('data-pay-method="manual"') && !chooserManualOnlyHtml.includes('data-pay-method="shetab"'),
+  'اگر فقط کارت‌به‌کارت دستی روشن باشد، همان تنها گزینهٔ بانکی است');
+const chooserDiscounted = runChooser({ automatic: true, manual: true }, { code: 'OFF20', discount: 24000, payable: 96000, base_amount: 120000 });
+const chooserDiscountedHtml = chooserDiscounted.html || '';
+assert(!chooserDiscounted.error && chooserDiscountedHtml.includes('discount-box applied') && chooserDiscountedHtml.includes('OFF20')
+  && chooserDiscountedHtml.includes('data-discount-remove')
+  && chooserDiscountedHtml.indexOf('discount-box applied') < chooserDiscountedHtml.indexOf('data-pay-method="wallet"'),
+  'پس از اعمال کد، جعبهٔ تخفیف با مبلغ پایه/تخفیف/نهایی پیش از گزینه‌های پرداخت نمایش داده می‌شود');
+assert(chooserManualOnlyHtml.includes('id="discountCodeInput"') && chooserManualOnlyHtml.includes('اعمال کد تخفیف')
+  && chooserManualOnlyHtml.indexOf('id="discountCodeInput"') < chooserManualOnlyHtml.indexOf('data-pay-method="wallet"'),
+  'جعبهٔ کد تخفیف پیش از انتخاب روش پرداخت در همان صفحه قرار می‌گیرد');
 // ---------- کد تخفیف: پیش‌نمایش، ساخت سفارش، سقف هر حساب و آزادسازی ----------
 const dcUserInit = await signedInitData(120, { first_name: 'DiscountCustomer', username: 'discount_customer' });
 const dcPrice = Number(purchasable.price);
