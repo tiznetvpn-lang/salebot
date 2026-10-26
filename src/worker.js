@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.35-ubuntu26.37';
+const VERSION = '1.8.36-ubuntu26.38';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -2741,10 +2741,11 @@ function miniAppAgentView(agent, user) {
     username: String(profile.username || record.username || ''),
     enabled: isRecordEnabled(record),
     balance: Math.max(0, Number(record.balance || 0)),
-    quota_remaining: Math.max(0, Math.floor(Number(record.quota_remaining || 0))),
     total_created: Math.max(0, Math.floor(Number(record.total_created || 0))),
+    total_renewed: Math.max(0, Math.floor(Number(record.total_renewed || 0))),
     total_revenue: Math.max(0, Number(record.total_revenue || 0)),
     last_created_at: Number(record.last_created_at || 0),
+    last_renewed_at: Number(record.last_renewed_at || 0),
     created_at: Number(record.created_at || 0),
     updated_at: Number(record.updated_at || 0),
     status_label: isRecordEnabled(record) ? 'فعال' : 'غیرفعال'
@@ -2763,7 +2764,7 @@ async function createAgentRecord(env, tgid, user, actorId) {
     const agent = {
       id: id, tg_id: id, first_name: String(profile.first_name || '').slice(0, 128),
       username: String(profile.username || '').slice(0, 64), enabled: true,
-      balance: 0, quota_remaining: 0, total_created: 0,
+      balance: 0, total_created: 0, total_renewed: 0,
       plan_prices: miniAppAgentDefaultPrices(plans),
       created_by: String(actorId || ''), created_at: now, updated_at: now
     };
@@ -5335,7 +5336,7 @@ async function adminAgentsView(env, chatId, messageId) {
   const list = await miniAppAdminAgents(env, '', { stats: false });
   const items = (list.items || []).slice(0, 20);
   const lines = items.length
-    ? items.map((a, i) => faNum(i + 1) + '. ' + esc(a.first_name || a.username || a.tg_id) + ' — 💰 ' + fmtToman(a.balance) + ' · 🧩 ' + faNum(a.quota_remaining) + ' سهمیه · ✅ ' + faNum(a.total_created) + ' ساخته')
+    ? items.map((a, i) => faNum(i + 1) + '. ' + esc(a.first_name || a.username || a.tg_id) + ' — 💰 ' + fmtToman(a.balance) + ' · ✅ ' + faNum(a.total_created) + ' ساخته' + (a.total_renewed ? ' · 🔄 ' + faNum(a.total_renewed) + ' تمدید' : ''))
     : ['هنوز نماینده‌ای ثبت نشده است.'];
   const text = '🤝 <b>نماینده‌ها</b>\n\n' +
     'تعداد: <b>' + faNum(list.total || 0) + '</b>' + (list.partial ? ' (فهرست ناقص)' : '') + '\n\n' + lines.join('\n') +
@@ -7751,7 +7752,7 @@ async function retentionSweep(env, options) {
     processed++;
     if (!sub || !sub.uuid) continue;
     if (sub.purged_at) continue;
-    // اشتراک نمایندگی دارایی خود نماینده است (با موجودی/سهمیه مدیریت می‌شود)؛
+    // اشتراک نمایندگی دارایی خود نماینده است (با موجودی کیف پول تمدید/مدیریت می‌شود)؛
     // پاک‌سازی خودکار فقط روی اشتراک‌های فروخته‌شده به مشتری اجرا می‌شود.
     if (sub.kind === 'agent_subscription' || (sub.agent_id && !sub.tg_id)) { summary.agent_subs++; continue; }
     summary.checked++;
@@ -9016,10 +9017,9 @@ async function miniAppAdminSummary(env, days) {
     active: agentRecords.filter((a) => isRecordEnabled(a)).length,
     disabled: agentRecords.filter((a) => !isRecordEnabled(a)).length,
     balance: agentRecords.reduce((acc, a) => acc + Number(a.balance || 0), 0),
-    quota: agentRecords.reduce((acc, a) => acc + Math.floor(Number(a.quota_remaining || 0)), 0),
     created: agentRecords.reduce((acc, a) => acc + Math.floor(Number(a.total_created || 0)), 0),
+    renewed: agentRecords.reduce((acc, a) => acc + Math.floor(Number(a.total_renewed || 0)), 0),
     revenue: agentRecords.reduce((acc, a) => acc + Number(a.total_revenue || 0), 0),
-    low_quota: agentRecords.filter((a) => Math.floor(Number(a.quota_remaining || 0)) <= 5 && isRecordEnabled(a)).length,
     low_balance: agentRecords.filter((a) => Number(a.balance || 0) <= 0 && isRecordEnabled(a)).length,
     partial: !agentKeys.list_complete
   };
@@ -10416,13 +10416,13 @@ async function miniAppAdminCustomerAction(env, adminId, tgid, body) {
     const created = await createAgentRecord(env, userId, user, adminId);
     if (!created) return { data: { ok: false, error: 'agent_already_exists' }, status: 409 };
     await recordCustomerActivity(env, userId, 'agent_promoted', { actor_id: adminId });
-    try { await msg(env, userId, '🤝 <b>دسترسی نمایندگی برای شما فعال شد.</b>\nاز Mini App بخش «نمایندگی» را باز کنید تا موجودی، سهمیه و ساخت اشتراک را ببینید.', KB([[BTN('🤝 پنل نمایندگی', 'agent')]])); } catch (e) {}
+    try { await msg(env, userId, '🤝 <b>دسترسی نمایندگی برای شما فعال شد.</b>\nاز Mini App بخش «نمایندگی» را باز کنید تا موجودی و ساخت/تمدید اشتراک را ببینید.', KB([[BTN('🤝 پنل نمایندگی', 'agent')]])); } catch (e) {}
     return { data: { ok: true, agent: miniAppAgentView(created, user) }, status: 200 };
   } else if (action === 'demote_agent') {
     const agent = await getAgent(env, userId);
     if (!agent) return { data: { ok: false, error: 'agent_not_found' }, status: 404 };
-    if (Number(agent.balance || 0) > 0 || Math.floor(Number(agent.quota_remaining || 0)) > 0) {
-      return { data: { ok: false, error: 'agent_has_balance_or_quota' }, status: 409 };
+    if (Number(agent.balance || 0) > 0) {
+      return { data: { ok: false, error: 'agent_has_balance' }, status: 409 };
     }
     await kvDel(env, 'agent:' + userId);
     // رکورد کاربر و اشتراک‌های ساخته‌شده دست‌نخورده می‌مانند؛ فقط نقش نمایندگی برداشته می‌شود.
@@ -10503,6 +10503,16 @@ async function recordAgentLedger(env, agentId, entry) {
   if (!indexed) throw new Error('agent_ledger_index_failed');
   return row;
 }
+// نام نمایشی نماینده برای ثبت در توضیحات (comment) پنل Hiddify.
+function agentPanelLabel(agent, user) {
+  const record = agent || {};
+  const profile = user || {};
+  const name = String(record.first_name || record.username || profile.first_name || profile.username || '').trim();
+  const id = String(record.tg_id || record.id || profile.tg_id || '');
+  const shortName = name.slice(0, 60);
+  if (shortName && id) return shortName + ' (' + id + ')';
+  return shortName || (id ? 'agent ' + id : 'agent');
+}
 function miniAppAgentPlanPrice(agent, plan) {
   const id = String(plan && plan.id || '');
   const prices = agent && agent.plan_prices && typeof agent.plan_prices === 'object' ? agent.plan_prices : {};
@@ -10510,7 +10520,7 @@ function miniAppAgentPlanPrice(agent, plan) {
   const price = Number(raw);
   return Number.isSafeInteger(price) && price > 0 ? price : 0;
 }
-async function miniAppAgentSubscriptionView(env, sub, plansArg, panelsArg) {
+async function miniAppAgentSubscriptionView(env, sub, plansArg, panelsArg, opts) {
   if (!sub || !sub.uuid) return null;
   const [plans, panels] = await Promise.all([plansArg || getPlans(env), panelsArg || getPanels(env)]);
   const panel = panels[String(sub.panel_id || '')] || null;
@@ -10537,7 +10547,9 @@ async function miniAppAgentSubscriptionView(env, sub, plansArg, panelsArg) {
     usage_unlimited: total === 0 || total >= 100000,
     days_remaining: remaining.days == null ? null : remaining.days,
     expires_at: remaining.expiry ? remaining.expiry.toISOString() : null,
-    created_at: Number(sub.created_at || 0), link: link
+    created_at: Number(sub.created_at || 0), link: link,
+    qr_data_url: opts && opts.qr ? await safeQrDataUrl(link) : '',
+    last_renewed_at: Number(sub.last_renewed_at || 0)
   };
 }
 async function miniAppAgentSubscriptions(env, agentId, limit) {
@@ -10561,7 +10573,6 @@ async function miniAppAgentTransactions(env, agentId, limit) {
   return { items: rows.filter(Boolean).map((row) => ({
     id: String(row.id || ''), type: String(row.type || ''), direction: String(row.direction || 'out'),
     amount: Number(row.amount || 0), balance_after: Number(row.balance_after || 0),
-    quota_after: row.quota_after == null ? null : Number(row.quota_after),
     description: String(row.description || ''), plan_id: String(row.plan_id || ''),
     subscription_sid: String(row.subscription_sid || ''), actor_id: String(row.actor_id || ''),
     occurred_at: Number(row.occurred_at || row.created_at || 0)
@@ -10675,7 +10686,6 @@ async function miniAppAdminAgents(env, query, options) {
   const status = String(opts.status || 'all');
   if (status === 'active') filtered = filtered.filter((a) => a.enabled);
   else if (status === 'disabled') filtered = filtered.filter((a) => !a.enabled);
-  else if (status === 'low_quota') filtered = filtered.filter((a) => a.quota_remaining <= 5);
   else if (status === 'low_balance') filtered = filtered.filter((a) => a.balance <= 0);
   const sort = String(opts.sort || 'newest');
   if (sort === 'sales') filtered.sort((a, b) => b.sales_total - a.sales_total);
@@ -10690,8 +10700,8 @@ async function miniAppAdminAgents(env, query, options) {
       agents: agents.length, active: items.filter((a) => a.enabled).length,
       disabled: items.filter((a) => !a.enabled).length,
       sales: sum(items, 'sales_total'), sales_30d: sum(items, 'sales_30d'),
-      revenue: sum(items, 'total_revenue'), balance: sum(items, 'balance'), quota: sum(items, 'quota_remaining'),
-      low_quota: items.filter((a) => a.quota_remaining <= 5).length,
+      revenue: sum(items, 'total_revenue'), balance: sum(items, 'balance'),
+      created: sum(items, 'total_created'), renewed: sum(items, 'total_renewed'),
       low_balance: items.filter((a) => a.balance <= 0).length
     },
     stats_partial: !withStats
@@ -10839,21 +10849,6 @@ async function miniAppAdminAgentAction(env, adminId, tgid, body) {
     });
     return { data: { ok: true, agent: miniAppAgentView(agent, await getUser(env, id)) }, status: 200 };
   }
-  if (action === 'quota_set') {
-    const raw = normDigits(data.amount).trim();
-    if (!/^\d{1,7}$/.test(raw)) return { data: { ok: false, error: 'invalid_agent_quota' }, status: 400 };
-    const quota = Number(raw);
-    if (!Number.isSafeInteger(quota) || quota < 0 || quota > 1000000) return { data: { ok: false, error: 'invalid_agent_quota' }, status: 400 };
-    const previous = Math.max(0, Math.floor(Number(agent.quota_remaining || 0)));
-    agent.quota_remaining = quota;
-    await saveAgent(env, agent);
-    await recordAgentLedger(env, id, {
-      id: 'admin-quota-' + uid(12), type: 'admin_quota_set', direction: quota >= previous ? 'in' : 'out',
-      amount: Math.abs(quota - previous), quota_after: quota, balance_after: Number(agent.balance || 0),
-      actor_id: String(adminId), description: 'تنظیم سهمیهٔ ساخت توسط مدیر'
-    });
-    return { data: { ok: true, agent: miniAppAgentView(agent, await getUser(env, id)) }, status: 200 };
-  }
   return { data: { ok: false, error: 'invalid_agent_action' }, status: 400 };
 }
 async function miniAppAgentCreateSubscription(env, agentId, body) {
@@ -10889,8 +10884,6 @@ async function miniAppAgentCreateSubscription(env, agentId, body) {
     }
     const agent = await getAgent(env, owner);
     if (!agent || !isRecordEnabled(agent)) return { data: { ok: false, error: 'agent_inactive' }, status: 403 };
-    const quota = Math.max(0, Math.floor(Number(agent.quota_remaining || 0)));
-    if (quota < 1) return { data: { ok: false, error: 'agent_quota_exhausted' }, status: 409 };
     const [plans, panels] = await Promise.all([getPlans(env), getPanels(env)]);
     const plan = plans[planId];
     const panel = panels[panelId];
@@ -10903,9 +10896,11 @@ async function miniAppAgentCreateSubscription(env, agentId, body) {
     requestStarted = true;
     await kvPut(env, requestKey, { state: 'processing', created_at: Date.now() }, 86400);
     const panelUserName = ('a' + owner.slice(-8) + '_' + uid(8)).toLowerCase().slice(0, 32);
+    // نام نماینده در توضیحات پنل، تا از داخل Hiddify مشخص باشد هر کاربر را چه نماینده‌ای ساخته است.
+    const agentLabel = agentPanelLabel(agent, await getUser(env, owner));
     created = await hCreateUser(panel, {
       name: panelUserName, gb: plan.gb, days: plan.days,
-      comment: ('Agent ' + owner + ' | ' + customerName + ' | ' + String(plan.title || planId)).slice(0, 240)
+      comment: (agentLabel + ' | ' + customerName).slice(0, 240)
     });
     if (!created || !created.uuid) throw new Error('panel_user_missing_uuid');
     sid = uid(10);
@@ -10921,7 +10916,6 @@ async function miniAppAgentCreateSubscription(env, agentId, body) {
     const indexed = await putIndexSafely(env, 'agent_sub_idx:' + owner + ':' + reverseIndexTime(now) + ':' + sid, { sid: sid, created_at: now });
     if (!indexed) throw new Error('agent_subscription_index_failed');
     agent.balance = Number(agent.balance || 0) - price;
-    agent.quota_remaining = quota - 1;
     agent.total_created = Math.max(0, Math.floor(Number(agent.total_created || 0))) + 1;
     agent.total_revenue = Math.max(0, Number(agent.total_revenue || 0)) + price;
     agent.last_created_at = now;
@@ -10929,13 +10923,13 @@ async function miniAppAgentCreateSubscription(env, agentId, body) {
     accountingCommitted = true;
     await recordAgentLedger(env, owner, {
       id: 'purchase-' + sid, type: 'subscription_created', direction: 'out', amount: price,
-      balance_after: agent.balance, quota_after: agent.quota_remaining,
+      balance_after: agent.balance,
       plan_id: String(plan.id || planId), subscription_sid: sid,
       description: 'ساخت اشتراک برای ' + customerName, actor_id: owner
     });
     await kvPut(env, requestKey, { state: 'done', sid: sid, created_at: now }, 86400);
     const freshAgent = await getAgent(env, owner) || agent;
-    return { data: { ok: true, agent: miniAppAgentView(freshAgent, await getUser(env, owner)), subscription: await miniAppAgentSubscriptionView(env, sub, plans, panels) }, status: 200 };
+    return { data: { ok: true, agent: miniAppAgentView(freshAgent, await getUser(env, owner)), subscription: await miniAppAgentSubscriptionView(env, sub, plans, panels, { qr: true }) }, status: 200 };
   } catch (e) {
     if (!lockOwned) return { data: { ok: false, error: 'agent_create_lock_unavailable' }, status: 503 };
     if (savedSub && sid) await kvDel(env, 's:' + sid);
@@ -10953,12 +10947,11 @@ async function miniAppAgentCreateSubscription(env, agentId, body) {
         const agent = await getAgent(env, owner);
         if (agent) {
           agent.balance = Number(agent.balance || 0) + price;
-          agent.quota_remaining = Math.max(0, Math.floor(Number(agent.quota_remaining || 0))) + 1;
           agent.total_created = Math.max(0, Math.floor(Number(agent.total_created || 0)) - 1);
           await saveAgent(env, agent);
           await recordAgentLedger(env, owner, {
             id: 'refund-' + sid, type: 'creation_rollback', direction: 'in', amount: price,
-            balance_after: agent.balance, quota_after: agent.quota_remaining,
+            balance_after: agent.balance,
             subscription_sid: sid, description: 'برگشت خودکار هزینهٔ ساخت ناموفق'
           });
         }
@@ -10971,6 +10964,103 @@ async function miniAppAgentCreateSubscription(env, agentId, body) {
     if (lockOwned) await kvDel(env, lockKey);
     if (AGENT_CREATE_MUTEX.get(owner) === mutexToken) AGENT_CREATE_MUTEX.delete(owner);
   }
+}
+
+// تمدید اشتراک ساخته‌شدهٔ نماینده: هزینه از کیف پول همان نماینده کسر می‌شود.
+const AGENT_RENEW_MUTEX = new Map();
+async function miniAppAgentRenewSubscription(env, agentId, sid, body) {
+  const owner = miniAppAgentId(agentId);
+  const data = body && typeof body === 'object' ? body : {};
+  const requestId = miniAppRequestId(data.request_id);
+  const subId = String(sid || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
+  if (!owner || !subId || !requestId) return { data: { ok: false, error: 'invalid_agent_request' }, status: 400 };
+  const mutexKey = owner + ':' + subId;
+  const lockKey = 'agent_renew_lock:' + mutexKey;
+  if (AGENT_RENEW_MUTEX.has(mutexKey)) return { data: { ok: false, error: 'agent_renew_processing' }, status: 409 };
+  const mutexToken = {};
+  AGENT_RENEW_MUTEX.set(mutexKey, mutexToken);
+  const requestKey = 'agent_renew_request:' + mutexKey + ':' + requestId;
+  let lockOwned = false, committed = false, price = 0, agent = null, sub = null, panel = null, plan = null;
+  try {
+    const held = await kvGet(env, lockKey, null);
+    if (held && Date.now() - Number(held.started_at || 0) < 120000) return { data: { ok: false, error: 'agent_renew_processing' }, status: 409 };
+    await kvPut(env, lockKey, { started_at: Date.now(), request_id: requestId }, 150);
+    lockOwned = true;
+    const previous = await kvGet(env, requestKey, null);
+    if (previous && previous.state === 'done') {
+      const existingSub = await getSub(env, subId);
+      const currentAgent = await getAgent(env, owner);
+      return { data: { ok: true, duplicate: true, agent: miniAppAgentView(currentAgent, await getUser(env, owner)), subscription: existingSub ? await miniAppAgentSubscriptionView(env, existingSub, null, null, { qr: true }) : null }, status: 200 };
+    }
+    if (previous && previous.state === 'processing') return { data: { ok: false, error: 'agent_renew_processing' }, status: 409 };
+    agent = await getAgent(env, owner);
+    if (!agent || !isRecordEnabled(agent)) return { data: { ok: false, error: 'agent_inactive' }, status: 403 };
+    sub = await getSub(env, subId);
+    if (!sub || String(sub.agent_id || '') !== owner) return { data: { ok: false, error: 'agent_subscription_not_found' }, status: 404 };
+    if (sub.purged_at) return { data: { ok: false, error: 'agent_subscription_purged' }, status: 409 };
+    const [plans, panels] = await Promise.all([getPlans(env), getPanels(env)]);
+    plan = plans[String(sub.plan_id || '')];
+    panel = panels[String(sub.panel_id || '')];
+    if (!isRecordEnabled(plan) || !isRecordEnabled(panel)) return { data: { ok: false, error: 'agent_product_unavailable' }, status: 404 };
+    if (!panel.api_base || !panel.api_key) return { data: { ok: false, error: 'agent_panel_unavailable' }, status: 503 };
+    price = await miniAppAgentPlanPrice(agent, plan);
+    if (!price) return { data: { ok: false, error: 'invalid_agent_price' }, status: 409 };
+    if (Number(agent.balance || 0) < price) return { data: { ok: false, error: 'agent_balance_insufficient', balance: Number(agent.balance || 0), price: price }, status: 409 };
+    await kvPut(env, requestKey, { state: 'processing', created_at: Date.now() }, 86400);
+    agent.balance = Number(agent.balance || 0) - price;
+    await saveAgent(env, agent);
+    committed = true;
+    await hPatchUser(panel, sub.uuid, { gb: plan.gb, days: plan.days });
+    const now = Date.now();
+    sub.plan_id = String(plan.id || sub.plan_id || '');
+    sub.agent_price = price;
+    sub.last_renewed_at = now;
+    sub.days_at_renewal = Number(plan.days) || 0;
+    sub.expire_noticed = false;
+    sub.reminded = '';
+    await saveSub(env, sub);
+    agent.total_renewed = Math.max(0, Math.floor(Number(agent.total_renewed || 0))) + 1;
+    agent.total_revenue = Math.max(0, Number(agent.total_revenue || 0)) + price;
+    agent.last_renewed_at = now;
+    await saveAgent(env, agent);
+    await recordAgentLedger(env, owner, {
+      id: 'renew-' + subId + '-' + now, type: 'subscription_renewed', direction: 'out', amount: price,
+      balance_after: Number(agent.balance || 0), plan_id: String(plan.id || ''),
+      subscription_sid: subId, description: 'تمدید اشتراک ' + String(sub.customer_name || ''), actor_id: owner
+    });
+    await kvPut(env, requestKey, { state: 'done', sid: subId, created_at: now }, 86400);
+    const freshAgent = await getAgent(env, owner) || agent;
+    return { data: { ok: true, agent: miniAppAgentView(freshAgent, await getUser(env, owner)), subscription: await miniAppAgentSubscriptionView(env, sub, plans, panels, { qr: true }) }, status: 200 };
+  } catch (e) {
+    if (!lockOwned) return { data: { ok: false, error: 'agent_renew_lock_unavailable' }, status: 503 };
+    if (committed) {
+      try {
+        const fresh = await getAgent(env, owner);
+        if (fresh) {
+          fresh.balance = Number(fresh.balance || 0) + price;
+          await saveAgent(env, fresh);
+          await recordAgentLedger(env, owner, {
+            id: 'renew-refund-' + subId + '-' + Date.now(), type: 'renew_rollback', direction: 'in', amount: price,
+            balance_after: fresh.balance, subscription_sid: subId,
+            description: 'برگشت خودکار هزینهٔ تمدید ناموفق'
+          });
+        }
+      } catch (rollbackError) {}
+    }
+    try { await notifyAdmins(env, '⚠️ تمدید اشتراک نماینده ناموفق شد.\nنماینده: <code>' + owner + '</code>\nاشتراک: <code>' + subId + '</code>\nخطا: <code>' + esc(String((e && e.message) || e).slice(0, 240)) + '</code>'); } catch (notifyError) {}
+    return { data: { ok: false, error: 'agent_renew_failed' }, status: 502 };
+  } finally {
+    if (lockOwned) await kvDel(env, lockKey);
+    if (AGENT_RENEW_MUTEX.get(mutexKey) === mutexToken) AGENT_RENEW_MUTEX.delete(mutexKey);
+  }
+}
+async function miniAppAgentDelivery(env, agentId, sid) {
+  const owner = miniAppAgentId(agentId);
+  const sub = await getSub(env, String(sid || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40));
+  if (!owner || !sub || String(sub.agent_id || '') !== owner) return { data: { ok: false, error: 'agent_subscription_not_found' }, status: 404 };
+  const view = await miniAppAgentSubscriptionView(env, sub, null, null, { qr: true });
+  if (!view || !view.link) return { data: { ok: false, error: 'subscription_link_unavailable' }, status: 404 };
+  return { data: { ok: true, delivery: { link: view.link, qr_data_url: view.qr_data_url, plan_title: view.plan_name, panel_name: view.panel_name } }, status: 200 };
 }
 
 async function miniAppApi(request, env, url) {
@@ -11041,6 +11131,28 @@ async function miniAppApi(request, env, url) {
       catch (e) { return miniAppJson({ ok: false, error: 'invalid_json' }, 400); }
       const result = await miniAppAgentCreateSubscription(env, user.tg_id, body);
       return miniAppJson(result.data, result.status);
+    }
+    const agentSubMatch = path.match(/^\/api\/miniapp\/agent\/subscriptions\/([A-Za-z0-9_-]{4,40})(?:\/(delivery|renew))?$/);
+    if (agentSubMatch) {
+      const sid = agentSubMatch[1];
+      const verb = agentSubMatch[2] || '';
+      if (!verb && request.method === 'GET') {
+        const result = await miniAppAgentDelivery(env, user.tg_id, sid);
+        return miniAppJson(result.data, result.status);
+      }
+      if (verb === 'delivery' && request.method === 'GET') {
+        const result = await miniAppAgentDelivery(env, user.tg_id, sid);
+        return miniAppJson(result.data, result.status);
+      }
+      if (verb === 'renew' && request.method === 'POST') {
+        if (!isRecordEnabled(agentRecord)) return miniAppJson({ ok: false, error: 'agent_inactive' }, 403);
+        let body;
+        try { body = await request.json(); }
+        catch (e) { return miniAppJson({ ok: false, error: 'invalid_json' }, 400); }
+        const result = await miniAppAgentRenewSubscription(env, user.tg_id, sid, body);
+        return miniAppJson(result.data, result.status);
+      }
+      return miniAppJson({ ok: false, error: 'method_not_allowed' }, 405);
     }
     return miniAppJson({ ok: false, error: 'not_found' }, 404);
   }

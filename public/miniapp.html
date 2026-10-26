@@ -861,6 +861,8 @@
     .agent-sub-card-top,.agent-transaction-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap; }
     .agent-sub-card-top strong,.agent-transaction-card strong { color:#ffffff; overflow-wrap:anywhere; }
     .agent-sub-meta,.agent-transaction-meta { display:block; margin-top:5px; color:#ddc1c3; font-size:12px; line-height:1.8; overflow-wrap:anywhere; }
+    .agent-sub-actions { margin-top:10px; }
+    .agent-delivery-panel .subscription-qr-slot { margin-top:6px; }
     .agent-transaction-amount { color:#ffffff; font-weight:800; white-space:nowrap; }
     .agent-price-field { display:grid; gap:6px; min-width:0; color:#f8ebec; font-size:13px; }
     .agent-price-field input { width:100%; min-width:0; padding:9px 10px; border:1px solid rgba(249, 240, 241, .23); border-radius:10px; color:#ffffff; background:rgba(125, 19, 28, .42); font-size:14px; }
@@ -3187,7 +3189,6 @@
               <option value="all">همهٔ نمایندگان</option>
               <option value="active">فعال</option>
               <option value="disabled">غیرفعال</option>
-              <option value="low_quota">سهمیهٔ کم (۵ یا کمتر)</option>
               <option value="low_balance">موجودی خالی</option>
             </select>
             <select class="filter-control" id="agentSortFilter" aria-label="مرتب‌سازی نماینده‌ها">
@@ -3202,16 +3203,16 @@
           <div class="mini-note" id="agentListNote" role="status" aria-live="polite"></div>
         </article>
       </div>
-      <article class="panel agent-detail-panel" id="agentDetailPanel"><div class="empty-state">برای تنظیم کیف پول، سهمیه و قیمت پلن‌ها، یک نماینده را از فهرست انتخاب کنید.</div></article>
+      <article class="panel agent-detail-panel" id="agentDetailPanel"><div class="empty-state">برای تنظیم کیف پول و قیمت پلن‌ها، یک نماینده را از فهرست انتخاب کنید.</div></article>
     </section>
 
     <section class="page hidden" id="agentPage">
-      <div class="page-top"><p class="mini-note" id="agentWelcome">موجودی مستقل، سهمیه و اشتراک‌های ساخته‌شده</p><button class="outline-btn" id="agentReload" type="button">به‌روزرسانی</button></div>
+      <div class="page-top"><p class="mini-note" id="agentWelcome">موجودی مستقل، ساخت و تمدید اشتراک‌ها</p><button class="outline-btn" id="agentReload" type="button">به‌روزرسانی</button></div>
 
       <div class="customer-notice hidden" id="agentDisabledNotice" role="status">دسترسی نمایندگی غیرفعال شده است؛ اشتراک‌های قبلی شما برای مشاهده باقی می‌مانند، اما امکان ساخت جدید ندارید. برای فعال‌سازی با مدیر فروشگاه تماس بگیرید.</div>
       <div class="agent-stat-grid">
         <article class="panel referral-stat"><span>کیف پول مستقل نمایندگی</span><strong id="agentBalanceValue">—</strong><small>هزینهٔ خرید داخلی از این موجودی کسر می‌شود.</small></article>
-        <article class="panel referral-stat"><span>سهمیهٔ ساخت باقی‌مانده</span><strong id="agentQuotaValue">—</strong><small>هر ساخت موفق، یک واحد از سهمیه کم می‌کند.</small></article>
+        <article class="panel referral-stat"><span>تمدیدهای موفق</span><strong id="agentRenewedValue">—</strong><small>هزینهٔ تمدید از همین کیف پول کسر می‌شود.</small></article>
         <article class="panel referral-stat"><span>ساخت‌های موفق تا امروز</span><strong id="agentCreatedValue">—</strong><small>قیمت‌ها، بهای خرید داخلی تعیین‌شده توسط مدیر هستند.</small></article>
       </div>
       <article class="panel agent-create-panel">
@@ -3222,17 +3223,24 @@
             <label>نام یا برچسب مشتری<input id="agentCustomerName" type="text" maxlength="80" autocomplete="off" placeholder="مثلاً مشتری فروشگاه ۱۲" required></label>
             <label>سرور و پلن<select id="agentProductSelect" required><option value="">در حال دریافت پلن‌ها…</option></select></label>
           </div>
-          <div class="form-actions"><button class="btn-primary" id="agentCreateButton" type="submit">ساخت اشتراک</button><span class="mini-note" id="agentCreateMessage" role="status" aria-live="polite">پیش از ساخت، موجودی و سهمیه را بررسی کنید.</span></div>
+          <div class="form-actions"><button class="btn-primary" id="agentCreateButton" type="submit">ساخت اشتراک</button><span class="mini-note" id="agentCreateMessage" role="status" aria-live="polite">پیش از ساخت، موجودی کیف پول را بررسی کنید.</span></div>
         </form>
-        <div id="agentCreatedResult" class="agent-created-result hidden" aria-live="polite"></div>
       </article>
       <article class="panel agent-history-panel">
         <div class="panel-head"><div><h3>اشتراک‌های ساخته‌شده</h3></div><span class="status paid" id="agentSubCount">۰ اشتراک</span></div>
         <div class="agent-sub-list" id="agentSubscriptionsList"><div class="empty-state">هنوز اشتراکی ساخته نشده است.</div></div>
       </article>
       <article class="panel agent-history-panel">
-        <div class="panel-head"><div><h3>تاریخچهٔ کیف پول و سهمیه</h3></div></div>
+        <div class="panel-head"><div><h3>تاریخچهٔ کیف پول</h3></div></div>
         <div class="agent-transaction-list" id="agentTransactionsList"><div class="empty-state">تراکنشی ثبت نشده است.</div></div>
+      </article>
+    </section>
+
+    <section class="page hidden" id="agentDeliveryPage">
+      <div class="page-top"><p class="mini-note">این صفحه فقط برای تحویل به مشتری است؛ لینک و QR را برای او بفرستید.</p><button class="outline-btn" id="agentDeliveryBack" type="button">بازگشت به پنل نماینده</button></div>
+      <article class="panel agent-delivery-panel">
+        <div class="panel-head"><div><h3 id="agentDeliveryTitle">اشتراک آمادهٔ تحویل است</h3><p id="agentDeliveryMeta">TiznetVPN</p></div><span class="status paid">تحویل آماده</span></div>
+        <div id="agentDeliveryQrSlot" class="subscription-qr-slot"><div class="empty-state">در حال ساخت QR…</div></div>
       </article>
     </section>
 
@@ -3549,7 +3557,7 @@
     if (tg) {
       try { tg.ready(); tg.expand(); tg.setHeaderColor('#4a0911'); tg.setBackgroundColor('#4a0911'); } catch (_) {}
     }
-    const titleMap = { overview: 'نمای کلی', orders: 'سفارش‌ها', customers: 'مشتری‌ها', agents: 'مدیریت نماینده‌ها', agent: 'پنل نماینده', plans: 'پلن‌ها', store: 'فروشگاه تیزنت VPN', settings: 'تنظیمات', servers: 'سرورها و پنل‌ها' };
+    const titleMap = { overview: 'نمای کلی', orders: 'سفارش‌ها', customers: 'مشتری‌ها', agents: 'مدیریت نماینده‌ها', agent: 'پنل نماینده', agentDelivery: 'لینک و QR اشتراک', plans: 'پلن‌ها', store: 'فروشگاه تیزنت VPN', settings: 'تنظیمات', servers: 'سرورها و پنل‌ها' };
     const mockOrders = [
       {id:'TZN-1042',name:'مریم الف.',tg:'@maryam_a',tg_id:'1001',type:'renew',type_label:'تمدید',plan:'ویژه · آلمان',method:'کیف پول',amount:590000,status:'approved',status_label:'تکمیل‌شده',date:'امروز، ۱۰:۴۲',created_at:Date.now()-3600000,state:'paid'},
       {id:'TZN-1041',name:'آرمان ر.',tg:'@arman_r',tg_id:'1002',type:'buy',type_label:'خرید جدید',plan:'اقتصادی · ترکیه',method:'خودکار',amount:390000,status:'approved',status_label:'تکمیل‌شده',date:'امروز، ۰۹:۱۸',created_at:Date.now()-7200000,state:'paid'},
@@ -3788,10 +3796,10 @@
         `<div class="summary-tile"><span>ساخت‌های موفق</span><strong>${fmt(s.created||0)}</strong></div>`,
         `<div class="summary-tile"><span>درآمد (تومان)</span><strong>${fmt(s.revenue||0)}</strong></div>`,
         `<div class="summary-tile"><span>موجودی (تومان)</span><strong>${fmt(s.balance||0)}</strong></div>`,
-        `<div class="summary-tile"><span>سهمیهٔ باقی‌مانده</span><strong>${fmt(s.quota||0)}</strong></div>`,
-        `<div class="summary-tile"><span>نیازمند رسیدگی</span><strong>${fmt((s.low_quota||0)+(s.low_balance||0))}</strong></div>`
+        `<div class="summary-tile"><span>تمدیدهای موفق</span><strong>${fmt(s.renewed||0)}</strong></div>`,
+        `<div class="summary-tile"><span>موجودی خالی</span><strong>${fmt(s.low_balance||0)}</strong></div>`
       ].join('');
-      if(note)note.textContent=(s.low_quota||s.low_balance)?('سهمیهٔ کم: '+fmt(s.low_quota||0)+' · موجودی خالی: '+fmt(s.low_balance||0)+' — از «مدیریت نمایندگان» رسیدگی کنید.'):'همهٔ نمایندگان سهمیه و موجودی کافی دارند.';
+      if(note)note.textContent=(s.low_balance||0)?('کیف پول '+fmt(s.low_balance||0)+' نماینده خالی است — از «مدیریت نمایندگان» شارژ کنید.'):'کیف پول همهٔ نمایندگان موجودی دارد.';
     }
     function retentionResultText(data) {
       const d=data||{};
@@ -4007,7 +4015,7 @@
         invalid_retention_action:'درخواست پاک‌سازی معتبر نیست.',
         agent_already_exists:'این کاربر از قبل نماینده است.',
         agent_not_found:'نماینده پیدا نشد.',
-        agent_has_balance_or_quota:'ابتدا موجودی و سهمیهٔ نماینده را صفر کنید؛ سپس برکناری ممکن است.',
+        agent_has_balance:'ابتدا موجودی کیف پول نماینده را صفر کنید؛ سپس برکناری ممکن است.',
         agent_user_blocked:'کاربر مسدود است؛ ابتدا رفع مسدودی کنید.',
         admin_cannot_be_agent:'مدیر ربات را نمی‌توان نماینده کرد.',
         invalid_notify_text:'متن پیام معتبر نیست.',
@@ -4018,7 +4026,7 @@
         select_at_least_one_panel:'حداقل یک سرور برای پلن انتخاب کنید.',invalid_plan_volume:'حجم پلن معتبر نیست.',invalid_plan_days:'مدت پلن باید بین ۱ تا ۳۶۵۰ روز باشد.',invalid_plan_price:'قیمت پلن معتبر نیست.',
         order_not_pending:'این سفارش دیگر در وضعیت انتظار نیست؛ وضعیت تازهٔ سفارش را ببینید.',payment_not_verified:'Worker سفارش را تأیید نکرد: رسید یا پرداخت هنوز در وضعیت بررسی‌شده ثبت نشده است. بررسی رسید را کامل کنید؛ به مشتری پرداخت دوباره را توصیه نکنید.',manual_payment_confirmation_required:'برای تأیید دستی، دریافت واقعی وجه را در چک‌باکس تأیید کنید.',manual_wallet_approval_not_allowed:'تأیید دستی برای سفارش کیف پول مجاز نیست؛ وضعیت کیف پول را بررسی کنید.',payment_already_verified_use_standard_approval:'پرداخت قبلاً ثبت شده است؛ از دکمهٔ تأیید عادی استفاده کنید.',
         paid_order_cannot_reject:'سفارش پرداخت‌شده را نمی‌توان رد کرد؛ ابتدا وضعیت را با پشتیبانی بررسی کنید.',order_action_failed:'Worker نتوانست عملیات سفارش را تکمیل کند.',order_action_processing:'این سفارش همین حالا در حال پردازش است؛ چند لحظه صبر کنید و سپس وضعیت را تازه کنید.',
-        agent_required:'حساب نمایندگی فعال نیست.',agent_user_not_found:'شناسهٔ تلگرام به مشتری ثبت‌شده تعلق ندارد؛ مشتری ابتدا باید وارد ربات شود.',agent_already_exists:'این حساب از قبل نماینده است.',agent_account_exists:'این حساب از قبل نماینده است.',agent_user_blocked:'حساب مسدود است و نماینده نمی‌شود.',admin_cannot_be_agent:'حساب مدیر نمی‌تواند نماینده باشد.',invalid_agent_id:'شناسهٔ تلگرام معتبر نیست.',agent_not_found:'نماینده پیدا نشد.',agent_creation_processing:'ساخت اشتراک هنوز در حال پردازش است؛ کمی صبر کنید.',agent_quota_exhausted:'سهمیهٔ ساخت نماینده تمام شده است.',agent_product_unavailable:'سرور یا پلن دیگر فعال نیست.',agent_plan_panel_mismatch:'پلن به سرور انتخاب‌شده تعلق ندارد.',agent_panel_unavailable:'پنل برای ساخت اشتراک آماده نیست.',agent_balance_insufficient:'موجودی کیف پول نماینده کافی نیست.',agent_create_failed:'ساخت اشتراک کامل نشد؛ با همان درخواست دوباره تلاش کنید تا ساخت تکراری انجام نشود.',agent_customer_name_required:'نام یا برچسب مشتری را وارد کنید.',invalid_agent_price:'قیمت باید عدد تومان مثبت باشد.',invalid_agent_amount:'مبلغ باید عدد تومان مثبت باشد.',invalid_agent_quota:'سهمیه باید عدد صحیح بین صفر و یک میلیون باشد.',agent_bot_username_missing:'نام کاربری ربات تنظیم نشده است.',agent_invite_create_failed:'ساخت دعوت‌نامه ناموفق بود.',agent_invite_not_found:'دعوت‌نامه پیدا نشد.',agent_invite_already_used:'دعوت‌نامه قبلاً استفاده شده است.',invalid_agent_invite:'لینک دعوت معتبر یا فعال نیست.' ,
+        agent_required:'حساب نمایندگی فعال نیست.',agent_user_not_found:'شناسهٔ تلگرام به مشتری ثبت‌شده تعلق ندارد؛ مشتری ابتدا باید وارد ربات شود.',agent_already_exists:'این حساب از قبل نماینده است.',agent_account_exists:'این حساب از قبل نماینده است.',agent_user_blocked:'حساب مسدود است و نماینده نمی‌شود.',admin_cannot_be_agent:'حساب مدیر نمی‌تواند نماینده باشد.',invalid_agent_id:'شناسهٔ تلگرام معتبر نیست.',agent_not_found:'نماینده پیدا نشد.',agent_creation_processing:'ساخت اشتراک هنوز در حال پردازش است؛ کمی صبر کنید.',agent_renew_processing:'تمدید اشتراک هنوز در حال پردازش است؛ کمی صبر کنید.',agent_subscription_not_found:'اشتراک در پروندهٔ این نماینده پیدا نشد.',agent_renew_failed:'تمدید کامل نشد و مبلغ برگشت خورد؛ دوباره تلاش کنید.',agent_product_unavailable:'سرور یا پلن دیگر فعال نیست.',agent_plan_panel_mismatch:'پلن به سرور انتخاب‌شده تعلق ندارد.',agent_panel_unavailable:'پنل برای ساخت اشتراک آماده نیست.',agent_balance_insufficient:'موجودی کیف پول نماینده کافی نیست.',agent_create_failed:'ساخت اشتراک کامل نشد؛ با همان درخواست دوباره تلاش کنید تا ساخت تکراری انجام نشود.',agent_customer_name_required:'نام یا برچسب مشتری را وارد کنید.',invalid_agent_price:'قیمت باید عدد تومان مثبت باشد.',invalid_agent_amount:'مبلغ باید عدد تومان مثبت باشد.',agent_bot_username_missing:'نام کاربری ربات تنظیم نشده است.',agent_invite_create_failed:'ساخت دعوت‌نامه ناموفق بود.',agent_invite_not_found:'دعوت‌نامه پیدا نشد.',agent_invite_already_used:'دعوت‌نامه قبلاً استفاده شده است.',invalid_agent_invite:'لینک دعوت معتبر یا فعال نیست.' ,
         financial_order_locked:'پس از ثبت رسید یا پرداخت، ویرایش مبلغ و محصول قفل می‌شود.',invalid_order_product:'پلن یا سرور انتخاب‌شده فعال نیست یا با هم سازگار نیستند.',
         customer_not_found:'مشتری پیدا نشد.',invalid_customer_amount:'مبلغ واردشده معتبر نیست.',insufficient_customer_balance:'موجودی مشتری برای این کسر کافی نیست.',admin_cannot_be_banned:'حساب مدیر قابل مسدودسازی نیست.',
         withdrawal_not_pending:'این درخواست قبلاً پردازش شده است.',withdrawal_action_processing:'درخواست برداشت دیگری در حال پردازش است؛ کمی صبر کنید.',
@@ -4327,13 +4335,16 @@
         agent_create_lock_unavailable:'قفل ساخت اشتراک در دسترس نیست؛ چند لحظه بعد دوباره تلاش کنید.',
         agent_request_result_unavailable:'نتیجهٔ درخواست قبلی در دسترس نیست؛ پیش از ساخت دوباره با مدیر تماس بگیرید.',invalid_agent_request:'شناسهٔ درخواست معتبر نیست؛ صفحه را تازه و دوباره تلاش کنید.',
         agent_inactive:'دسترسی نمایندگی غیرفعال شده است؛ با مدیر فروشگاه تماس بگیرید.',
-        agent_quota_exhausted:'سهمیهٔ ساخت شما تمام شده است؛ از مدیر بخواهید سهمیه را افزایش دهد.',
+        agent_renew_processing:'درخواست تمدید هنوز در حال پردازش است؛ چند لحظه صبر کنید.',
+        agent_renew_lock_unavailable:'قفل تمدید در دسترس نیست؛ چند لحظه بعد دوباره تلاش کنید.',
+        agent_renew_failed:'تمدید کامل نشد؛ مبلغ به کیف پول شما برگشت. وضعیت را تازه کنید و دوباره تلاش کنید.',
+        agent_subscription_not_found:'این اشتراک در فهرست شما پیدا نشد؛ صفحه را تازه کنید.',
+        agent_subscription_purged:'این اشتراک از پنل حذف شده و قابل تمدید نیست.',
         agent_product_unavailable:'این سرور یا پلن دیگر فعال نیست؛ فهرست را تازه کنید.',
         agent_plan_panel_mismatch:'این پلن به سرور انتخاب‌شده تعلق ندارد؛ فهرست را تازه کنید.',
         agent_panel_unavailable:'ارتباط پنل اشتراک آماده نیست؛ مدیر باید تنظیمات سرور را بررسی کند.',
         invalid_agent_price:'قیمت خرید نماینده باید یک عدد تومانِ صحیح و مثبت باشد.',
         invalid_agent_prices:'فهرست قیمت‌ها معتبر نیست.',invalid_agent_amount:'مبلغ باید یک عدد تومانِ صحیح و مثبت باشد.',
-        invalid_agent_quota:'سهمیه باید عدد صحیحی بین صفر تا یک میلیون باشد.',
         insufficient_agent_balance:'موجودی کیف پول نماینده برای این کسر کافی نیست.',
         agent_balance_insufficient:'موجودی کیف پول برای قیمت این پلن کافی نیست؛ از مدیر بخواهید کیف پول را شارژ کند.',
         agent_customer_name_required:'نام یا برچسب مشتری را وارد کنید.',agent_create_failed:'ساخت اشتراک کامل نشد. اگر پنل آن را ساخته باشد، تلاش دوباره با همان درخواست از ساخت تکراری جلوگیری می‌کند.',
@@ -4351,8 +4362,8 @@
         ['فروش ۳۰ روز',fmt(totals.sales_30d||0)],
         ['درآمد نمایندگان',money(totals.revenue||0)],
         ['موجودی کیف پول‌ها',money(totals.balance||0)],
-        ['سهمیهٔ باقی‌مانده',fmt(totals.quota||0)],
-        ['سهمیهٔ کم',fmt(totals.low_quota||0)],
+        ['تمدید موفق',fmt(totals.renewed||0)],
+        ['ساخت موفق',fmt(totals.created||0)],
         ['موجودی خالی',fmt(totals.low_balance||0)]
       ];
       grid.innerHTML=tiles.map(([label,value])=>`<div class="summary-tile"><span>${esc(label)}</span><strong>${value}</strong></div>`).join('');
@@ -4366,7 +4377,7 @@
       el.innerHTML=liveAgents.map(a=>{
         const label=(a.first_name||'نماینده')+(a.username?' · @'+a.username:'');
         const lastSale=a.last_sale_at?fmtDate(a.last_sale_at):'بدون فروش';
-        return `<div class="managed-item"><div class="managed-main"><strong>${esc(label)}</strong><span class="managed-meta" dir="ltr">Telegram ID: ${esc(a.tg_id)}</span><div class="agent-row-stats"><span>فروش: <b>${fmt(a.sales_total||0)}</b></span><span>۳۰ روز: <b>${fmt(a.sales_30d||0)}</b></span><span>درآمد: <b>${money(a.total_revenue||0)}</b></span><span>موجودی: <b>${money(a.balance)}</b></span><span>سهمیه: <b>${fmt(a.quota_remaining)}</b></span><span>آخرین فروش: <b>${esc(lastSale)}</b></span></div></div><span class="status ${a.enabled?'paid':'pending'} agent-state-pill">${agentStateLabel(a)}</span><div class="managed-actions"><button class="table-action" type="button" data-agent-open="${esc(a.tg_id)}">مدیریت نماینده</button></div></div>`;
+        return `<div class="managed-item"><div class="managed-main"><strong>${esc(label)}</strong><span class="managed-meta" dir="ltr">Telegram ID: ${esc(a.tg_id)}</span><div class="agent-row-stats"><span>فروش: <b>${fmt(a.sales_total||0)}</b></span><span>۳۰ روز: <b>${fmt(a.sales_30d||0)}</b></span><span>درآمد: <b>${money(a.total_revenue||0)}</b></span><span>موجودی: <b>${money(a.balance)}</b></span><span>تمدید: <b>${fmt(a.total_renewed||0)}</b></span><span>آخرین فروش: <b>${esc(lastSale)}</b></span></div></div><span class="status ${a.enabled?'paid':'pending'} agent-state-pill">${agentStateLabel(a)}</span><div class="managed-actions"><button class="table-action" type="button" data-agent-open="${esc(a.tg_id)}">مدیریت نماینده</button></div></div>`;
       }).join('');
     }
     async function loadAdminAgents(query) {
@@ -4414,7 +4425,7 @@
       try{
         const tgId=document.getElementById('agentPromoteTgId').value.trim();
         await api('/api/miniapp/admin/agents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tg_id:tgId})});
-        if(message)message.textContent='مشتری به نماینده تبدیل شد. موجودی و سهمیه برای او از صفر شروع می‌شود.';
+        if(message)message.textContent='مشتری به نماینده تبدیل شد. موجودی کیف پول او از صفر شروع می‌شود.';
         form.reset();toast('مشتری به نماینده تبدیل شد.');await loadAdminAgents();
       }catch(e){if(message)message.textContent=agentErrorText(e.message,e.data&&e.data.detail);toast(agentErrorText(e.message,e.data&&e.data.detail));}
       finally{if(button){button.disabled=false;button.textContent='تبدیل به نماینده';}}
@@ -4440,20 +4451,19 @@
       const topPlansHtml=topPlans.length?`<div class="plan-list">${topPlans.map(row=>`<div class="plan-row"><span class="plan-name">${esc(row.title||'پلن')}</span><span class="bar-track"><i class="bar-fill" style="width:${Math.max(6,Math.round(Number(row.count||0)/Math.max(1,...topPlans.map(x=>Number(x.count||0)))*100))}%"></i></span><span class="plan-count">${fmt(row.count||0)} فروش · ${money(row.revenue||0)}</span></div>`).join('')}</div>`:'<div class="empty-state">فروشی برای این نماینده ثبت نشده است.</div>';
       const analyticsHtml=`<div class="panel-head" style="margin-top:18px"><div><h3>تحلیل فروش نماینده</h3><p>فروش، درآمد و موجودی مستقل نمایندگی</p></div></div><div class="analytics-grid"><div class="summary-tile"><span>فروش کل</span><strong>${fmt(an.sales_total||0)}</strong></div><div class="summary-tile"><span>فروش ۳۰ روز</span><strong>${fmt(an.sales_30d||0)}</strong></div><div class="summary-tile"><span>درآمد کل</span><strong>${money(an.revenue||0)}</strong></div><div class="summary-tile"><span>درآمد ۳۰ روز</span><strong>${money(an.revenue_30d||0)}</strong></div><div class="summary-tile"><span>اشتراک فعال / منقضی</span><strong>${fmt(an.active_subs||0)} / ${fmt(an.expired_subs||0)}</strong></div><div class="summary-tile"><span>شارژ / کسر مدیر</span><strong>${money(an.credit_total||0)} / ${money(an.debit_total||0)}</strong></div></div>${chartHtml}<div class="panel-head" style="margin-top:14px"><div><h3>پرفروش‌ترین پلن‌ها</h3></div></div>${topPlansHtml}`;
       const subRows=subscriptions.length?subscriptions.map(sub=>`<div class="agent-sub-card"><div class="agent-sub-card-top"><div><strong>${esc(sub.customer_name||'مشتری')}</strong><span class="agent-sub-meta">${esc(sub.plan_name)} · ${esc(sub.panel_name)} · ${esc(sub.status_label)}</span><span class="agent-sub-meta">${esc(fmtDate(sub.created_at))} · مبلغ خرید داخلی: ${money(sub.agent_price)}</span></div></div></div>`).join(''):'<div class="empty-state">هنوز اشتراکی برای این نماینده ساخته نشده است.</div>';
-      const txRows=transactions.length?transactions.map(tx=>{const value=tx.type==='admin_quota_set'?'سهمیه: '+(tx.direction==='in'?'+':'−')+fmt(tx.amount):(tx.direction==='in'?'+':'−')+money(tx.amount);return `<div class="agent-transaction-card"><div class="agent-transaction-top"><div><strong>${esc(tx.description||tx.type||'تراکنش')}</strong><span class="agent-transaction-meta">${esc(fmtDate(tx.occurred_at))}${tx.quota_after==null?'':' · سهمیه پس از عملیات: '+fmt(tx.quota_after)}</span></div><span class="agent-transaction-amount">${esc(value)}</span></div></div>`;}).join(''):'<div class="empty-state">تراکنشی ثبت نشده است.</div>';
+      const txRows=transactions.length?transactions.map(tx=>{const value=(tx.direction==='in'?'+':'−')+money(tx.amount);return `<div class="agent-transaction-card"><div class="agent-transaction-top"><div><strong>${esc(tx.description||tx.type||'تراکنش')}</strong><span class="agent-transaction-meta">${esc(fmtDate(tx.occurred_at))}</span></div><span class="agent-transaction-amount">${esc(value)}</span></div></div>`;}).join(''):'<div class="empty-state">تراکنشی ثبت نشده است.</div>';
       panel.innerHTML=`<div class="panel-head"><div><h3>پروندهٔ نماینده: ${esc(a.first_name||'نماینده')}</h3><p dir="ltr">Telegram ID: ${esc(a.tg_id)}${a.username?' · @'+esc(a.username):''}</p></div><span class="status ${a.enabled?'paid':'pending'}">${a.enabled?'فعال':'غیرفعال'}</span></div>
-        <div class="agent-stat-grid"><article class="panel referral-stat"><span>کیف پول مستقل</span><strong>${money(a.balance)}</strong></article><article class="panel referral-stat"><span>سهمیهٔ باقی‌مانده</span><strong>${fmt(a.quota_remaining)}</strong></article><article class="panel referral-stat"><span>ساخت موفق</span><strong>${fmt(a.total_created)}</strong></article></div>
+        <div class="agent-stat-grid"><article class="panel referral-stat"><span>کیف پول مستقل</span><strong>${money(a.balance)}</strong></article><article class="panel referral-stat"><span>تمدید موفق</span><strong>${fmt(a.total_renewed||0)}</strong></article><article class="panel referral-stat"><span>ساخت موفق</span><strong>${fmt(a.total_created)}</strong></article></div>
         <div class="agent-admin-actions"><button class="table-action ${a.enabled?'danger':''}" type="button" data-agent-toggle="${esc(a.tg_id)}">${a.enabled?'غیرفعال‌کردن نماینده':'فعال‌کردن نماینده'}</button></div>
         ${analyticsHtml}
         <form id="agentPricingForm" class="admin-form"><input type="hidden" id="agentPricingTgId" value="${esc(a.tg_id)}"><div class="panel-head"><div><h3>قیمت خرید نماینده برای هر پلن</h3></div></div><div class="agent-price-grid">${priceFields}</div><div class="form-actions"><button class="btn-primary" type="submit">ذخیرهٔ قیمت‌ها</button><span class="mini-note" id="agentPriceMessage" role="status" aria-live="polite"></span></div></form>
         <div class="panel-head" style="margin-top:18px"><div><h3>شارژ یا کسر از کیف پول</h3><p>تراکنش مدیریتی در تاریخچهٔ مستقل نماینده ثبت می‌شود.</p></div></div><div class="agent-wallet-controls"><label class="admin-field">مبلغ (تومان)<input id="agentAdminWalletAmount" type="text" inputmode="numeric" placeholder="مبلغ"></label><button class="btn-primary" type="button" data-agent-wallet="credit" data-agent-id="${esc(a.tg_id)}">شارژ</button><button class="table-action danger" type="button" data-agent-wallet="debit" data-agent-id="${esc(a.tg_id)}">کسر</button></div>
-        <div class="panel-head" style="margin-top:18px"><div><h3>تنظیم سهمیهٔ کل ساخت</h3><p>عدد واردشده، سهمیهٔ باقی‌ماندهٔ جدید است؛ نه افزایش نسبی.</p></div></div><div class="agent-wallet-controls"><label class="admin-field">سهمیهٔ باقی‌مانده<input id="agentAdminQuotaAmount" type="number" min="0" max="1000000" step="1" value="${esc(a.quota_remaining)}"></label><button class="btn-primary" type="button" data-agent-quota="set" data-agent-id="${esc(a.tg_id)}">ذخیرهٔ سهمیه</button></div>
-        <div class="panel-head" style="margin-top:18px"><div><h3>اشتراک‌های ساخته‌شده</h3></div></div><div class="agent-sub-list">${subRows}</div><div class="panel-head" style="margin-top:18px"><div><h3>تاریخچهٔ مالی و سهمیه</h3></div></div><div class="agent-transaction-list">${txRows}</div>`;
+        <div class="panel-head" style="margin-top:18px"><div><h3>اشتراک‌های ساخته‌شده</h3></div></div><div class="agent-sub-list">${subRows}</div><div class="panel-head" style="margin-top:18px"><div><h3>تاریخچهٔ مالی</h3></div></div><div class="agent-transaction-list">${txRows}</div>`;
     }
     async function adminAgentAction(tgId, payload) {
       try{
         await api('/api/miniapp/admin/agents/'+encodeURIComponent(tgId),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-        toast(payload.action==='toggle'?'وضعیت نماینده به‌روزرسانی شد.':payload.action==='credit'?'کیف پول نماینده شارژ شد.':payload.action==='debit'?'از کیف پول نماینده کسر شد.':payload.action==='quota_set'?'سهمیهٔ نماینده تنظیم شد.':'تنظیمات نماینده ذخیره شد.');
+        toast(payload.action==='toggle'?'وضعیت نماینده به‌روزرسانی شد.':payload.action==='credit'?'کیف پول نماینده شارژ شد.':payload.action==='debit'?'از کیف پول نماینده کسر شد.':'تنظیمات نماینده ذخیره شد.');
         await Promise.all([loadAdminAgents(),openAdminAgentDetail(tgId)]);
         return true;
       }catch(e){toast(agentErrorText(e.message,e.data&&e.data.detail));return false;}
@@ -4475,11 +4485,11 @@
       const disabledNotice=document.getElementById('agentDisabledNotice');if(disabledNotice)disabledNotice.classList.toggle('hidden',!disabled);
       const createButton=document.getElementById('agentCreateButton');if(createButton)createButton.disabled=disabled;
       const customerNameInput=document.getElementById('agentCustomerName');if(customerNameInput)customerNameInput.disabled=disabled;
-      const createMessage=document.getElementById('agentCreateMessage');if(createMessage)createMessage.textContent=disabled?'نمایندگی غیرفعال است؛ با مدیر فروشگاه تماس بگیرید.':'پیش از ساخت، موجودی و سهمیه را بررسی کنید.';
+      const createMessage=document.getElementById('agentCreateMessage');if(createMessage)createMessage.textContent=disabled?'نمایندگی غیرفعال است؛ با مدیر فروشگاه تماس بگیرید.':'پیش از ساخت، موجودی کیف پول را بررسی کنید.';
       const balance=document.getElementById('agentBalanceValue');if(balance)balance.textContent=money(a.balance||0);
-      const quota=document.getElementById('agentQuotaValue');if(quota)quota.textContent=fmt(a.quota_remaining||0);
       const created=document.getElementById('agentCreatedValue');if(created)created.textContent=fmt(a.total_created||0);
-      const welcome=document.getElementById('agentWelcome');if(welcome)welcome.textContent='سلام '+(a.first_name||profile&&profile.first_name||'نماینده')+'؛ موجودی، سهمیه و اشتراک‌های خودتان را مدیریت کنید.';
+      const renewed=document.getElementById('agentRenewedValue');if(renewed)renewed.textContent=fmt(a.total_renewed||0);
+      const welcome=document.getElementById('agentWelcome');if(welcome)welcome.textContent='سلام '+(a.first_name||profile&&profile.first_name||'نماینده')+'؛ موجودی، ساخت و تمدید اشتراک‌ها در اختیار شماست.';
       agentAvailableProducts=Array.isArray(agentPortalData.products)?agentPortalData.products:[];
       const select=document.getElementById('agentProductSelect');
       if(select){const old=select.value;select.innerHTML='<option value="">'+(agentAvailableProducts.length?'سرور و پلن را انتخاب کنید':'در حال حاضر پلن فعالی برای نمایندگی نیست')+'</option>'+agentAvailableProducts.map(p=>{const value=String(p.panel_id)+'|'+String(p.plan_id);const usage=p.gb===0?'نامحدود':fmtDec(p.gb)+' گیگ';return `<option value="${esc(value)}">${esc(p.panel_name)} — ${esc(p.title)} · ${usage} / ${fmt(p.days)} روز · هزینهٔ خرید ${money(p.agent_price)}</option>`;}).join('');if(old&&agentAvailableProducts.some(p=>(String(p.panel_id)+'|'+String(p.plan_id))===old))select.value=old;select.disabled=disabled||!agentAvailableProducts.length;}
@@ -4489,12 +4499,12 @@
       const count=document.getElementById('agentSubCount');if(count)count.textContent=fmt(subs.length)+' اشتراک';
       const list=document.getElementById('agentSubscriptionsList');if(list){
         if(!subs.length)list.innerHTML='<div class="empty-state">هنوز اشتراکی نساخته‌اید.</div>';
-        else list.innerHTML=subs.map(sub=>{const statusClass=sub.status==='active'?'paid':sub.status==='expired'?'failed':'pending';const usage=sub.usage_unlimited?'نامحدود':fmtDec(sub.usage_used)+' از '+fmtDec(sub.usage_total)+' گیگ';const expire=sub.days_remaining==null?'':` · روز باقی‌مانده: ${fmt(sub.days_remaining)}`;const link=sub.link&&/^https:\/\//.test(sub.link)?`<div class="agent-link-box"><strong>لینک تحویل مشتری</strong><code>${esc(sub.link)}</code><div class="referral-share-actions"><button class="outline-btn" type="button" data-copy-text="${esc(sub.link)}">کپی لینک اشتراک</button><a class="table-action" href="${esc(sub.link)}" target="_blank" rel="noopener noreferrer">بازکردن لینک</a></div></div>`:'<div class="mini-note">لینک اشتراک از سرور در دسترس نیست؛ وضعیت پنل را بررسی کنید.</div>';return `<article class="agent-sub-card"><div class="agent-sub-card-top"><div><strong>${esc(sub.customer_name||'مشتری')}</strong><span class="agent-sub-meta">${esc(sub.plan_name)} · ${esc(sub.panel_name)} · ${esc(sub.status_label)}</span><span class="agent-sub-meta">ساخت: ${esc(fmtDate(sub.created_at))} · مصرف: ${usage}${expire}</span><span class="agent-sub-meta">هزینهٔ خرید داخلی: ${money(sub.agent_price)}</span></div><span class="status ${statusClass}">${esc(sub.status_label)}</span></div>${link}</article>`;}).join('');
+        else list.innerHTML=subs.map(sub=>{const statusClass=sub.status==='active'?'paid':sub.status==='expired'?'failed':'pending';const usage=sub.usage_unlimited?'نامحدود':fmtDec(sub.usage_used)+' از '+fmtDec(sub.usage_total)+' گیگ';const expire=sub.days_remaining==null?'':` · روز باقی‌مانده: ${fmt(sub.days_remaining)}`;const renewPlan=agentAvailableProducts.find(p=>String(p.panel_id)===String(sub.panel_id)&&String(p.plan_id)===String(sub.plan_id));const renewLabel=renewPlan&&Number(renewPlan.agent_price||0)?'تمدید — '+money(renewPlan.agent_price):'تمدید اشتراک';const actions=`<div class="referral-share-actions agent-sub-actions"><button class="btn-primary" type="button" data-agent-renew="${esc(sub.sid)}">${esc(renewLabel)}</button><button class="outline-btn" type="button" data-agent-qr="${esc(sub.sid)}">لینک و QR</button></div>`;const link=sub.link&&/^https:\/\//.test(sub.link)?`<div class="agent-link-box"><strong>لینک تحویل مشتری</strong><code>${esc(sub.link)}</code><div class="referral-share-actions"><button class="outline-btn" type="button" data-copy-text="${esc(sub.link)}">کپی لینک اشتراک</button><a class="table-action" href="${esc(sub.link)}" target="_blank" rel="noopener noreferrer">بازکردن لینک</a></div></div>`:'<div class="mini-note">لینک اشتراک از سرور در دسترس نیست؛ وضعیت پنل را بررسی کنید.</div>';return `<article class="agent-sub-card"><div class="agent-sub-card-top"><div><strong>${esc(sub.customer_name||'مشتری')}</strong><span class="agent-sub-meta">${esc(sub.plan_name)} · ${esc(sub.panel_name)} · ${esc(sub.status_label)}</span><span class="agent-sub-meta">ساخت: ${esc(fmtDate(sub.created_at))} · مصرف: ${usage}${expire}</span><span class="agent-sub-meta">هزینهٔ خرید داخلی: ${money(sub.agent_price)}</span></div><span class="status ${statusClass}">${esc(sub.status_label)}</span></div>${actions}${link}</article>`;}).join('');
       }
       const transactions=Array.isArray(agentPortalData.transactions)?agentPortalData.transactions:[];
       const tx=document.getElementById('agentTransactionsList');if(tx){
         if(!transactions.length)tx.innerHTML='<div class="empty-state">تراکنشی ثبت نشده است.</div>';
-        else tx.innerHTML=transactions.map(row=>{const inbound=row.direction==='in';const amount=row.type==='admin_quota_set'?'':(inbound?'+':'−')+money(row.amount);const quota=row.quota_after==null?'':' · سهمیه پس از عملیات: '+fmt(row.quota_after);return `<div class="agent-transaction-card"><div class="agent-transaction-top"><div><strong>${esc(row.description||row.type||'تراکنش')}</strong><span class="agent-transaction-meta">${esc(fmtDate(row.occurred_at))}${quota}</span></div><span class="agent-transaction-amount">${esc(amount)}</span></div></div>`;}).join('');
+        else tx.innerHTML=transactions.map(row=>{const inbound=row.direction==='in';const amount=(inbound?'+':'−')+money(row.amount);return `<div class="agent-transaction-card"><div class="agent-transaction-top"><div><strong>${esc(row.description||row.type||'تراکنش')}</strong><span class="agent-transaction-meta">${esc(fmtDate(row.occurred_at))}</span></div><span class="agent-transaction-amount">${esc(amount)}</span></div></div>`;}).join('');
       }
     }
     async function loadAgentPortal() {
@@ -4534,7 +4544,7 @@
       const currentPayload={customer_name:name,plan_id:product.plan_id,panel_id:product.panel_id};
       if(agentPendingCreate&&JSON.stringify(agentPendingCreate.payload)!==JSON.stringify(currentPayload)){if(message)message.textContent='درخواست قبلی هنوز نتیجهٔ قطعی نگرفته است؛ همان نام و پلن را نگه دارید و دوباره تلاش کنید تا از ساخت تکراری جلوگیری شود.';return;}
       if(!agentPendingCreate){agentPendingCreate={request_id:newRequestId(),payload:currentPayload};persistAgentPendingCreate();}
-      if(button){button.disabled=true;button.textContent='در حال ساخت امن…';}if(message)message.textContent='درخواست ثبت شد؛ کیف پول و سهمیه فقط پس از ساخت موفق تغییر می‌کنند.';
+      if(button){button.disabled=true;button.textContent='در حال ساخت امن…';}if(message)message.textContent='درخواست ثبت شد؛ هزینه فقط پس از ساخت موفق از کیف پول کسر می‌شود.';
       try{
         const result=await api('/api/miniapp/agent/subscriptions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},agentPendingCreate.payload,{request_id:agentPendingCreate.request_id}))});
         clearAgentPendingCreate();
@@ -4542,14 +4552,72 @@
         const subscription=result.subscription;
         if(agentPortalData&&subscription){const rows=Array.isArray(agentPortalData.subscriptions)?agentPortalData.subscriptions:[];agentPortalData.subscriptions=[subscription,...rows.filter(x=>String(x.sid)!==String(subscription.sid))].slice(0,40);}
         renderAgentPortal(agentPortalData||result);
-        const output=document.getElementById('agentCreatedResult');if(output&&subscription){output.classList.remove('hidden');const link=subscription.link&&/^https:\/\//.test(subscription.link)?`<div class="agent-link-box"><strong>لینک را به مشتری تحویل دهید</strong><code>${esc(subscription.link)}</code><div class="referral-share-actions"><button class="btn-primary" type="button" data-copy-text="${esc(subscription.link)}">کپی لینک اشتراک</button><a class="table-action" href="${esc(subscription.link)}" target="_blank" rel="noopener noreferrer">بازکردن</a></div></div>`:'<div class="mini-note">اشتراک ساخته شد، اما لینک از پنل دریافت نشد؛ با مدیر تماس بگیرید.</div>';output.innerHTML=`<div class="panel-head"><div><h3>اشتراک با موفقیت ساخته شد</h3></div><span class="status paid">تحویل آماده</span></div>${link}`;output.scrollIntoView({behavior:'smooth',block:'center'});}
-        if(message)message.textContent='ساخت موفق بود؛ هزینه از کیف پول و یک واحد از سهمیه کسر شد.';
+        if(message)message.textContent='ساخت موفق بود؛ هزینه از کیف پول نماینده کسر شد.';
         document.getElementById('agentCustomerName').value='';toast('اشتراک با موفقیت ساخته شد.');
+        if(subscription)showAgentDelivery(subscription);
       }catch(e){
         const text=agentErrorText(e.message,e.data&&e.data.detail);if(message)message.textContent=text;toast(text);
         if(e.status&&e.status<500&&e.message!=='agent_creation_processing'&&e.message!=='agent_request_result_unavailable')clearAgentPendingCreate();
         if(e.message==='agent_create_failed')await loadAgentPortal().catch(()=>{});
       }finally{if(button){button.disabled=false;button.textContent='ساخت اشتراک';}}
+    }
+
+    let agentDeliverySid='';
+    function showAgentDelivery(sub) {
+      if(!sub||!sub.sid)return;
+      agentDeliverySid=String(sub.sid);
+      const title=document.getElementById('agentDeliveryTitle');
+      if(title)title.textContent='اشتراک «'+String(sub.customer_name||'مشتری')+'» آمادهٔ تحویل است';
+      const meta=document.getElementById('agentDeliveryMeta');
+      if(meta)meta.textContent=[sub.plan_name,sub.panel_name].filter(Boolean).join(' · ')||'TiznetVPN';
+      const slot=document.getElementById('agentDeliveryQrSlot');
+      if(slot)slot.innerHTML=subscriptionQrMarkup({link:sub.link||'',qr_data_url:sub.qr_data_url||'',plan_title:sub.plan_name,panel_name:sub.panel_name},{heading:'QR و لینک اشتراک مشتری'});
+      setPageVisible('agentDelivery');
+      window.scrollTo({top:0,behavior:'smooth'});
+      loadAgentDeliveryQr(agentDeliverySid);
+    }
+    async function loadAgentDeliveryQr(sid) {
+      if(!sid||!liveMode)return;
+      const slot=document.getElementById('agentDeliveryQrSlot');
+      if(!slot)return;
+      if(slot.querySelector('.subscription-qr-image'))return;
+      try {
+        const data=await api('/api/miniapp/agent/subscriptions/'+encodeURIComponent(sid)+'/delivery');
+        const current=document.getElementById('agentDeliveryQrSlot');
+        if(current&&data&&data.delivery)current.innerHTML=subscriptionQrMarkup(data.delivery,{heading:'QR و لینک اشتراک مشتری'});
+      } catch(_) {
+        const current=document.getElementById('agentDeliveryQrSlot');
+        if(current&&!current.querySelector('.subscription-qr-image'))current.insertAdjacentHTML('beforeend','<div class="mini-note">QR از سرور دریافت نشد؛ لینک بالا را کپی کنید و صفحه را تازه کنید.</div>');
+      }
+    }
+    function openAgentSubscriptionQr(sid) {
+      const sub=(agentPortalData&&Array.isArray(agentPortalData.subscriptions)?agentPortalData.subscriptions:[]).find(x=>String(x.sid)===String(sid));
+      if(!sub){toast('اشتراک در فهرست پیدا نشد؛ صفحه را تازه کنید.');return;}
+      showAgentDelivery(sub);
+    }
+    async function renewAgentSubscription(sid) {
+      if(!liveMode||!agentRole)return;
+      const sub=(agentPortalData&&Array.isArray(agentPortalData.subscriptions)?agentPortalData.subscriptions:[]).find(x=>String(x.sid)===String(sid));
+      if(!sub){toast('اشتراک در فهرست پیدا نشد؛ صفحه را تازه کنید.');return;}
+      const product=agentAvailableProducts.find(p=>String(p.panel_id)===String(sub.panel_id)&&String(p.plan_id)===String(sub.plan_id));
+      const price=product?Number(product.agent_price||0):0;
+      const message=document.getElementById('agentCreateMessage');
+      if(!price){toast('این پلن دیگر برای تمدید فعال یا قیمت‌گذاری نشده است؛ با مدیر تماس بگیرید.');return;}
+      if(!confirm('تمدید «'+String(sub.customer_name||'مشتری')+'» با پلن '+String(sub.plan_name||'')+' به مبلغ '+money(price)+' از کیف پول شما کسر می‌شود. ادامه می‌دهید؟'))return;
+      if(message)message.textContent='در حال تمدید امن…';
+      try {
+        const result=await api('/api/miniapp/agent/subscriptions/'+encodeURIComponent(sid)+'/renew',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_id:newRequestId()})});
+        if(result.agent&&agentPortalData)agentPortalData.agent=result.agent;
+        const updated=result.subscription;
+        if(agentPortalData&&updated){const rows=Array.isArray(agentPortalData.subscriptions)?agentPortalData.subscriptions:[];agentPortalData.subscriptions=rows.map(x=>String(x.sid)===String(updated.sid)?Object.assign({},x,updated):x);}
+        renderAgentPortal(agentPortalData||result);
+        if(message)message.textContent='تمدید انجام شد؛ '+money(price)+' از کیف پول کسر شد.';
+        toast(result.duplicate?'این تمدید قبلاً ثبت شده است.':'اشتراک تمدید شد.');
+      } catch(e) {
+        const text=agentErrorText(e.message,e.data&&e.data.detail);
+        if(message)message.textContent=text;toast(text);
+        if(e.message==='agent_renew_failed')await loadAgentPortal().catch(()=>{});
+      }
     }
 
     function renderManagedPlans() {
@@ -5178,7 +5246,7 @@
         <div class="form-hint">مدیران از مسدودسازی محافظت می‌شوند. تغییر موجودی برای مشتری در تلگرام اطلاع‌رسانی و در گزارش کیف پول ثبت می‌شود.</div>
         <label class="admin-field">پیام مستقیم به کاربر (حداکثر ۸۰۰ نویسه)<textarea id="customerNotifyText" rows="2" maxlength="800" placeholder="متن پیام برای ارسال در تلگرام"></textarea></label>
         <div class="admin-actions"><button class="outline-btn" type="button" data-customer-action="notify" data-customer-id="${esc(id)}">ارسال پیام</button><button class="outline-btn" type="button" data-customer-action="${customer.is_agent?'demote_agent':'promote_agent'}" data-customer-id="${esc(id)}">${customer.is_agent?'برکناری از نمایندگی':'ارتقا به نماینده'}</button></div>
-        <div class="form-hint">برکناری فقط وقتی ممکن است که موجودی و سهمیهٔ نماینده صفر باشد.</div>`;
+        <div class="form-hint">برکناری فقط وقتی ممکن است که موجودی کیف پول نماینده صفر باشد.</div>`;
       setModalAction('','');
     }
     function openCustomerManager(id) {
@@ -5629,13 +5697,15 @@
     document.getElementById('agentsReload').addEventListener('click',()=>Promise.all([loadAdminAgents(),loadAgentInvites()]).catch(()=>toast('بازخوانی نماینده‌ها ناموفق بود.')));
     document.getElementById('agentInviteCreate').addEventListener('click',createAgentInvite);
     document.getElementById('agentReload').addEventListener('click',()=>loadAgentPortal());
+    const agentDeliveryBack=document.getElementById('agentDeliveryBack');if(agentDeliveryBack)agentDeliveryBack.addEventListener('click',()=>{setPageVisible('agent');loadAgentPortal().catch(()=>{});});
     document.getElementById('agentSearch').addEventListener('input',()=>{clearTimeout(agentSearchTimer);agentSearchTimer=setTimeout(()=>loadAdminAgents().catch(()=>toast('جست‌وجوی نماینده‌ها ناموفق بود.')),250);});
     document.addEventListener('click',e=>{
       const open=e.target.closest('[data-agent-open]');if(open){openAdminAgentDetail(open.dataset.agentOpen);return;}
       const revoke=e.target.closest('[data-agent-invite-revoke]');if(revoke){revokeAgentInvite(revoke.dataset.agentInviteRevoke);return;}
       const toggle=e.target.closest('[data-agent-toggle]');if(toggle){adminAgentAction(toggle.dataset.agentToggle,{action:'toggle'});return;}
       const wallet=e.target.closest('[data-agent-wallet]');if(wallet){const amount=document.getElementById('agentAdminWalletAmount')?.value||'';if(!amount){toast('مبلغ کیف پول را وارد کنید.');return;}adminAgentAction(wallet.dataset.agentId,{action:wallet.dataset.agentWallet,amount:amount});return;}
-      const quota=e.target.closest('[data-agent-quota]');if(quota){const amount=document.getElementById('agentAdminQuotaAmount')?.value;if(amount==null||amount===''){toast('سهمیهٔ جدید را وارد کنید.');return;}adminAgentAction(quota.dataset.agentId,{action:'quota_set',amount:amount});return;}
+      const agentRenew=e.target.closest('[data-agent-renew]');if(agentRenew){renewAgentSubscription(agentRenew.dataset.agentRenew);return;}
+      const agentQr=e.target.closest('[data-agent-qr]');if(agentQr){openAgentSubscriptionQr(agentQr.dataset.agentQr);return;}
     });
     document.querySelectorAll('[data-customer-tab]').forEach(b=>b.addEventListener('click',()=>setCustomerTab(b.dataset.customerTab)));
     document.addEventListener('keydown',e=>{
