@@ -204,6 +204,23 @@ async function signedInitData(tgid, userExtra = {}, ageSeconds = 0) {
   params.set('hash', hash);
   return params.toString();
 }
+// امضای پکیجی که تلگرام بعد از requestContact به مینی‌اپ می‌دهد (همان قالب initData).
+async function signedContactRaw(phone, user_id, ageSeconds = 0) {
+  const params = new URLSearchParams();
+  params.set('auth_date', String(Math.floor(Date.now() / 1000) - ageSeconds));
+  params.set('contact', JSON.stringify({ phone_number: phone, first_name: 'Owner', user_id: user_id == null ? undefined : Number(user_id) }));
+  const check = [...params.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0).map(([k, v]) => k + '=' + v).join('\n');
+  const enc = new TextEncoder();
+  const hmac = async (key, data) => {
+    const raw = key instanceof Uint8Array ? key : enc.encode(String(key));
+    const ck = await crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    return new Uint8Array(await crypto.subtle.sign('HMAC', ck, enc.encode(String(data))));
+  };
+  const secret = await hmac('WebAppData', 'TEST');
+  const hash = [...await hmac(secret, check)].map(x => x.toString(16).padStart(2, '0')).join('');
+  params.set('hash', hash);
+  return params.toString();
+}
 async function miniApi(path, initData, options = {}) {
   const headers = Object.assign({}, options.headers || {}, initData ? { 'X-Telegram-Init-Data': initData } : {});
   const requestOptions = Object.assign({}, options, { headers });
@@ -1194,7 +1211,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.37-ubuntu26.39';"), 'شمارهٔ نسخهٔ سرور 1.8.37-ubuntu26.39 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.38-ubuntu26.40';"), 'شمارهٔ نسخهٔ سرور 1.8.38-ubuntu26.39 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -1757,6 +1774,54 @@ const goodPhone = await miniApi('/api/miniapp/phone', gateInitLocked, { method: 
 const unlockedBoot = await miniApi('/api/miniapp/bootstrap', gateInitLocked);
 assert(goodPhone.status === 200 && goodPhone.json.ok === true && unlockedBoot.json.access.blocked === false && unlockedBoot.json.phone === '0933 333 0000', 'ثبت شماره از Mini App قفل را باز می‌کند و شماره در bootstrap برمی‌گردد');
 
+// --- Mini App: تأیید فوری شمارهٔ requestContact با امضای خودِ تلگرام ---
+const SIGN_USER = 776;
+const signInit = await signedInitData(SIGN_USER);
+const signBoot = await miniApi('/api/miniapp/bootstrap', signInit);
+assert(signBoot.status === 200 && signBoot.json.access.blocked === true && signBoot.json.access.phone_required === true, 'کاربر تازه در مینی‌اپ هنوز شماره‌نشده است و قفل روی او باز است');
+const signedContact = await signedContactRaw('+989355556666', SIGN_USER);
+const signedOk = await miniApi('/api/miniapp/phone', signInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contact_raw: signedContact }) });
+const signedRec = await kvJson('u:' + SIGN_USER);
+const signedBoot = await miniApi('/api/miniapp/bootstrap', signInit);
+assert(signedOk.status === 200 && signedOk.json.ok === true && signedRec && signedRec.phone === '09355556666'
+  && signedRec.phone_source === 'contact_signed' && signedBoot.json.access.blocked === false && signedBoot.json.phone === '0935 555 6666',
+  'شمارهٔ امضاشدهٔ requestContact بدون نیاز به پیام چت همان لحظه ثبت می‌شود و قفل را باز می‌کند');
+const forgedContact = (await signedContactRaw('+989355556667', 777)).replace(/hash=[0-9a-f]{64}$/, 'hash=' + '0'.repeat(64));
+const forgedRes = await miniApi('/api/miniapp/phone', signInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contact_raw: forgedContact }) });
+assert(forgedRes.status === 400 && forgedRes.json.error === 'invalid_contact_signature', 'پکیج شمارهٔ دست‌کاری‌شده با امضای نامعتبر رد می‌شود');
+const foreignSignInit = await signedInitData(778);
+await miniApi('/api/miniapp/bootstrap', foreignSignInit);
+const foreignContact = await signedContactRaw('+989355556668', 999);
+const foreignRes = await miniApi('/api/miniapp/phone', foreignSignInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contact_raw: foreignContact }) });
+const foreignRec = await kvJson('u:778');
+assert(foreignRes.status === 403 && foreignRes.json.error === 'contact_user_mismatch' && !(foreignRec && foreignRec.phone), 'شمارهٔ امضاشدهٔ متعلق به حساب دیگر پذیرفته نمی‌شود');
+
+// --- شمارهٔ بین‌المللی (مشتری خارج از ایران) ---
+const INTL_USER = 779;
+const intlInit = await signedInitData(INTL_USER);
+await miniApi('/api/miniapp/bootstrap', intlInit);
+const intlContact = await signedContactRaw('+49 151 1234 5678', INTL_USER);
+const intlRes = await miniApi('/api/miniapp/phone', intlInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contact_raw: intlContact }) });
+const intlRec = await kvJson('u:' + INTL_USER);
+const intlBoot = await miniApi('/api/miniapp/bootstrap', intlInit);
+assert(intlRes.status === 200 && intlRec && intlRec.phone === '+4915112345678' && intlBoot.json.access.blocked === false && intlBoot.json.phone === '+4915112345678',
+  'شمارهٔ خارج از ایران (+۴۹…) هم ثبت می‌شود و قفل شماره را باز می‌کند');
+const INTL_TYPED = 780;
+await sendText(INTL_TYPED, '+49 160 9876543');
+const intlTypedRec = await kvJson('u:' + INTL_TYPED);
+assert(intlTypedRec && intlTypedRec.phone === '+491609876543' && intlTypedRec.phone_source === 'text', 'شمارهٔ بین‌المللی تایپ‌شده در چت هم پذیرفته می‌شود');
+
+// --- Mini App: استفاده از پکیج امضاشده و انتظار فعال برای تأیید ---
+assert(miniAppSource.includes('tg.requestContact(async(shared,info)')
+  && miniAppSource.includes('async function saveSignedPhoneContact')
+  && miniAppSource.includes('contact_raw')
+  && miniAppSource.includes('pollPhoneConfirmation')
+  && !miniAppSource.includes('tg.requestContact(()=>reveal(')
+  && !miniAppSource.includes("tg.requestContact(()=>{status.textContent='شماره فرستاده شد"),
+  'دکمهٔ ارسال شماره در مینی‌اپ پاسخ امضاشدهٔ تلگرام را مستقیم ثبت می‌کند و اگر پیام چت دیر برسد، خودکار تأیید را می‌پاید');
+assert(miniAppSource.includes("inputmode=\"tel\"") && miniAppSource.includes('+۴۹'),
+  'ورودی شماره در مینی‌اپ شمارهٔ بین‌المللی را هم می‌پذیرد');
+
 // --- کانال در Mini App ---
 const gateInitJoin = await signedInitData(TYPE_USER + 20);
 const cfgJoin = Object.assign({}, gateCfg2, { phone_required: false, join_lock_enabled: true });
@@ -2161,6 +2226,23 @@ assert(domainDownJson.probe && domainDownJson.probe.ok === false && domainDownJs
 delete env.PUBLIC_BASE_URL;
 delete env.MINIAPP_URL;
 
+// ---------- گزارش‌ها: ارسال فایل به چت به‌جای دانلود گم‌شونده ----------
+const reportDenied = await miniApi('/api/miniapp/admin/report', userInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: 'tiznetvpn-x.csv', title: 't', csv: 'a,b\n1,2\n' }) });
+assert(reportDenied.status === 403, 'ارسال گزارش به چت فقط برای مدیر است');
+const reportBadName = await miniApi('/api/miniapp/admin/report', adminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: '../etc/passwd.csv', title: 't', csv: 'a\n1\n' }) });
+assert(reportBadName.status === 400 && reportBadName.json.error === 'invalid_report_filename', 'نام فایل گزارش اعتبارسنجی می‌شود');
+const reportEmpty = await miniApi('/api/miniapp/admin/report', adminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: 'tiznetvpn-empty.csv', title: 't', csv: '' }) });
+assert(reportEmpty.status === 400 && reportEmpty.json.error === 'invalid_report_content', 'گزارش خالی ارسال نمی‌شود');
+const reportStart = TG.length;
+const reportOk = await miniApi('/api/miniapp/admin/report', adminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: 'tiznetvpn-orders.csv', title: 'گزارش سفارش‌ها', csv: '\ufeff"شناسه","مبلغ"\n"1","۱۰۰۰"\n"2","۲۰۰۰"\n' }) });
+const reportDoc = TG.slice(reportStart).find((x) => x.method === 'sendDocument' && String(x.params.chat_id) === String(ADMIN));
+assert(reportOk.status === 200 && reportOk.json.ok === true && reportOk.json.rows === 2 && reportDoc
+  && String(reportDoc.params.document_name || '') === 'tiznetvpn-orders.csv'
+  && String(reportDoc.params.document_type || '').includes('text/csv')
+  && String(reportDoc.params.caption || '').includes('گزارش سفارش‌ها')
+  && String(reportDoc.params.caption || '').includes('۲ ردیف'),
+  'گزارش CSV به‌صورت فایل در چت خود مدیر ارسال می‌شود و در تاریخچه می‌ماند');
+
 // ---------- بکاپ خودکار در چت ----------
 const backupStatusDenied = await miniApi('/api/miniapp/admin/backup-status', userInit);
 assert(backupStatusDenied.status === 403, 'وضعیت بکاپ خودکار فقط برای مدیر است');
@@ -2189,8 +2271,18 @@ const updateSourceTimers = fs.readFileSync(path.join(here, '..', 'update.sh'), '
 assert(updateSourceTimers.includes('tiznetvpn-backup.timer') && updateSourceTimers.includes('TIMERS_ENABLED')
   && updateSourceTimers.includes('systemctl start tiznetvpn-backup.service'),
   'update.sh همهٔ تایمرها (از جمله بکاپ ۳ساعته) را فعال می‌کند و یک بکاپ فوری می‌فرستد');
-assert(miniAppSource.includes('kvBackupSend') && miniAppSource.includes('backup-status') && miniAppSource.includes('backup-send'),
-  'تب «پشتیبان» مینی‌اپ وضعیت بکاپ خودکار و دکمهٔ ارسال فوری را نشان می‌دهد');
+assert(miniAppSource.includes('backup-status') && miniAppSource.includes('backup-send') && !miniAppSource.includes('kvBackupSend')
+  && miniAppSource.includes("id=\"kvBackupDownload\" type=\"button\"")
+  && miniAppSource.indexOf("api('/api/miniapp/admin/backup-send'") < miniAppSource.indexOf("api('/api/miniapp/admin/backup-link')"),
+  'تب «پشتیبان» مینی‌اپ یک دکمه دارد که اول فایل را داخل چت تلگرام می‌فرستد و لینک موقت فقط پشتیبان است');
+assert(miniAppSource.includes('async function exportReportToChat') && miniAppSource.includes("api('/api/miniapp/admin/report'")
+  && miniAppSource.includes("exportReportToChat(recentOrders,'tiznetvpn-latest-orders.csv'")
+  && miniAppSource.includes("exportReportToChat(currentOrders,'tiznetvpn-orders.csv'")
+  && miniAppSource.includes("exportReportToChat(data,'tiznetvpn-customers.csv'")
+  && miniAppSource.includes("exportReportToChat(data,'tiznetvpn-plans.csv'")
+  && miniAppSource.includes('function downloadCSVFile')
+  && !/downloadCSV\(recentOrders|downloadCSV\(currentOrders/.test(miniAppSource),
+  'هر چهار خروجی CSV مینی‌اپ اول به‌صورت فایل در چت تلگرام ارسال می‌شوند و ذخیرهٔ محلی فقط پشتیبان است');
 
 // ---------- نسخهٔ وب در مرورگر واقعی + ابزار دامنه ----------
 const isTelegramBlock = miniAppSource.slice(miniAppSource.indexOf('const tgPlatform'), miniAppSource.indexOf('const isTelegram ='));

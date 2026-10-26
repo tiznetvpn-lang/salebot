@@ -3058,7 +3058,7 @@
         <div class="hero-pill"><svg viewBox="0 0 24 24"><path d="M3 17 9 11l4 4 8-9"/><path d="M15 6h6v6"/></svg><span>گزارش فروش · <b id="periodCaption">۳۰ روز اخیر</b></span></div>
       </div>
 
-      <div class="section-title"><div><h2>عملکرد فروشگاه</h2><p>مقایسه با بازهٔ قبل از همین مدت</p></div><button class="link-button" id="exportTop">دریافت گزارش کامل ←</button></div>
+      <div class="section-title"><div><h2>عملکرد فروشگاه</h2><p>مقایسه با بازهٔ قبل از همین مدت</p></div><button class="link-button" id="exportTop">گزارش کامل در چت ←</button></div>
       <div class="stats-grid">
         <article class="stat-card dashboard-drill" tabindex="0" role="button" data-dashboard-drill="revenue" aria-label="جزئیات درآمد فروش" style="--tone:var(--teal);--iconbg:rgba(238, 58, 73, .1);--glow:rgba(238, 58, 73, .08)"><div class="stat-top"><span>درآمد فروش</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M3 7h18v13H3zM3 7l2-4h14l2 4M16 13h5"/><circle cx="16" cy="13" r="1"/></svg></span></div><strong class="stat-value" id="kpiRevenue">۸٬۴۵۰٬۰۰۰<span class="stat-unit">تومان</span></strong><div class="stat-foot"><span>خرید + تمدید</span><span class="trend" id="kpiRevenueChange">↗ ۱۸٫۶٪</span></div></article>
         <article class="stat-card dashboard-drill" tabindex="0" role="button" data-dashboard-drill="sales" aria-label="جزئیات فروش موفق" style="--tone:var(--blue);--iconbg:rgba(232, 20, 38, .12);--glow:rgba(232, 20, 38, .09)"><div class="stat-top"><span>فروش موفق</span><span class="stat-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/><path d="m15 17 2 2 4-4"/></svg></span></div><strong class="stat-value" id="kpiSales">۱۲۴</strong><div class="stat-foot"><span>سفارش موفق</span><span class="trend" id="kpiSalesChange">↗ ۱۲٫۲٪</span></div></article>
@@ -3110,7 +3110,7 @@
     </section>
 
     <section class="page hidden" id="ordersPage">
-      <div class="page-top"><button class="btn-primary" id="ordersExport"><svg class="bi bi-dl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 19.5h15"/></svg><span>خروجی CSV</span></button></div>
+      <div class="page-top"><button class="btn-primary" id="ordersExport"><svg class="bi bi-dl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 19.5h15"/></svg><span>ارسال گزارش به چت</span></button></div>
 
       <div class="stats-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
         <article class="stat-card"><div class="stat-top"><span>رکوردهای نمایش‌داده‌شده</span><span class="stat-icon">▤</span></div><strong class="stat-value" id="ordersTotalKpi">۰</strong><div class="stat-foot"><span>فیلتر فعلی</span><span class="trend">دفتر فروش</span></div></article>
@@ -3127,7 +3127,7 @@
     </section>
 
     <section class="page hidden" id="customersPage">
-      <div class="page-top"><button class="outline-btn" id="customersExport">خروجی مشتری‌ها</button></div>
+      <div class="page-top"><button class="outline-btn" id="customersExport">ارسال گزارش مشتری‌ها به چت</button></div>
 
       <div class="stats-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
         <article class="stat-card"><div class="stat-top"><span>کاربران ثبت‌شده</span><span class="stat-icon">◉</span></div><strong class="stat-value" id="customersTotalKpi">۰</strong><div class="stat-foot"><span>در فروشگاه</span><span class="trend">کل</span></div></article>
@@ -3245,7 +3245,7 @@
     </section>
 
     <section class="page hidden" id="plansPage">
-      <div class="page-top"><div class="table-tools"><select class="panel-select" id="plansPeriod"><option value="30">۳۰ روز اخیر</option><option value="7">۷ روز اخیر</option><option value="90">۹۰ روز اخیر</option></select><button class="outline-btn" id="plansExport">خروجی CSV</button></div></div>
+      <div class="page-top"><div class="table-tools"><select class="panel-select" id="plansPeriod"><option value="30">۳۰ روز اخیر</option><option value="7">۷ روز اخیر</option><option value="90">۹۰ روز اخیر</option></select><button class="outline-btn" id="plansExport">ارسال گزارش به چت</button></div></div>
 
       <article class="panel manage-plans-panel" style="margin-bottom:14px">
         <div class="panel-head"><div><h3>مدیریت پلن‌های فروش</h3></div><button class="btn-primary" id="planCreate" type="button"><svg class="bi bi-plus" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>پلن جدید</span></button></div>
@@ -3341,8 +3341,7 @@
         <div class="panel-head"><div><h3>بکاپ و ریستور کامل KV</h3></div></div>
         <div class="domain-grid" id="kvBackupMeta"><div class="empty-state">وضعیت بکاپ خودکار در حال بارگذاری…</div></div>
         <div class="kv-backup-actions">
-          <button class="btn-secondary" id="kvBackupSend" type="button"><svg class="bi bi-dl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 19.5h15"/></svg><span>بکاپ و ارسال فوری به تلگرام</span></button>
-          <button class="btn-primary" id="kvBackupDownload" type="button"><svg class="bi bi-dl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 19.5h15"/></svg><span>دریافت بکاپ دستی</span></button>
+          <button class="btn-primary" id="kvBackupDownload" type="button"><svg class="bi bi-dl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 19.5h15"/></svg><span>ساخت بکاپ و ارسال به چت تلگرام</span></button>
           <label class="outline-btn kv-restore-file-label" for="kvRestoreFile">انتخاب فایل بکاپ</label>
           <input id="kvRestoreFile" type="file" accept=".gz,application/gzip,application/x-gzip" aria-label="انتخاب فایل بکاپ gzip">
           <button class="table-action danger" id="kvRestoreStart" type="button" disabled>ریستور کامل KV</button>
@@ -3444,7 +3443,7 @@
             </div>
             <p class="cv-phone-hint" id="customerPhoneHint">برای تکمیل حساب، شمارهٔ خودتان را ثبت کنید.</p>
             <div class="cv-phone-row">
-              <input class="cv-phone-input" id="customerPhoneInput" type="tel" inputmode="numeric" autocomplete="tel" maxlength="16" placeholder="۰۹۱۲۱۲۳۴۵۶۷" aria-label="شمارهٔ موبایل">
+              <input class="cv-phone-input" id="customerPhoneInput" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="۰۹۱۲۱۲۳۴۵۶۷" aria-label="شمارهٔ موبایل">
               <button class="cv-phone-save" id="customerPhoneSave" type="button">ثبت</button>
             </div>
             <button class="cv-phone-send" id="customerPhoneSend" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1Z"/></svg><span>ارسال شماره با تلگرام</span></button>
@@ -4013,6 +4012,7 @@
         invalid_retention_free_delete:'تنظیم حذف اشتراک رایگان معتبر نیست.',
         invalid_retention_paid_delete:'تنظیم حذف اشتراک پولی معتبر نیست.',
         invalid_retention_action:'درخواست پاک‌سازی معتبر نیست.',
+        invalid_report_filename:'نام فایل گزارش معتبر نیست.',invalid_report_content:'محتوای گزارش خالی یا بیش از حد بزرگ است.',report_delivery_failed:'ارسال فایل به چت تلگرام ناموفق بود.',
         agent_already_exists:'این کاربر از قبل نماینده است.',
         agent_not_found:'نماینده پیدا نشد.',
         agent_has_balance:'ابتدا موجودی کیف پول نماینده را صفر کنید؛ سپس برکناری ممکن است.',
@@ -4244,10 +4244,30 @@
       const el=document.getElementById('kvBackupStatus');if(!el)return;
       el.textContent=String(text||'');el.style.color=tone==='error'?'#f6acb2':tone==='good'?'#f595a3':'#e1c6c9';
     }
+    // بکاپ همیشه اول داخل چت تلگرام ارسال می‌شود تا فایل در تاریخچه بماند؛
+    // لینک یک‌بارمصرف فقط پشتیبانِ زمانی است که ارسال تلگرامی ممکن نشود.
     async function downloadKvBackup() {
       if(kvBackupBusy)return;kvBackupBusy=true;
-      const button=document.getElementById('kvBackupDownload');if(button){button.disabled=true;button.textContent='در حال ساخت لینک بکاپ…';}
-      setKvBackupStatus('در حال آماده‌سازی لینک امن و یک‌بارمصرف بکاپ KV…');
+      const button=document.getElementById('kvBackupDownload');if(button){button.disabled=true;button.textContent='در حال ارسال بکاپ به چت…';}
+      setKvBackupStatus('در حال ساخت بکاپ کامل و ارسال آن به همین چت تلگرام…');
+      try {
+        const sent=await api('/api/miniapp/admin/backup-send',{method:'POST'});
+        setKvBackupStatus('✅ بکاپ کامل در چت تلگرام ارسال شد — '+fmt(sent.entries||0)+' رکورد. فایل در تاریخچهٔ همین چت می‌ماند.','good');
+        toast('بکاپ در چت تلگرام ارسال شد.');
+        loadBackupStatus().catch(()=>{});
+        return;
+      } catch (sendError) {
+        const code=sendError&&sendError.message;
+        if(code==='already_sent'){
+          setKvBackupStatus('⏳ یک بکاپ کمتر از یک دقیقه پیش به چت ارسال شده؛ همان فایل را در تاریخچهٔ چت ببینید.','good');
+          return;
+        }
+        if(code==='restore_in_progress'||code==='already_running'){
+          setKvBackupStatus('یک عملیات بکاپ/ریستور دیگر در جریان است؛ کمی بعد دوباره تلاش کنید.','error');
+          return;
+        }
+        setKvBackupStatus('ارسال به تلگرام ممکن نشد؛ لینک امن یک‌بارمصرف آماده می‌شود…','error');
+      }
       let downloadEventHandler=null;
       try {
         const grant=await api('/api/miniapp/admin/backup-link');
@@ -4281,7 +4301,7 @@
       }catch(e){
         if(downloadEventHandler&&tg&&typeof tg.offEvent==='function'){try{tg.offEvent('fileDownloadRequested',downloadEventHandler);}catch(_){}downloadEventHandler=null;}
         setKvBackupStatus(adminErrorText(e.message),'error');toast(adminErrorText(e.message));
-      }finally{kvBackupBusy=false;if(button){button.disabled=false;button.textContent='دریافت بکاپ دستی';}}
+      }finally{kvBackupBusy=false;if(button){button.disabled=false;button.textContent='ساخت بکاپ و ارسال به چت تلگرام';}}
     }
     function updateKvRestoreFile() {
       const input=document.getElementById('kvRestoreFile'),button=document.getElementById('kvRestoreStart'),name=document.getElementById('kvRestoreFileName'),confirmBox=document.getElementById('kvRestoreConfirm');
@@ -5685,14 +5705,33 @@
       document.getElementById('customersTotalKpi').textContent='۴۸۲';document.getElementById('customersNewKpi').textContent='۶۷';document.getElementById('customersRenewKpi').textContent='۶۱٫۳٪';
       renderPreviewCustomers();renderPreviewPlans();renderPreviewCustomer();
     }
-    function downloadCSV(rows,filename) {
+    function buildCSV(rows) {
       const list=Array.isArray(rows)?rows:[];
       const header=['شناسه','نام مشتری','username','Telegram ID','نوع','پلن/سرور','روش پرداخت','مبلغ تومان','تاریخ','وضعیت'];
       const data=[header,...list.map(o=>[o.id,o.name,o.username,o.tg_id,typeText(o),o.plan,o.method,o.amount,fmtDate(o.created_at),statusText(o)])];
       const cell=x=>{let v=String(x==null?'':x);if(/^[\s\u0000-\u001f]*[=+\-@]/.test(v))v="'"+v;return '"'+v.replaceAll('"','""')+'"';};
-      const csv='\ufeff'+data.map(row=>row.map(cell).join(',')).join('\n');
-      const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
-      a.href=url;a.download=filename||'tiznetvpn-report.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('گزارش CSV دانلود شد.');
+      return '\ufeff'+data.map(row=>row.map(cell).join(',')).join('\n');
+    }
+    // ذخیرهٔ محلی فقط پشتیبان است؛ مسیر اصلی ارسال فایل به چت تلگرام است تا در تاریخچه بماند.
+    function downloadCSVFile(rows,filename) {
+      const blob=new Blob([buildCSV(rows)],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;a.download=filename||'tiznetvpn-report.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }
+    async function exportReportToChat(rows,filename,title) {
+      const file=filename||'tiznetvpn-report.csv';
+      const name=title||'گزارش TiznetVPN';
+      if(!liveMode||!adminRole){downloadCSVFile(rows,file);toast('پیش‌نمایش است؛ فایل نمونه ذخیره شد.');return;}
+      const list=Array.isArray(rows)?rows:[];
+      if(!list.length){toast('داده‌ای برای گزارش نیست؛ فیلترها را تغییر دهید.');return;}
+      const csv=buildCSV(list);
+      try {
+        const res=await api('/api/miniapp/admin/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file,title:name,csv:csv})});
+        toast('«'+name+'» در چت تلگرام ارسال شد ('+fmt((res&&res.rows)||0)+' ردیف) و در تاریخچه می‌ماند.');
+      } catch(e) {
+        downloadCSVFile(list,file);
+        const reason=(e&&e.message==='report_delivery_failed')?'ارسال به تلگرام ناموفق بود':adminErrorText(e&&e.message);
+        toast(reason+'؛ فایل روی همین دستگاه ذخیره شد ولی در تاریخچهٔ چت نمی‌ماند.');
+      }
     }
     function openExternal(url) {
       let parsed;try{parsed=new URL(url);}catch(_){return;}
@@ -5773,16 +5812,16 @@
       else {const vals={'7':['۲٬۳۴۰٬۰۰۰','۳۶','۲۲','۱۴'],'30':['۸٬۴۵۰٬۰۰۰','۱۲۴','۸۱','۴۳'],'90':['۲۱٬۹۸۰٬۰۰۰','۳۳۸','۲۳۱','۱۰۷']}[b.dataset.period];['kpiRevenue','kpiSales','kpiNew','kpiRenew'].forEach((id,i)=>{const el=document.getElementById(id),unit=el.querySelector('.stat-unit');el.textContent=vals[i];if(unit)el.appendChild(unit);});toast('بازهٔ گزارش نمایشی تغییر کرد.');}
     }));
     document.getElementById('chartMetric').addEventListener('change',e=>{const a=document.getElementById('chartLine'),b=document.getElementById('chartLine2');if(e.target.value==='revenue'){a.style.opacity='1';b.style.opacity='.52';}else{a.style.opacity='.52';b.style.opacity='1';}});
-    document.getElementById('exportTop').addEventListener('click',()=>downloadCSV(recentOrders,'tiznetvpn-latest-orders.csv'));
-    document.getElementById('ordersExport').addEventListener('click',()=>downloadCSV(currentOrders,'tiznetvpn-orders.csv'));
+    document.getElementById('exportTop').addEventListener('click',()=>exportReportToChat(recentOrders,'tiznetvpn-latest-orders.csv','گزارش کامل فروشگاه'));
+    document.getElementById('ordersExport').addEventListener('click',()=>exportReportToChat(currentOrders,'tiznetvpn-orders.csv','گزارش سفارش‌ها'));
     document.getElementById('customersExport').addEventListener('click',async()=>{
       if(liveMode&&adminRole&&!liveCustomers.length){try{await loadCustomers();}catch(_){toast('فهرست مشتری‌ها بارگذاری نشد.');return;}}
       const rows=liveCustomers;
       if(!liveMode){toast('پیش‌نمایش مشتری‌هاست؛ فایل نمونه‌ای صادر می‌شود.');}
-      const data=rows.map(u=>({id:u.tg_id,name:u.first_name,username:u.username,tg_id:u.tg_id,type:'',plan:'',method:'',amount:u.total_spent,created_at:u.joined_at,status:''}));downloadCSV(data,'tiznetvpn-customers.csv');
+      const data=rows.map(u=>({id:u.tg_id,name:u.first_name,username:u.username,tg_id:u.tg_id,type:'',plan:'',method:'',amount:u.total_spent,created_at:u.joined_at,status:''}));exportReportToChat(data,'tiznetvpn-customers.csv','گزارش مشتری‌ها');
     });
     document.getElementById('plansExport').addEventListener('click',()=>{
-      const rows=livePlans;const data=rows.map(p=>({id:p.id,name:p.title,username:'',tg_id:'',type:'',plan:(p.servers||[]).join(' / '),method:'',amount:p.revenue,created_at:0,status:p.enabled?'فعال':'غیرفعال'}));downloadCSV(data,'tiznetvpn-plans.csv');
+      const rows=livePlans;const data=rows.map(p=>({id:p.id,name:p.title,username:'',tg_id:'',type:'',plan:(p.servers||[]).join(' / '),method:'',amount:p.revenue,created_at:0,status:p.enabled?'فعال':'غیرفعال'}));exportReportToChat(data,'tiznetvpn-plans.csv','گزارش پلن‌ها');
     });
     document.getElementById('ordersReload').addEventListener('click',async()=>{try{await loadOrders();toast('سفارش‌ها به‌روزرسانی شدند.');}catch(e){toast('به‌روزرسانی سفارش‌ها ناموفق بود.');}});
     document.getElementById('accountTrigger').addEventListener('click',openAccountDetails);
@@ -5988,28 +6027,10 @@
           +'<div class="domain-row"><span class="domain-label">گیرندگان</span><span class="domain-value fa">'+esc(fmt(model.admins||0))+' مدیر</span></div>';
       }catch(_){grid.innerHTML='<div class="empty-state">وضعیت بکاپ خوانده نشد.</div>';}
     }
-    async function sendBackupNow(btn){
-      const status=document.getElementById('kvBackupStatus');
-      if(btn)btn.disabled=true;
-      if(status)status.textContent='در حال ساخت و ارسال بکاپ…';
-      try{
-        const data=await api('/api/miniapp/admin/backup-send',{method:'POST'});
-        if(status)status.textContent='✅ بکاپ برای '+fmt(data.delivered||0)+' مدیر ارسال شد — '+fmt(data.entries||0)+' رکورد';
-      }catch(error){
-        if(status)status.textContent=error.message==='already_sent'
-          ? '⏳ یک بکاپ تازه ارسال شده؛ یک دقیقه بعد دوباره تلاش کنید.'
-          : (error.message==='restore_in_progress' ? 'ریستور در جریان است؛ بکاپ موقتاً متوقف است.' : '❌ ارسال ناموفق: '+(error.message||'خطای شبکه'));
-      }finally{
-        if(btn)btn.disabled=false;
-        loadBackupStatus().catch(()=>{});
-      }
-    }
     const domainCheckBtn=document.getElementById('domainCheck');
     if(domainCheckBtn)domainCheckBtn.addEventListener('click',()=>loadDomainStatus(true));
     const managerAddBtn=document.getElementById('managerAdd');
     if(managerAddBtn)managerAddBtn.addEventListener('click',addManager);
-    const kvBackupSendBtn=document.getElementById('kvBackupSend');
-    if(kvBackupSendBtn)kvBackupSendBtn.addEventListener('click',()=>sendBackupNow(kvBackupSendBtn));
     const btnLookSaveEl=document.getElementById('btnLookSave');
     if(btnLookSaveEl)btnLookSaveEl.addEventListener('click',()=>saveButtonLook());
     // مینی‌اپ نمی‌تواند شناسهٔ ایموجی پریمیومی را بخواند؛ با یک لمس ادمین به حالت گرفتن در چت می‌رود.
@@ -6194,13 +6215,19 @@
         const sendBtn=document.createElement('button');
         sendBtn.type='button';sendBtn.className='ag-secondary';
         sendBtn.textContent='ارسال شمارهٔ من با تلگرام';
-        sendBtn.addEventListener('click',()=>{
-          if(tg&&typeof tg.requestContact==='function'){
-            try{tg.requestContact(()=>{status.textContent='شماره فرستاده شد؛ دکمهٔ «ثبت شد، بررسی کن» را بزنید.';});}
-            catch(_){status.className='ag-state error';status.textContent='تلگرام اجازه نداد؛ شماره را دستی وارد کنید.';}
-          }else{
-            status.className='ag-state error';
-            status.textContent='این نسخهٔ تلگرام اجازهٔ ارسال خودکار نمی‌دهد؛ شماره را دستی وارد کنید.';
+        sendBtn.addEventListener('click',async()=>{
+          const setStatus=(msg,isError)=>{status.className='ag-state'+(isError?' error':'');status.textContent=msg;};
+          if(!(tg&&typeof tg.requestContact==='function')){
+            setStatus('این نسخهٔ تلگرام اجازهٔ ارسال خودکار نمی‌دهد؛ شماره را دستی وارد کنید.',true);
+            return;
+          }
+          sendBtn.disabled=true;
+          setStatus('در حال دریافت شماره از تلگرام…',false);
+          try{
+            const ok=await requestTelegramContact(setStatus);
+            if(ok){setStatus('شماره ثبت شد؛ در حال ورود…',false);return;}
+          }finally{
+            sendBtn.disabled=false;
           }
         });
         const or=document.createElement('div');
@@ -6209,8 +6236,8 @@
         const row=document.createElement('div');
         row.className='ag-row';
         const input=document.createElement('input');
-        input.className='ag-input';input.type='tel';input.inputMode='numeric';
-        input.autocomplete='tel';input.placeholder='۰۹۱۲۱۲۳۴۵۶۷';input.maxLength=16;
+        input.className='ag-input';input.type='tel';input.inputMode='tel';
+        input.autocomplete='tel';input.placeholder='۰۹۱۲۱۲۳۴۵۶۷ یا +۴۹…';input.maxLength=20;
         const saveBtn=document.createElement('button');
         saveBtn.type='button';saveBtn.className='ag-secondary';
         saveBtn.textContent='ثبت شماره';
@@ -6260,6 +6287,69 @@
       },5000);
     }
     let phoneEditMode=false;
+    // ثبت شماره‌ای که تلگرام با requestContact برمی‌گرداند؛ پکیج امضاشدهٔ تلگرام
+    // مستقیم به سرور می‌رود تا بدون انتظار برای پیام چت، همان لحظه تأیید شود.
+    async function saveSignedPhoneContact(info){
+      const raw=info&&typeof info.response==='string'?info.response:'';
+      if(!raw)return false;
+      try{
+        const res=await api('/api/miniapp/phone',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contact_raw:raw})});
+        phoneVerified=true;phoneEditMode=false;myPhone=String((res&&res.phone)||myPhone||'');
+        if(document.getElementById('accessGate')){location.reload();return true;}
+        refreshPhoneCard();
+        toast('شماره ثبت شد.');
+        if(res&&res.access&&res.access.blocked){showAccessGate(res.access);}
+        return true;
+      }catch(_){return false;}
+    }
+    // اگر تلگرام فقط پیام کنتاکت را به چت بفرستد (نسخه‌های قدیمی‌تر)، وضعیت را
+    // خودکار تا ~۳۵ ثانیه بررسی می‌کنیم؛ دیگر لازم نیست کاربر صفحه را تازه کند.
+    let phonePollTimer=null;
+    function pollPhoneConfirmation(onStatus,onConfirmed){
+      let tries=0;
+      if(phonePollTimer){clearInterval(phonePollTimer);phonePollTimer=null;}
+      const timer=setInterval(async()=>{
+        tries++;
+        if(tries>14){
+          clearInterval(timer);if(phonePollTimer===timer)phonePollTimer=null;
+          if(onStatus)onStatus('شماره هنوز تأیید نشد. اگر پیام شماره در چت ارسال شده، همان دکمه را دوباره بزنید یا شماره را دستی وارد کنید.',true);
+          return;
+        }
+        if(document.visibilityState==='hidden')return;
+        try{
+          const boot=await api('/api/miniapp/bootstrap');
+          if(boot&&boot.access&&boot.access.phone_verified){clearInterval(timer);if(phonePollTimer===timer)phonePollTimer=null;if(onConfirmed)onConfirmed(boot);}
+        }catch(_){}
+      },2500);
+      phonePollTimer=timer;
+      return timer;
+    }
+    async function requestTelegramContact(onStatus){
+      if(!(tg&&typeof tg.requestContact==='function'))return false;
+      return new Promise((resolve)=>{
+        let done=false;
+        const finish=(value)=>{if(done)return;done=true;resolve(value);};
+        try{
+          tg.requestContact(async(shared,info)=>{
+            if(!shared){
+              if(onStatus)onStatus('ارسال شماره لغو شد؛ می‌توانید شماره را دستی وارد کنید.',true);
+              finish(false);
+              return;
+            }
+            if(onStatus)onStatus('شماره از تلگرام دریافت شد؛ در حال تأیید…',false);
+            if(await saveSignedPhoneContact(info)){finish(true);return;}
+            pollPhoneConfirmation(onStatus,(boot)=>{
+              phoneVerified=true;phoneEditMode=false;myPhone=String((boot&&boot.phone)||myPhone||'');
+              if(document.getElementById('accessGate')){location.reload();return;}
+              refreshPhoneCard();
+              if(onStatus)onStatus('شماره ثبت شد.',false);
+              toast('شماره ثبت شد.');
+            });
+            finish(false);
+          });
+        }catch(_){finish(false);}
+      });
+    }
     function refreshPhoneCard(){
       const card=document.getElementById('customerPhoneCard');
       if(!card)return;
@@ -6290,7 +6380,7 @@
       }
     }
     function renderCustomerPhoneCard(){ refreshPhoneCard(); }
-    function phoneRequestContact(){
+    async function phoneRequestContact(){
       const status=document.getElementById('customerPhoneStatus');
       const reveal=(msg,isError)=>{
         if(!status)return;
@@ -6302,7 +6392,7 @@
         refreshPhoneCard();
         const input=document.getElementById('customerPhoneInput');
         if(input){input.focus();input.select&&input.select();}
-        reveal('شمارهٔ جدید را وارد و «ثبت» را بزنید.',false);
+        reveal('شمارهٔ جدید را وارد و «ثبت» را بزنید (۰۹… یا +۴۹…).',false);
         return;
       }
       if(phoneVerified&&phoneEditMode){
@@ -6310,15 +6400,18 @@
         refreshPhoneCard();
         return;
       }
-      if(tg&&typeof tg.requestContact==='function'){
-        try{
-          tg.requestContact(()=>reveal('شماره از طرف تلگرام فرستاده شد؛ چند لحظه صبر کنید و صفحه را بازخوانی کنید.',false));
-          return;
-        }catch(_){}
+      const send=document.getElementById('customerPhoneSend');
+      if(send)send.disabled=true;
+      try{
+        const handled=await requestTelegramContact(reveal);
+        if(!handled&&!(tg&&typeof tg.requestContact==='function')){
+          const input=document.getElementById('customerPhoneInput');
+          if(input)input.focus();
+          reveal('این نسخهٔ تلگرام ارسال خودکار را پشتیبانی نمی‌کند؛ شماره را دستی وارد و ثبت کنید.',true);
+        }
+      }finally{
+        if(send)send.disabled=false;
       }
-      const input=document.getElementById('customerPhoneInput');
-      if(input)input.focus();
-      reveal('این نسخهٔ تلگرام ارسال خودکار را پشتیبانی نمی‌کند؛ شماره را دستی وارد و ثبت کنید.',true);
     }
     function savePhoneFromCard(raw){
       const status=document.getElementById('customerPhoneStatus');

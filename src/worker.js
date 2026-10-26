@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.37-ubuntu26.39';
+const VERSION = '1.8.38-ubuntu26.40';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -5733,16 +5733,38 @@ function normalizePhone(raw) {
   return /^09\d{9}$/.test(s) ? s : '';
 }
 
+// شمارهٔ بین‌المللی (مثل +49…) هم پذیرفته می‌شود؛ مشتری‌های خارج از ایران هم
+// باید بتوانند شماره‌شان را ثبت کنند. خروجی یا 09xxxxxxxxx است یا +<کد کشور><شماره>.
+function normalizeAnyPhone(raw) {
+  const iran = normalizePhone(raw);
+  if (iran) return iran;
+  const fa = '۰۱۲۳۴۵۶۷۸۹';
+  let s = String(raw == null ? '' : raw).trim();
+  s = s.replace(/[۰-۹]/g, (d) => String(fa.indexOf(d)));
+  s = s.replace(/[^\d+]/g, '');
+  if (s.startsWith('00')) s = '+' + s.slice(2);
+  // بدون «+» نمی‌توان کشور را حدس زد؛ آن حالت همان مسیر ایرانی بالا پوشش داده شده.
+  if (!s.startsWith('+')) return '';
+  s = '+' + s.slice(1).replace(/\D/g, '');
+  return /^\+[1-9]\d{7,14}$/.test(s) ? s : '';
+}
+
+function isVerifiedPhone(raw) {
+  return !!normalizeAnyPhone(raw);
+}
+
 function phonePretty(raw) {
   const n = normalizePhone(raw);
-  if (!n) return '';
-  return n.slice(0, 4) + ' ' + n.slice(4, 7) + ' ' + n.slice(7);
+  if (n) return n.slice(0, 4) + ' ' + n.slice(4, 7) + ' ' + n.slice(7);
+  return normalizeAnyPhone(raw);
 }
 
 function phoneMasked(raw) {
   const n = normalizePhone(raw);
-  if (!n) return '';
-  return n.slice(0, 4) + '***' + n.slice(-4);
+  if (n) return n.slice(0, 4) + '***' + n.slice(-4);
+  const intl = normalizeAnyPhone(raw);
+  if (!intl) return '';
+  return intl.slice(0, 5) + '***' + intl.slice(-3);
 }
 
 // کیبورد درخواست شماره (دکمهٔ بومی تلگرام؛ همیشه شمارهٔ خودِ کاربر را می‌فرستد)
@@ -5907,7 +5929,7 @@ async function accessGate(env, user, cfg) {
     }
   }
   const phoneOn = conf.phone_required === true;
-  const phoneVerified = !!normalizePhone(user && user.phone);
+  const phoneVerified = isVerifiedPhone(user && user.phone);
   return {
     join_lock: lockOn,
     channels: channels.map((c) => ({ title: c.title || 'کانال', url: c.url || '' })),
@@ -5994,14 +6016,14 @@ async function enforceAccess(env, user, chatId, cfg) {
 // ثبت شماره‌ای که تلگرام با دکمهٔ «📱 ارسال شماره من» می‌فرستد.
 async function saveSharedPhone(env, user, contact, chatId, origin) {
   if (!contact) return false;
-  // فقط شمارهٔ خودِ کاربر پذیرفته می‌شود: کارت مخاطبی که user_id ندارد هم قابل جعل است.
+  // فقط شمارهٔ خودِ کاربر پذیرفته می‌شود: کارت مخاطبی که user_id ندارد قابل جعل است.
   if (contact.user_id == null || String(contact.user_id) !== String(user.tg_id)) {
     await msg(env, chatId, '⚠️ این شماره متعلق به حساب شما نیست. دکمهٔ «📱 ارسال شماره من» را بزنید تا شمارهٔ خودتان ثبت شود.', phoneRequestMarkup());
     return false;
   }
-  const phone = normalizePhone(contact.phone_number);
+  const phone = normalizeAnyPhone(contact.phone_number);
   if (!phone) {
-    await msg(env, chatId, '⚠️ شمارهٔ ارسالی معتبر نیست. شماره را دستی بفرستید؛ مثال: <code>۰۹۱۲۱۲۳۴۵۶۷</code>', phoneRequestMarkup());
+    await msg(env, chatId, '⚠️ شمارهٔ ارسالی معتبر نیست. شماره را دستی بفرستید؛ مثال: <code>۰۹۱۲۱۲۳۴۵۶۷</code> یا <code>+4915112345678</code>', phoneRequestMarkup());
     return false;
   }
   user.phone = phone;
@@ -6016,7 +6038,7 @@ async function saveSharedPhone(env, user, contact, chatId, origin) {
 }
 
 async function saveTypedPhone(env, user, raw, chatId) {
-  const phone = normalizePhone(raw);
+  const phone = normalizeAnyPhone(raw);
   if (!phone) return false;
   user.phone = phone;
   user.phone_at = Date.now();
@@ -7484,9 +7506,9 @@ async function onMessage(env, m, origin) {
     if (m.contact) {
       const saved = await saveSharedPhone(env, u, m.contact, chatId, origin);
       if (!saved) return;
-    } else if (gateCfg.phone_required === true && !normalizePhone(u.phone) && text && !text.startsWith('/')) {
+    } else if (gateCfg.phone_required === true && !isVerifiedPhone(u.phone) && text && !text.startsWith('/')) {
       // ثبت دستیِ شماره فقط وقتی قفل شماره روشن است و کاربر هنوز شماره ندارد
-      if (normalizePhone(text)) await saveTypedPhone(env, u, text, chatId);
+      if (normalizeAnyPhone(text)) await saveTypedPhone(env, u, text, chatId);
     }
     if (await enforceAccess(env, u, chatId, gateCfg)) return;
   }
@@ -8599,6 +8621,43 @@ async function verifyMiniAppInitData(initData, botToken, nowSec) {
     first_name: String(user.first_name || '').slice(0, 128),
     last_name: String(user.last_name || '').slice(0, 128),
     language_code: String(user.language_code || '').slice(0, 16)
+  };
+}
+
+// امضای پکیج شماره‌ای که تلگرام بعد از requestContact به مینی‌اپ برمی‌گرداند.
+// دقیقاً همان قالب initData است: contact/auth_date امضاشده با کلید WebAppData.
+async function verifyMiniAppContactPayload(raw, botToken, nowSec) {
+  const text = String(raw || '');
+  if (!text || text.length > 4000 || !botToken) return null;
+  let params;
+  try { params = new URLSearchParams(text); } catch (e) { return null; }
+  const hash = String(params.get('hash') || '').toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(hash)) return null;
+  const pairs = [];
+  const seen = new Set();
+  for (const [key, value] of params.entries()) {
+    if (seen.has(key)) return null;
+    seen.add(key);
+    if (key !== 'hash') pairs.push([key, value]);
+  }
+  const authDate = Number(params.get('auth_date'));
+  const now = Number(nowSec || Math.floor(Date.now() / 1000));
+  if (!Number.isSafeInteger(authDate) || authDate <= 0 || authDate > now + 60 || now - authDate > 900) return null;
+  pairs.sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+  const checkString = pairs.map((p) => p[0] + '=' + p[1]).join('\n');
+  let calculated;
+  try {
+    const secretKey = await hmacSha256('WebAppData', String(botToken));
+    calculated = bytesToHex(await hmacSha256(secretKey, checkString));
+  } catch (e) { return null; }
+  if (!constantTimeEqual(calculated, hash)) return null;
+  let contact;
+  try { contact = JSON.parse(params.get('contact') || 'null'); } catch (e) { return null; }
+  if (!contact || typeof contact !== 'object') return null;
+  return {
+    phone: normalizeAnyPhone(contact.phone_number),
+    user_id: contact.user_id == null ? '' : String(contact.user_id),
+    first_name: String(contact.first_name || '').slice(0, 128)
   };
 }
 
@@ -11089,11 +11148,23 @@ async function miniAppApi(request, env, url) {
     if (request.method !== 'POST') return miniAppJson({ ok: false, error: 'method_not_allowed' }, 405);
     let body = {};
     try { body = await request.json(); } catch (e) { return miniAppJson({ ok: false, error: 'invalid_json' }, 400); }
-    const phone = normalizePhone(body && body.phone);
-    if (!phone) return miniAppJson({ ok: false, error: 'invalid_phone' }, 400);
+    let phone = '';
+    let source = 'miniapp';
+    if (body && body.contact_raw) {
+      // شماره‌ای که تلگرام با requestContact داده و خودش امضا کرده؛ قابل جعل نیست.
+      const verified = await verifyMiniAppContactPayload(body.contact_raw, env.BOT_TOKEN);
+      if (!verified) return miniAppJson({ ok: false, error: 'invalid_contact_signature' }, 400);
+      if (verified.user_id && verified.user_id !== String(user.tg_id)) return miniAppJson({ ok: false, error: 'contact_user_mismatch' }, 403);
+      phone = verified.phone;
+      source = 'contact_signed';
+      if (!phone) return miniAppJson({ ok: false, error: 'invalid_phone' }, 400);
+    } else {
+      phone = normalizeAnyPhone(body && body.phone);
+      if (!phone) return miniAppJson({ ok: false, error: 'invalid_phone' }, 400);
+    }
     user.phone = phone;
     user.phone_at = Date.now();
-    user.phone_source = 'miniapp';
+    user.phone_source = source;
     await saveUser(env, user);
     const after = gateApplies ? accessGate(env, user, gateCfg) : null;
     return miniAppJson({ ok: true, phone: phonePretty(phone), access: after ? accessView(await after) : { blocked: false } }, 200);
@@ -11118,7 +11189,7 @@ async function miniAppApi(request, env, url) {
       owner: isOwner(env, user.tg_id),
       profile: { id: String(user.tg_id), first_name: String(user.first_name || ''), username: String(user.username || '') },
       bot_username: String(cfg.bot_username || ''), support: String(cfg.support || ''),
-      phone: normalizePhone(user.phone) ? phonePretty(user.phone) : '',
+      phone: isVerifiedPhone(user.phone) ? phonePretty(user.phone) : '',
       access: accessView(access)
     }, 200);
   }
@@ -11398,6 +11469,27 @@ async function miniAppApi(request, env, url) {
         return miniAppJson({ ok: true, delivered: result.delivered, entries: result.entries, filename: result.filename, last_at: lastAt }, 200);
       } catch (error) {
         return miniAppJson({ ok: false, error: String((error && error.message) || 'backup_failed') }, 500);
+      }
+    }
+    // خروجی‌ها همیشه به چت خود مدیر فرستاده می‌شوند تا فایل در تاریخچهٔ تلگرام بماند
+    // (دانلود مستقیم مرورگر/وب‌ویو در مینی‌اپ گم می‌شد و سابقه‌ای نداشت).
+    if (path === '/api/miniapp/admin/report') {
+      if (request.method !== 'POST') return miniAppJson({ ok: false, error: 'method_not_allowed' }, 405);
+      const body = await readBody();
+      if (!body) return miniAppJson({ ok: false, error: 'invalid_json' }, 400);
+      const filename = String(body.filename || '').trim().slice(0, 80);
+      const title = String(body.title || '').trim().slice(0, 120);
+      const csv = typeof body.csv === 'string' ? body.csv : '';
+      if (!/^[A-Za-z0-9._-]{3,80}\.csv$/i.test(filename)) return miniAppJson({ ok: false, error: 'invalid_report_filename' }, 400);
+      if (!csv || csv.length > 4000000 || csv.includes('\u0000')) return miniAppJson({ ok: false, error: 'invalid_report_content' }, 400);
+      const payload = csv.charCodeAt(0) === 0xfeff ? csv : '\ufeff' + csv;
+      const rows = Math.max(0, csv.split('\n').filter((line) => line.trim().length > 0).length - 1);
+      const caption = '📄 ' + esc(title || 'گزارش TiznetVPN') + '\n' + faNum(rows) + ' ردیف · نسخهٔ ' + esc(VERSION) + '\nفایل CSV (UTF-8) در تاریخچهٔ همین چت می‌ماند.';
+      try {
+        const sent = await sendDoc(env, identity.user.id, filename, new Blob([payload], { type: 'text/csv;charset=utf-8' }), caption, 'text/csv');
+        return miniAppJson({ ok: true, filename: filename, rows: rows, message_id: sent && sent.message_id }, 200);
+      } catch (e) {
+        return miniAppJson({ ok: false, error: 'report_delivery_failed' }, 502);
       }
     }
     if (path === '/api/miniapp/admin/orders' && request.method === 'GET') {
