@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.38-ubuntu26.40';
+const VERSION = '1.8.39-ubuntu26.41';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -12017,7 +12017,12 @@ async function shetabConfirm(request, env, successMessage) {
     order.test_passed_at = Date.now();
     await saveOrder(env, order);
     await shetabLogEvent(env, { kind: 'test', amount: receivedAmount, ref: recipeId, order_id: order.id });
-    return shetabJson({ success: true, message: successMessage, test: true, order_id: order.id }, 200);
+    // همان شکل پاسخ واریز واقعی برمی‌گردد تا کلاینت (اپ حساب‌دار/Shetab) آزمون را «تأییدشده»
+    // ببیند؛ سفارش آزمایشی سرویس نمی‌سازد، پس fulfilled صادقانه true است (کاری برای تحویل نمانده).
+    return shetabJson({
+      success: true, message: successMessage, test: true,
+      payment_confirmed: true, fulfilled: true, order_id: order.id
+    }, 200);
   }
 
   order.payment_status = 'paid';
