@@ -10,6 +10,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main, 'arena/**']
+    tags: ['app-v*']
     paths:
       - 'android/**'
       - '.github/workflows/android.yml'
