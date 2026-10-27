@@ -256,6 +256,11 @@ function lookupButtons(msg) {
   return Array.isArray(rows) ? rows.flat() : [];
 }
 function fmtTomanForTest(n) { return Number(n || 0).toLocaleString('en-US') + ' تومان'; }
+function lastAnyTextTo(tgid) {
+  const f = TG.filter((x) => String(x.params.chat_id) === String(tgid) && (x.params.text || x.params.caption));
+  const last = f[f.length - 1];
+  return last ? String(last.params.caption || last.params.text || '') : '';
+}
 function lastMsgTo(tgid, method = 'sendMessage') {
   const f = TG.filter((x) => x.method === method && String(x.params.chat_id) === String(tgid));
   return f[f.length - 1];
@@ -373,7 +378,7 @@ assert(badApi.status === 401, 'API مینی‌اپ دست‌کاری initData ر
 await sendText(U1, '/start');
 assert((lastMsgTo(U1) || {}).params && lastMsgTo(U1).params.text.includes('تیزنت VPN | TiznetVPN'), '/start صفحهٔ اصلی برند تیزنت را نشان می‌دهد');
 const homeMarkup = lastMsgTo(U1).params.reply_markup;
-assert(homeMarkup && Array.isArray(homeMarkup.keyboard) && homeMarkup.keyboard.flat().length === 6 && !homeMarkup.inline_keyboard, 'منوی اصلی فقط با کیبورد پایین چت می‌آید و هیچ دکمهٔ شیشه‌ای داخل پیام ندارد');
+assert(homeMarkup && Array.isArray(homeMarkup.keyboard) && homeMarkup.keyboard.flat().length === 9 && !homeMarkup.inline_keyboard, 'منوی اصلی فقط با کیبورد پایین چت می‌آید (خرید، کیف پول، اشتراک‌ها، سفارش‌ها و بقیه) و هیچ دکمهٔ شیشه‌ای داخل پیام ندارد');
 const privateMenuButton = TG.find(x => x.method === 'setChatMenuButton' && String(x.params.chat_id) === String(U1));
 assert(privateMenuButton && privateMenuButton.params.menu_button.type === 'web_app' && privateMenuButton.params.menu_button.text === 'tiznet' && privateMenuButton.params.menu_button.web_app.url === 'https://t.test/miniapp' && (await kvJson('u:' + U1)).miniapp_menu_set_version === 'tiznetvpn-menu-button-ubuntu-v1', 'MenuButtonWebApp عنوان دقیق tiznet با حروف کوچک دارد و نسخهٔ برچسب به‌روزرسانی می‌شود');
 assert(String(lastMsgTo(U1).params.text || '').includes('از کیبورد پایین چت استفاده کنید'), 'پیام خانه کاربر را به کیبورد پایین چت راهنمایی می‌کند');
@@ -407,10 +412,15 @@ await sendText(U5, '🛍 خرید اشتراک');
 const emojiButtonEntry = lastMsgTo(U5);
 await sendText(U5, 'خرید اشتراک');
 const plainButtonEntry = lastMsgTo(U5);
-assert(emojiButtonEntry && emojiButtonEntry.params.text.includes('برای خرید اشتراک وارد اپ فروش تیزنت شوید') && plainButtonEntry && plainButtonEntry.params.text.includes('برای خرید اشتراک وارد اپ فروش تیزنت شوید'), 'دکمه‌های ایموجی‌دار ربات کار می‌کنند و متن بدون ایموجی هم پشتیبانی می‌شود');
-const exactRobotButtons = ['🛍 خرید اشتراک','🎧 پشتیبانی','🎁 اشتراک رایگان','📘 راهنما','🪪 اطلاعات حساب','🤝 دریافت نمایندگی'];
+const emojiBuyText = String((emojiButtonEntry || {}).params && emojiButtonEntry.params.text || '');
+const plainBuyText = String((plainButtonEntry || {}).params && plainButtonEntry.params.text || '');
+assert((emojiBuyText.includes('خرید اشتراک از داخل چت') || emojiBuyText.includes('پلن فعالی برای فروش نیست'))
+  && (plainBuyText.includes('خرید اشتراک از داخل چت') || plainBuyText.includes('پلن فعالی برای فروش نیست'))
+  && !emojiBuyText.includes('وارد اپ') && !plainBuyText.includes('وارد اپ'),
+  'دکمه‌های ایموجی‌دار ربات کار می‌کنند و متن بدون ایموجی هم پشتیبانی می‌شود؛ خرید به‌جای «وارد اپ» داخل چت شروع می‌شود');
+const exactRobotButtons = ['🛍 خرید اشتراک','🎧 پشتیبانی','🎁 اشتراک رایگان','📘 راهنما','🪪 اطلاعات حساب','🤝 دریافت نمایندگی','📦 اشتراک‌های من','💰 کیف پول و شارژ','🧾 سفارش‌های من'];
 const replyTexts = miniOnlyKeyboardMessage?.params.reply_markup?.keyboard?.flat().map(x => x.text) || [];
-assert(miniOnlyEntry && miniOnlyEntry.params.text.includes('دکمهٔ منوی تلگرام') && !miniOnlyEntry.params.reply_markup?.inline_keyboard && miniOnlyKeyboardMessage?.params.reply_markup?.keyboard && JSON.stringify(replyTexts) === JSON.stringify(exactRobotButtons), '/start در Mini App-only فقط کیبورد پایین چت با همان شش دکمه را می‌فرستد و دکمهٔ شیشه‌ای داخل پیام ندارد');
+assert(miniOnlyEntry && miniOnlyEntry.params.text.includes('دکمهٔ منوی تلگرام') && !miniOnlyEntry.params.reply_markup?.inline_keyboard && miniOnlyKeyboardMessage?.params.reply_markup?.keyboard && JSON.stringify(replyTexts) === JSON.stringify(exactRobotButtons), '/start در Mini App-only فقط کیبورد پایین چت با نه دکمه (شامل خرید، کیف پول، اشتراک‌ها و سفارش‌ها) را می‌فرستد و دکمهٔ شیشه‌ای داخل پیام ندارد');
 assert(miniOnlyMenu && miniOnlyMenu.params.menu_button.text === 'tiznet' && miniOnlyCommands && miniOnlyCommands.params.commands.length === 1 && miniOnlyCommands.params.commands[0].command === 'start', 'در حالت Mini App-only Menu Button دقیقاً tiznet است و فهرست دستورها به /start محدود می‌شود');
 assert((await kvJson('u:' + U5)).referred_by === U1, 'خاموش‌بودن منوی legacy انتساب لینک معرف را حفظ می‌کند');
 await sendText(U4, '/start ref_' + u1a.ref_code);
@@ -1133,7 +1143,7 @@ await sendText(U7, 'اشتراک رایگان');
 const botFreeDelivery = TG.slice(botFreeDeliveryStart).filter(x => x.method === 'sendPhoto' && String(x.params.chat_id) === String(U7)).at(-1);
 const botFreeMarkup = botFreeDelivery ? JSON.parse(botFreeDelivery.params.reply_markup || '{}') : {};
 const botFreeReplyTexts = botFreeMarkup.keyboard?.flat().map(x => x.text) || [];
-assert(!botFreeStartMessages[0]?.params.reply_markup?.inline_keyboard && botFreeStartKb.join('|') === exactRobotButtons.join('|') && botFreeDelivery?.params.caption.includes('اشتراک رایگان شما فعال شد') && botFreeReplyTexts.join('|') === exactRobotButtons.join('|') && hUsers.size === hUsersBeforeBotFree + 1, 'ربات از شش‌گزینه‌ای Mini App-only اشتراک رایگان را صادر می‌کند و reply keyboard را حفظ می‌کند');
+assert(!botFreeStartMessages[0]?.params.reply_markup?.inline_keyboard && botFreeStartKb.join('|') === exactRobotButtons.join('|') && botFreeDelivery?.params.caption.includes('اشتراک رایگان شما فعال شد') && botFreeReplyTexts.join('|') === exactRobotButtons.join('|') && hUsers.size === hUsersBeforeBotFree + 1, 'ربات از کیبورد Mini App-only اشتراک رایگان را صادر می‌کند و reply keyboard را حفظ می‌کند');
 env.MINIAPP_ONLY_MODE = 'false';
 
 const restoreKv = new MockKV();
@@ -1222,7 +1232,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.46-ubuntu26.48';"), 'شمارهٔ نسخهٔ سرور 1.8.46-ubuntu26.48 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.47-ubuntu26.49';"), 'شمارهٔ نسخهٔ سرور 1.8.47-ubuntu26.49 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -1738,6 +1748,230 @@ assert(dcWalletCode.status === 200 && dcWalletCheckout.status === 200
   && Number((await kvJson('u:122')).balance) === dcPrice - dcWalletExpected,
   'خرید با کیف پول فقط مبلغ پس از تخفیف را کسر می‌کند و سفارش با همان مبلغ تأیید می‌شود');
 
+// ---------- خرید و مدیریت کامل از داخل چت (بدون مینی‌اپ) ----------
+function chatPlanList(plans, panelId) {
+  const assigned = (p) => {
+    const raw = p && p.panel_ids;
+    if (Array.isArray(raw)) return raw.map(String);
+    if (typeof raw === 'string') return raw.split(/[,\s]+/).filter(Boolean);
+    return [];
+  };
+  return Object.values(plans || {})
+    .filter((p) => p && p.archived !== true && p.enabled !== false)
+    .filter((p) => { const a = assigned(p); return !a.length || a.includes('all') || a.includes(String(panelId)); })
+    .sort((a, b) => a.price - b.price);
+}
+async function chatPaymentOptions() {
+  const cfgNow = await kvJson('cfg') || {};
+  const opts = ['wallet'];
+  if (cfgNow.card_auto_enabled === true && cfgNow.card_number) opts.push('shetab');
+  if (cfgNow.card_manual_enabled !== false && cfgNow.card_number) opts.push('manual');
+  return opts;
+}
+env.MINIAPP_ONLY_MODE = 'true';
+const CHATU = 130;
+const CHATU2 = 131;
+const chatPlansNow = await kvJson('plans') || {};
+const chatPanelsNow = await kvJson('panels') || {};
+const chatSellablePanels = Object.values(chatPanelsNow)
+  .filter((p) => p && p.archived !== true && p.enabled !== false && chatPlanList(chatPlansNow, p.id).length);
+const chatPanelIdx = chatSellablePanels.findIndex((p) => String(p.id) === String(purchasable.panel_id)) + 1;
+const chatPlanIdx = chatPlanList(chatPlansNow, purchasable.panel_id).findIndex((p) => String(p.id) === String(purchasable.plan_id)) + 1;
+const chatOpts = await chatPaymentOptions();
+const chatManualIdx = chatOpts.indexOf('manual') + 1;
+const chatTopupOpts = chatOpts.filter((m) => m !== 'wallet');
+const chatTopupManualIdx = chatTopupOpts.indexOf('manual') + 1;
+assert(chatPanelIdx > 0 && chatPlanIdx > 0 && chatManualIdx > 0, 'چت: پنل/پلن/روش پرداخت برای مسیر خرید داخل چت پیدا می‌شوند');
+const chatCode = await dcPost('/api/miniapp/admin/discounts', adminInit, { action: 'save', code: 'CHAT15', type: 'percent', value: 15, per_account_limit: 1 });
+assert(chatCode.status === 200, 'چت: کد تخفیف آزمایشی ساخته می‌شود');
+await sendText(CHATU, '/start');
+await sendText(CHATU, '🛍 خرید اشتراک');
+let chatScreen = String((lastMsgTo(CHATU) || {}).params && lastMsgTo(CHATU).params.text || '');
+assert(chatScreen.includes('خرید اشتراک از داخل چت') || chatScreen.includes('پلن را انتخاب کنید'),
+  'چت: دکمهٔ خرید اشتراک (بدون مینی‌اپ) مسیر خرید داخل چت را باز می‌کند');
+if (chatScreen.includes('لوکیشن')) {
+  await sendText(CHATU, String(chatPanelIdx));
+  chatScreen = String(lastMsgTo(CHATU).params.text || '');
+}
+assert(chatScreen.includes('پلن را انتخاب کنید') && chatScreen.includes(purchasable.title),
+  'چت: فهرست پلن‌های همان لوکیشن با شماره و قیمت نمایش داده می‌شود');
+await sendText(CHATU, String(chatPlanIdx));
+assert(String(lastMsgTo(CHATU).params.text || '').includes('کد تخفیف'),
+  'چت: بعد از انتخاب پلن، گرفتن کد تخفیف پیش از پرداخت پرسیده می‌شود');
+await sendText(CHATU, 'NOPE99');
+assert(String(lastMsgTo(CHATU).params.text || '').includes('وجود ندارد'),
+  'چت: کد تخفیف نامعتبر با پیام مشخص رد می‌شود و مراحل ادامه دارد');
+await sendText(CHATU, 'chat15');
+const chatPayScreen = String(lastMsgTo(CHATU).params.text || '');
+const chatPayable = Number(purchasable.price) - Math.floor(Number(purchasable.price) * 15 / 100);
+assert(chatPayScreen.includes('مبلغ قابل پرداخت') && chatPayScreen.includes('CHAT15') && chatPayScreen.includes(String(chatPayable).replace(/\B(?=(\d{3})+(?!\d))/g, ',')),
+  'چت: کد تخفیف اعمال می‌شود و مبلغ نهایی پیش از پرداخت نمایش داده می‌شود');
+await sendText(CHATU, String(chatManualIdx));
+const chatOrderState = await kvJson('st:' + CHATU);
+const chatOrderId = chatOrderState && chatOrderState.data && chatOrderState.data.order_id;
+const chatOrder = chatOrderId ? await kvJson('o:' + chatOrderId) : null;
+assert(chatOrder && chatOrder.status === 'pending' && chatOrder.payment_method === 'manual'
+  && chatOrder.amount === chatPayable && chatOrder.list_amount === Number(purchasable.price) && chatOrder.discount_code === 'CHAT15'
+  && chatOrder.discount_amount === Number(purchasable.price) - chatPayable,
+  'چت: کارت‌به‌کارت دستی با مبلغ پس از تخفیف سفارش می‌سازد و مبلغ پایه را برای گزارش نگه می‌دارد');
+assert(String(lastMsgTo(CHATU).params.text || '').includes('شماره کارت'),
+  'چت: صفحهٔ سفارش شماره کارت و مبلغ واریز را نشان می‌دهد');
+await sendText(CHATU, 'CHAT-RCPT-77');
+const chatOrderAfterReceipt = await kvJson('o:' + chatOrderId);
+const chatAdminReceipt = TG.filter((x) => String(x.params.chat_id) === String(ADMIN)).at(-1);
+assert(String(lastMsgTo(CHATU).params.text || '').includes('رسید شما ثبت شد')
+  && chatOrderAfterReceipt.payment_status === 'review' && chatOrderAfterReceipt.receipt_submitted_at
+  && chatOrderAfterReceipt.receipt_text === 'CHAT-RCPT-77',
+  'چت: رسید متنی به همان سفارش وصل و وضعیت بررسی ثبت می‌شود');
+assert(chatAdminReceipt && String(chatAdminReceipt.params.text || '').includes('رسید سفارش داخل چت')
+  && (chatAdminReceipt.params.reply_markup.inline_keyboard.flat().some((b) => b.callback_data === 'a_ok:' + chatOrderId)),
+  'چت: رسید با دکمهٔ تأیید برای مدیر ارسال می‌شود');
+await press(ADMIN, 'a_ok:' + chatOrderId);
+const chatOrderApproved = await kvJson('o:' + chatOrderId);
+assert(chatOrderApproved.status === 'approved' && (await kvJson('discounts')).CHAT15.used['130'] === 1,
+  'چت: تأیید مدیر سفارش خرید داخل چت را تکمیل می‌کند و استفادهٔ کد تخفیف شمارش می‌شود');
+// لغو سفارش باز از داخل چت
+const chatCancelCode = await dcPost('/api/miniapp/admin/discounts', adminInit, { action: 'save', code: 'CANCEL10', type: 'percent', value: 10, per_account_limit: 2 });
+await sendText(CHATU, '🛍 خرید اشتراک');
+if (String(lastMsgTo(CHATU).params.text || '').includes('لوکیشن')) await sendText(CHATU, String(chatPanelIdx));
+await sendText(CHATU, String(chatPlanIdx));
+await sendText(CHATU, 'CANCEL10');
+await sendText(CHATU, String(chatManualIdx));
+const chatCancelState = await kvJson('st:' + CHATU);
+const chatCancelOrderId = chatCancelState && chatCancelState.data && chatCancelState.data.order_id;
+assert(chatCancelCode.status === 200 && chatCancelOrderId, 'چت: سفارش دوم برای آزمون لغو ساخته می‌شود');
+await sendText(CHATU, 'لغو');
+const chatCancelledOrder = await kvJson('o:' + (chatCancelOrderId || ''));
+assert(String(lastMsgTo(CHATU).params.text || '').includes('لغو شد') && chatCancelledOrder.status === 'cancelled'
+  && chatCancelledOrder.cancelled_by === String(CHATU) && !(await kvJson('discounts')).CANCEL10.used[String(CHATU)],
+  'چت: مشتری می‌تواند سفارش باز را لغو کند و استفادهٔ کد تخفیف آزاد می‌شود');
+// شارژ کیف پول داخل چت
+await sendText(CHATU, '💰 کیف پول و شارژ');
+assert(String(lastMsgTo(CHATU).params.text || '').includes('مبلغ شارژ') && String(lastMsgTo(CHATU).params.text || '').includes('موجودی'),
+  'چت: دکمهٔ کیف پول موجودی را می‌گوید و مبلغ شارژ را می‌پرسد');
+await sendText(CHATU, '150000');
+assert(String(lastMsgTo(CHATU).params.text || '').includes('روش پرداخت'),
+  'چت: پس از مبلغ، روش پرداخت شارژ انتخاب می‌شود');
+await sendText(CHATU, String(chatTopupManualIdx));
+const chatTopupState = await kvJson('st:' + CHATU);
+const chatTopupOrder = chatTopupState && chatTopupState.data && chatTopupState.data.order_id ? await kvJson('o:' + chatTopupState.data.order_id) : null;
+assert(chatTopupOrder && chatTopupOrder.type === 'charge' && chatTopupOrder.status === 'pending' && chatTopupOrder.amount === 150000,
+  'چت: شارژ کیف پول با کارت‌به‌کارت دستی سفارش شارژ می‌سازد');
+// خرید با کیف پول + پیگیری و تمدید از فهرست‌ها
+const walletChatInit = await miniApi('/api/miniapp/bootstrap', await signedInitData(CHATU2, { first_name: 'Chat Wallet', username: 'chat_wallet' }));
+const walletChatUser = await kvJson('u:' + CHATU2) || {};
+await kv.put('u:' + CHATU2, Object.assign({}, walletChatUser, { balance: Number(purchasable.price) }));
+await dcPost('/api/miniapp/admin/discounts', adminInit, { action: 'save', code: 'CHATW10', type: 'percent', value: 10, per_account_limit: 1 });
+await sendText(CHATU2, '/start');
+await sendText(CHATU2, 'خرید اشتراک');
+if (String(lastMsgTo(CHATU2).params.text || '').includes('لوکیشن')) await sendText(CHATU2, String(chatPanelIdx));
+await sendText(CHATU2, String(chatPlanIdx));
+await sendText(CHATU2, 'CHATW10');
+await sendText(CHATU2, '1');
+const chatWalletBalance = Number((await kvJson('u:' + CHATU2)).balance || 0);
+const chatWalletPayable = Number(purchasable.price) - Math.floor(Number(purchasable.price) * 10 / 100);
+assert(walletChatInit.status === 200 && chatWalletBalance === Number(purchasable.price) - chatWalletPayable,
+  'چت: خرید با کیف پول فقط مبلغ پس از تخفیف را کسر می‌کند');
+const chatUserAfterWallet = await kvJson('u:' + CHATU2);
+assert(Array.isArray(chatUserAfterWallet.subs) && chatUserAfterWallet.subs.length === 1,
+  'چت: خرید کیف‌پولی اشتراک را همان‌جا می‌سازد و در حساب ثبت می‌کند');
+await sendText(CHATU2, '🧾 سفارش‌های من');
+assert(String(lastMsgTo(CHATU2).params.text || '').includes('سفارش‌های من') && String(lastMsgTo(CHATU2).params.text || '').includes('شمارهٔ سفارش'),
+  'چت: فهرست سفارش‌ها با شماره و وضعیت نمایش داده می‌شود');
+await sendText(CHATU2, '1');
+assert(String(lastMsgTo(CHATU2).params.text || '').includes('وضعیت:') && String(lastMsgTo(CHATU2).params.text || '').includes('لینک اشتراک'),
+  'چت: با شمارهٔ سفارش، جزئیات و لینک اشتراک همان سفارش دیده می‌شود');
+await sendText(CHATU2, '📦 اشتراک‌های من');
+assert(String(lastMsgTo(CHATU2).params.text || '').includes('اشتراک‌های من'), 'چت: فهرست اشتراک‌ها با شماره نمایش داده می‌شود');
+await sendText(CHATU2, '1');
+const chatSubScreen = String(lastMsgTo(CHATU2).params.text || '');
+assert(chatSubScreen.includes('تمدید یا ارتقا') && chatSubScreen.includes('لینک اشتراک'),
+  'چت: جزئیات اشتراک با لینک و گزینهٔ تمدید/ارتقا باز می‌شود');
+await sendText(CHATU2, '1');
+assert(String(lastMsgTo(CHATU2).params.text || '').includes('پلن را انتخاب کنید'),
+  'چت: تمدید اشتراک از داخل چت فهرست پلن‌های همان سرور را می‌آورد');
+// کارت‌به‌کارت خودکار از داخل چت + تأیید با پیامک بانک
+const cfgAutoChat = await kvJson('cfg') || {};
+await kv.put('cfg', Object.assign({}, cfgAutoChat, { card_auto_enabled: true, card_manual_enabled: true, card_number: '6037991122334455' }));
+const chatAutoOpts = await chatPaymentOptions();
+const chatAutoIdx = chatAutoOpts.indexOf('shetab') + 1;
+const CHATU3 = 132;
+await sendText(CHATU3, '/start');
+await sendText(CHATU3, '🛍 خرید اشتراک');
+if (String(lastMsgTo(CHATU3).params.text || '').includes('لوکیشن')) await sendText(CHATU3, String(chatPanelIdx));
+await sendText(CHATU3, String(chatPlanIdx));
+await sendText(CHATU3, '0');
+await sendText(CHATU3, String(chatAutoIdx));
+const chatAutoState = await kvJson('st:' + CHATU3);
+const chatAutoOrder = chatAutoState && chatAutoState.data && chatAutoState.data.order_id ? await kvJson('o:' + chatAutoState.data.order_id) : null;
+assert(chatAutoIdx > 0 && chatAutoOrder && chatAutoOrder.payment_method === 'shetab' && chatAutoOrder.status === 'pending'
+  && chatAutoOrder.pay_amount > chatAutoOrder.amount && String(lastMsgTo(CHATU3).params.text || '').includes('مبلغ دقیق واریز'),
+  'چت: کارت‌به‌کارت خودکار مبلغ یکتای واریز را می‌سازد و همان‌جا نشان می‌دهد');
+const chatAutoPaid = await shetabPost({ amount: chatAutoOrder.pay_amount, recipeId: 'CHAT-AUTO-0001' });
+assert(chatAutoPaid.status === 200 && (await kvJson('o:' + chatAutoOrder.id)).status === 'approved',
+  'چت: پیامک بانک سفارش خرید داخل چت را خودکار تأیید می‌کند (همان قرارداد شتاب)');
+// رسید عکس در حالت فقط‌اپ
+const CHATU4 = 133;
+await sendText(CHATU4, '/start');
+await sendText(CHATU4, '🛍 خرید اشتراک');
+if (String(lastMsgTo(CHATU4).params.text || '').includes('لوکیشن')) await sendText(CHATU4, String(chatPanelIdx));
+await sendText(CHATU4, String(chatPlanIdx));
+await sendText(CHATU4, '0');
+await sendText(CHATU4, String(chatManualIdx));
+const chatPhotoState = await kvJson('st:' + CHATU4);
+const chatPhotoOrderId = chatPhotoState && chatPhotoState.data && chatPhotoState.data.order_id;
+await upd({ message: { message_id: ++midSeq, chat: { id: CHATU4, type: 'private' }, from: { id: CHATU4, first_name: 'U' + CHATU4, username: 'u' + CHATU4 }, photo: [{ file_id: 'CHAT-RECEIPT-PHOTO', file_unique_id: 'u1', width: 90, height: 90 }] } });
+const chatPhotoOrder = chatPhotoOrderId ? await kvJson('o:' + chatPhotoOrderId) : null;
+assert(chatPhotoOrder && chatPhotoOrder.receipt_file_id === 'CHAT-RECEIPT-PHOTO' && chatPhotoOrder.payment_status === 'review'
+  && TG.some((x) => x.method === 'sendPhoto' && String(x.params.chat_id) === String(ADMIN) && x.params.photo === 'CHAT-RECEIPT-PHOTO'),
+  'چت: عکس رسید در حالت فقط‌اپ به همان سفارش وصل و برای مدیر ارسال می‌شود');
+// ── پنل نمایندگی داخل چت: ساخت، تمدید، تحویل لینک و تبدیل امتیاز ─────
+const AGENTU = 134;
+await kv.put('agent:' + AGENTU, {
+  id: String(AGENTU), tg_id: String(AGENTU), first_name: 'AgentChat', username: 'agentchat', enabled: true,
+  balance: 9000000, total_created: 0, total_renewed: 0, plan_prices: {}, created_at: Date.now(), updated_at: Date.now()
+});
+await sendText(AGENTU, '/start');
+await sendText(AGENTU, '🤝 دریافت نمایندگی');
+const agentMenuText = String(lastMsgTo(AGENTU).params.text || '');
+assert(agentMenuText.includes('پنل نمایندگی') && agentMenuText.includes('ساخت اشتراک برای مشتری') && agentMenuText.includes('تبدیل امتیاز دعوت به کیف پول')
+  && String(lastMsgTo(AGENTU).params.text || '').includes('موجودی نمایندگی'),
+  'چت: نماینده با دکمهٔ «دریافت نمایندگی» پنل خودش (موجودی + همهٔ کارها) را داخل چت می‌بیند');
+await sendText(AGENTU, '1');
+assert(String(lastMsgTo(AGENTU).params.text || '').includes('پلن را انتخاب کنید'),
+  'چت: ساخت اشتراک برای مشتری فهرست پلن‌های نمایندگی را نشان می‌دهد');
+await sendText(AGENTU, '1');
+assert(String(lastMsgTo(AGENTU).params.text || '').includes('نام مشتری'),
+  'چت: پس از انتخاب پلن، نام مشتری پرسیده می‌شود');
+await sendText(AGENTU, 'مشتری چت');
+const agentCreatedText = lastAnyTextTo(AGENTU);
+
+const agentAfterCreateChat = await kvJson('agent:' + AGENTU);
+assert(agentCreatedText.includes('اشتراک مشتری ساخته شد') && agentAfterCreateChat && Number(agentAfterCreateChat.total_created) === 1
+  && Number(agentAfterCreateChat.balance) < 9000000,
+  'چت: اشتراک مشتری با کسر موجودی نمایندگی ساخته و لینک/QR تحویل داده می‌شود');
+await sendText(AGENTU, '🤝 دریافت نمایندگی');
+await sendText(AGENTU, '2');
+const agentRenewListText = String(lastMsgTo(AGENTU).params.text || '');
+assert(agentRenewListText.includes('مشتری چت') && agentRenewListText.includes('تمدید اشتراک مشتری'),
+  'چت: فهرست اشتراک‌های ساخته‌شدهٔ نماینده با نام مشتری و کد نمایش داده می‌شود');
+await sendText(AGENTU, '1');
+assert(String(lastMsgTo(AGENTU).params.text || '').includes('پلن تازه'),
+  'چت: تمدید اشتراک مشتری پلن‌های همان سرور را می‌آورد');
+await sendText(AGENTU, '1');
+const agentRenewedText = lastAnyTextTo(AGENTU);
+const agentAfterRenewChat = await kvJson('agent:' + AGENTU);
+assert(agentRenewedText.includes('تمدید شد') && agentAfterRenewChat && Number(agentAfterRenewChat.total_renewed) === 1,
+  'چت: تمدید با کسر موجودی نمایندگی انجام و همان‌جا گزارش می‌شود');
+await sendText(AGENTU, '🤝 دریافت نمایندگی');
+await sendText(AGENTU, '3');
+await sendText(AGENTU, '1');
+assert(lastAnyTextTo(AGENTU).includes('لینک اشتراک'),
+  'چت: تحویل لینک و QR اشتراک مشتری بدون مینی‌اپ انجام می‌شود');
+await sendText(AGENTU, 'تبدیل امتیاز');
+assert(String(lastMsgTo(AGENTU).params.text || '').includes('امتیاز شما کمتر از ۱۰۰'),
+  'چت: تبدیل امتیاز دعوت به کیف پول هم بدون مینی‌اپ با یک پیام ساده انجام می‌شود');
+env.MINIAPP_ONLY_MODE = 'false';
 const staleInit = await signedInitData(U1, {}, 90000);
 const staleApi = await miniApi('/api/miniapp/bootstrap', staleInit);
 assert(staleApi.status === 401, 'initData قدیمی/منقضی‌شده رد می‌شود');
@@ -2257,10 +2491,10 @@ function kbTexts(msg) {
   const kb = msg && msg.params && msg.params.reply_markup && msg.params.reply_markup.keyboard;
   return Array.isArray(kb) ? kb.flat().map(x => x.text) : [];
 }
-const DEFAULT_KB = ['🛍 خرید اشتراک', '🎧 پشتیبانی', '🎁 اشتراک رایگان', '📘 راهنما', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی'];
+const DEFAULT_KB = ['🛍 خرید اشتراک', '🎧 پشتیبانی', '🎁 اشتراک رایگان', '📘 راهنما', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی', '📦 اشتراک‌های من', '💰 کیف پول و شارژ', '🧾 سفارش‌های من'];
 
 await press(ADMIN, 's_kb');
-assert(panelMsg(ADMIN).params.text.includes('دکمه‌های چت') && lookupButtons(panelMsg(ADMIN)).filter(b => String(b.callback_data).startsWith('s_kb_it:')).length === 6, 'پنل «دکمه‌های چت» در تنظیمات ادمین باز می‌شود و شش دکمهٔ فعلی را نشان می‌دهد');
+assert(panelMsg(ADMIN).params.text.includes('دکمه‌های چت') && lookupButtons(panelMsg(ADMIN)).filter(b => String(b.callback_data).startsWith('s_kb_it:')).length === 9, 'پنل «دکمه‌های چت» در تنظیمات ادمین باز می‌شود و نه دکمهٔ فعلی را نشان می‌دهد');
 await press(ADMIN, 's_kb_it:buy');
 assert(panelMsg(ADMIN).params.text.includes('خرید اشتراک') && lookupButtons(panelMsg(ADMIN)).some(b => b.callback_data === 's_kb_tog:buy') && lookupButtons(panelMsg(ADMIN)).some(b => b.callback_data === 's_kb_ren:buy'), 'هر دکمه صفحهٔ اختصاصی با روشن/خاموش و تغییر نام دارد');
 
@@ -2269,21 +2503,21 @@ await sendText(ADMIN, 'اشتراک بخرم');
 const renamedCfg = await kvJson('ui:chat_buttons');
 assert(renamedCfg && renamedCfg.labels && renamedCfg.labels.buy === 'اشتراک بخرم', 'تغییر نام دکمه در KV ذخیره می‌شود');
 await sendText(U12, '/start');
-assert(JSON.stringify(kbTexts(lastMsgTo(U12))) === JSON.stringify(['🛍 اشتراک بخرم', '🎧 پشتیبانی', '🎁 اشتراک رایگان', '📘 راهنما', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی']), 'نام تازه همان لحظه روی کیبورد مشتری می‌آید');
+assert(JSON.stringify(kbTexts(lastMsgTo(U12))) === JSON.stringify(['🛍 اشتراک بخرم', '🎧 پشتیبانی', '🎁 اشتراک رایگان', '📘 راهنما', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی', '📦 اشتراک‌های من', '💰 کیف پول و شارژ', '🧾 سفارش‌های من']), 'نام تازه همان لحظه روی کیبورد مشتری می‌آید');
 await sendText(U12, 'خرید اشتراک');
-assert(String(lastMsgTo(U12).params.text || '').includes('برای خرید اشتراک وارد اپ فروش تیزنت شوید'), 'نام پیش‌فرض قبلی هم بعد از تغییر نام هنوز مسیر درست را اجرا می‌کند');
+assert(String(lastMsgTo(U12).params.text || '').includes('خرید اشتراک از داخل چت'), 'نام پیش‌فرض قبلی هم بعد از تغییر نام هنوز مسیر درست (خرید داخل چت) را اجرا می‌کند');
 await sendText(U12, 'اشتراک بخرم');
-assert(String(lastMsgTo(U12).params.text || '').includes('برای خرید اشتراک وارد اپ فروش تیزنت شوید'), 'نام سفارشی هم همان دکمه را اجرا می‌کند');
+assert(String(lastMsgTo(U12).params.text || '').includes('خرید اشتراک از داخل چت'), 'نام سفارشی هم همان دکمه را اجرا می‌کند');
 
 await press(ADMIN, 's_kb_tog:support');
 await sendText(U12, '/start');
-assert(kbTexts(lastMsgTo(U12)).length === 5 && !kbTexts(lastMsgTo(U12)).includes('🎧 پشتیبانی'), 'خاموش‌کردن دکمه آن را از کیبورد برمی‌دارد');
+assert(kbTexts(lastMsgTo(U12)).length === 8 && !kbTexts(lastMsgTo(U12)).includes('🎧 پشتیبانی'), 'خاموش‌کردن دکمه آن را از کیبورد برمی‌دارد');
 await sendText(U12, 'پشتیبانی');
 assert(lastMsgTo(U12).params.text.includes('یکی از دکمه‌های پایین'), 'دکمهٔ خاموش دیگر مسیری را اجرا نمی‌کند');
 
 await press(ADMIN, 's_kb_up:help');
 await sendText(U12, '/start');
-assert(JSON.stringify(kbTexts(lastMsgTo(U12))) === JSON.stringify(['🛍 اشتراک بخرم', '📘 راهنما', '🎁 اشتراک رایگان', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی']), 'جابه‌جایی دکمه ترتیب کیبورد را عوض می‌کند');
+assert(JSON.stringify(kbTexts(lastMsgTo(U12))) === JSON.stringify(['🛍 اشتراک بخرم', '📘 راهنما', '🎁 اشتراک رایگان', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی', '📦 اشتراک‌های من', '💰 کیف پول و شارژ', '🧾 سفارش‌های من']), 'جابه‌جایی دکمه ترتیب کیبورد را عوض می‌کند');
 
 await press(ADMIN, 's_kb_del:apps');
 await press(ADMIN, 's_kb_put:apps');
@@ -2293,12 +2527,12 @@ assert(afterAdd.order[afterAdd.order.length - 1] === 'apps', 'دکمهٔ حذف�
 await press(ADMIN, 's_kb_reset');
 const resetCfg = await kvJson('ui:chat_buttons');
 await sendText(U12, '/start');
-assert(JSON.stringify(kbTexts(lastMsgTo(U12))) === JSON.stringify(DEFAULT_KB) && resetCfg.order.length === 6 && !Object.keys(resetCfg.labels || {}).length, 'بازگردانی پیش‌فرض، نام و ترتیب و وضعیت شش دکمهٔ اصلی را برمی‌گرداند');
+assert(JSON.stringify(kbTexts(lastMsgTo(U12))) === JSON.stringify(DEFAULT_KB) && resetCfg.order.length === 9 && !Object.keys(resetCfg.labels || {}).length, 'بازگردانی پیش‌فرض، نام و ترتیب و وضعیت نه دکمهٔ اصلی را برمی‌گرداند');
 
 // همان تنظیمات از مینی‌اپ
 const chatAdmin = await signedInitData(ADMIN);
 const lookWithChat = await miniApi('/api/miniapp/admin/settings', chatAdmin);
-assert(lookWithChat.json.buttons && lookWithChat.json.buttons.chat && lookWithChat.json.buttons.chat.items.length === 6 && lookWithChat.json.buttons.chat.catalog.length >= 6, 'تنظیمات مینی‌اپ فهرست دکمه‌های چت و کاتالوگ کامل را برمی‌گرداند');
+assert(lookWithChat.json.buttons && lookWithChat.json.buttons.chat && lookWithChat.json.buttons.chat.items.length === 9 && lookWithChat.json.buttons.chat.catalog.length >= 11, 'تنظیمات مینی‌اپ فهرست دکمه‌های چت و کاتالوگ کامل را برمی‌گرداند');
 const appChatSave = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['buy', 'subs', 'wallet'], off: ['wallet'], labels: { subs: 'بسته‌های من' } } }) });
 assert(appChatSave.status === 200 && appChatSave.json.chat.items.length === 3 && appChatSave.json.chat.items.find(i => i.id === 'subs').custom === 'بسته‌های من', 'مدیر از مینی‌اپ ترتیب، نام و خاموش‌بودن دکمه‌ها را ذخیره می‌کند');
 await sendText(U12, '/start');
