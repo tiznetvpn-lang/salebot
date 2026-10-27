@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.46-ubuntu26.48';
+const VERSION = '1.8.47-ubuntu26.49';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -3585,9 +3585,9 @@ const CHAT_BTN_CATALOG = [
   { id: 'help',    icon: '📘', label: 'راهنما',          fallback: true },
   { id: 'account', icon: '🪪', label: 'اطلاعات حساب',    fallback: true },
   { id: 'agent',   icon: '🤝', label: 'دریافت نمایندگی', fallback: true },
-  { id: 'subs',    icon: '📦', label: 'اشتراک‌های من',   fallback: false },
-  { id: 'wallet',  icon: '💰', label: 'کیف پول و شارژ',  fallback: false },
-  { id: 'orders',  icon: '🧾', label: 'سفارش‌های من',    fallback: false },
+  { id: 'subs',    icon: '📦', label: 'اشتراک‌های من',   fallback: true },
+  { id: 'wallet',  icon: '💰', label: 'کیف پول و شارژ',  fallback: true },
+  { id: 'orders',  icon: '🧾', label: 'سفارش‌های من',    fallback: true },
   { id: 'apps',    icon: '📥', label: 'دانلود اپ‌ها',    fallback: false },
   { id: 'ref',     icon: '🎉', label: 'دعوت دوستان',     fallback: false }
 ];
@@ -4489,7 +4489,10 @@ async function showHome(env, chatId, u, messageId, origin, allowWebApp) {
 
 async function showMiniAppOnlyStart(env, chatId, origin) {
   // دکمهٔ وب‌اپ داخل پیام حذف شد؛ ورود به اپ از دکمهٔ منوی تلگرام (☰) انجام می‌شود.
-  await msg(env, chatId, 'برای خرید و خدمات، اپ فروشگاه را از دکمهٔ منوی تلگرام (☰) باز کنید.\nبرای سایر خدمات، یکی از دکمه‌های پایین چت را انتخاب کنید.', mainBotReplyMarkup());
+  await msg(env, chatId,
+    '🛍 برای خرید، دکمهٔ «🛍 خرید اشتراک» پایین چت را بزنید؛ خرید کامل (پلن، کد تخفیف، کیف پول و کارت‌به‌کارت) داخل همین چت انجام می‌شود.\n' +
+    '📱 اپ فروشگاه هم از دکمهٔ منوی تلگرام (☰) باز می‌شود؛ هر دو یک حساب و یک داده دارند.\n' +
+    'برای سایر خدمات، یکی از دکمه‌های پایین چت را انتخاب کنید.', mainBotReplyMarkup());
 }
 
 async function sendMiniAppEntry(env, chatId, origin, caption) {
@@ -4554,7 +4557,7 @@ async function chatSubsText(env, u) {
     const expire = live && live.expiry_time ? faDate(Date.parse(live.expiry_time) || 0) : '—';
     lines.push('🖥 <b>' + esc(panel.name || '—') + '</b>' + (plan.title ? ' · ' + esc(plan.title) : ''));
     lines.push('📊 ' + gbText + ' · ⏳ تا ' + expire);
-    const link = panel.api_url ? userLink(panel, sub.uuid) : '';
+    const link = panel.user_base ? userLink(panel, sub.uuid) : '';
     if (link) lines.push('🔗 <code>' + esc(link) + '</code>');
     lines.push('──────────────');
   }
@@ -4606,7 +4609,7 @@ async function chatWalletText(env, u) {
     lines.push('', '<b>آخرین تراکنش‌ها</b>');
     for (const row of rows) lines.push('• ' + orderTypeFa(row.type) + ' · ' + fmtToman(row.amount) + ' · ' + miniAppStatusLabel(row.status));
   }
-  lines.push('', 'شارژ و خرید از اپ انجام می‌شود: کیف پول ← «شارژ کیف پول».');
+  lines.push('', 'شارژ کیف پول از همین چت هم انجام می‌شود (دکمهٔ «💰 کیف پول و شارژ» یا زیر) و از اپ.');
   return lines.join('\n');
 }
 
@@ -4644,8 +4647,8 @@ async function runChatButton(env, u, chatId, id, origin, cfgIn) {
   const cfg = cfgIn || await getCfg(env);
   const reply = mainBotReplyMarkup();
   if (id === 'buy') {
-    // خرید فقط در مینی‌اپ انجام می‌شود؛ چت دکمهٔ شیشه‌ای ندارد.
-    await sendMiniAppEntry(env, chatId, origin, 'برای خرید اشتراک وارد اپ فروش تیزنت شوید.');
+    // خرید کامل در خودِ چت انجام می‌شود؛ اگر مینی‌اپ باز نشود فروش قطع نمی‌شود.
+    await chatBuyStart(env, chatId, u);
     return true;
   }
   if (id === 'support') {
@@ -4696,18 +4699,1100 @@ async function runChatButton(env, u, chatId, id, origin, cfgIn) {
     await msg(env, chatId, message, reply);
     return true;
   }
-  if (id === 'subs') { await msg(env, chatId, await chatSubsText(env, u), reply); return true; }
-  if (id === 'wallet') { await msg(env, chatId, await chatWalletText(env, u), reply); return true; }
-  if (id === 'orders') { await msg(env, chatId, await chatOrdersText(env, u), reply); return true; }
+  // این سه دکمه هم فقط متن نیستند: فهرست شماره‌دار می‌فرستند و شمارهٔ کاربر همان‌جا
+  // تمدید/QR/راهنمای پرداخت/لغو سفارش را باز می‌کند.
+  if (id === 'subs') { await chatSubsMenu(env, chatId, u); return true; }
+  if (id === 'wallet') { await chatWalletMenu(env, chatId, u); return true; }
+  if (id === 'orders') { await chatOrdersMenu(env, chatId, u); return true; }
   if (id === 'ref') { await msg(env, chatId, await chatRefText(env, u, cfg), reply); return true; }
-  if (id === 'agent') { await msg(env, chatId, await chatAgentText(env, u, cfg), reply); return true; }
+  if (id === 'agent') { return await chatAgentStart(env, chatId, u, cfg); }
   return false;
 }
 
 async function handleMiniAppOnlyButton(env, u, chatId, text, origin) {
+  const key = botButtonKey(text);
+  if (key === 'تبدیل امتیاز' || key === 'تبدیل امتیاز به کیف پول') { await chatAgentRedeemPoints(env, chatId, u); return true; }
   const id = await resolveChatButton(env, text);
   if (!id) return false;
   return runChatButton(env, u, chatId, id, origin);
+}
+
+/* ============== خرید و مدیریت کامل از داخل چت (بدون نیاز به مینی‌اپ) ==============
+ * اگر مینی‌اپ به هر دلیلی باز نشود (تلگرام قدیمی، فیلتر، خطای دامنه یا شبکه)، مشتری
+ * باید بتواند همهٔ کارها را در خودِ چت انجام دهد: دیدن پلن‌ها، کد تخفیف، پرداخت با
+ * کیف پول، کارت‌به‌کارت خودکار و دستی، فرستادن رسید، تمدید/ارتقا، شارژ کیف پول، دیدن
+ * اشتراک‌ها با QR و پیگیری/لغو سفارش.
+ * همه‌چیز با شماره و متن است تا با همان کیبورد پایین چت کار کند؛ هیچ دکمهٔ شیشه‌ای
+ * (inline) لازم نیست، چون برای مشتری حذف می‌شود.
+ */
+
+const CHAT_TOPUP_MIN = 10000;
+const CHAT_TOPUP_MAX = 50000000;
+const CHAT_WIZARD_STEPS = ['cw_panel', 'cw_plan', 'cw_discount', 'cw_pay', 'cw_topup', 'cw_tpay', 'cw_receipt', 'cw_orders', 'cw_subs', 'cw_sub', 'cw_sub_del', 'cw_agent', 'cw_agent_plan', 'cw_agent_name', 'cw_agent_sub', 'cw_agent_rplan'];
+
+function chatChoice(text) {
+  const digits = normDigits(String(text == null ? '' : text)).replace(/[^\d]/g, '');
+  if (!digits || digits.length > 6) return null;
+  const n = Number(digits);
+  return Number.isFinite(n) ? n : null;
+}
+
+function chatWizardCancelText(text) {
+  const t = String(text == null ? '' : text).trim();
+  return t === '0' || t === '۰۰' || t === 'لغو' || t === 'انصراف' || t === '/cancel';
+}
+
+function chatCancelLine() { return '0) ❌ انصراف'; }
+
+function chatDiscountErrorFa(error) {
+  const map = {
+    discount_not_found: 'این کد تخفیف وجود ندارد یا حذف شده است.',
+    discount_disabled: 'این کد تخفیف غیرفعال شده است.',
+    discount_expired: 'تاریخ این کد تخفیف گذشته است.',
+    discount_limit_reached: 'سهمیهٔ استفاده از این کد برای حساب شما تمام شده است.',
+    discount_zero: 'این کد برای مبلغ این پلن تخفیفی ندارد.',
+    discount_too_large: 'تخفیف این کد برای این سفارش قابل اعمال نیست.',
+    discount_code_required: 'کد تخفیف را وارد کنید.'
+  };
+  return map[String(error || '')] || 'این کد تخفیف قابل استفاده نیست.';
+}
+
+/** هدف سفارش (پلن/سرور/اشتراک) را با همان قواعد مینی‌اپ بررسی می‌کند. */
+async function chatResolveTarget(env, u, ctx) {
+  const data = ctx || {};
+  const panels = await getPanels(env);
+  const plans = await getPlans(env);
+  const plan = plans[String(data.plan_id || '')];
+  let panelId = String(data.panel_id || '');
+  let sub = null;
+  let type = 'buy';
+  if (data.sub_sid) {
+    sub = await getSub(env, data.sub_sid);
+    if (!sub || String(sub.tg_id) !== String(u.tg_id)) return { ok: false, error: 'subscription_not_found' };
+    panelId = String(sub.panel_id || '');
+    type = 'renew';
+  }
+  const panel = panels[panelId];
+  if (!isRecordEnabled(panel) || !isRecordEnabled(plan)) return { ok: false, error: 'plan_unavailable' };
+  if (!planAssignedToPanel(plan, panel.id || panelId)) return { ok: false, error: 'plan_panel_mismatch' };
+  const price = Number(plan.price);
+  if (!Number.isSafeInteger(price) || price <= 0) return { ok: false, error: 'invalid_plan_price' };
+  return { ok: true, panel: panel, plan: plan, sub: sub, panelId: panelId, type: type, price: price, subSid: data.sub_sid || null };
+}
+
+async function chatDiscountFor(env, u, target, code) {
+  const normalized = normalizeDiscountCode(code);
+  if (!normalized) return { ok: true, discount: null, payable: target.price, code: '' };
+  const all = await getDiscounts(env);
+  const evaluated = evaluateDiscount(all[normalized], u.tg_id, target.price, Date.now());
+  if (!evaluated.ok) return { ok: false, error: evaluated.error };
+  return { ok: true, discount: evaluated, payable: evaluated.payable, code: normalized };
+}
+
+function chatTargetSummary(target) {
+  return '🖥 سرور: <b>' + esc(target.panel.name) + '</b>\n' +
+    '📦 پلن: <b>' + esc(target.plan.title) + '</b>\n' +
+    '📊 حجم: <b>' + (Number(target.plan.gb) === 0 ? '♾ نامحدود' : fmtGB(target.plan.gb)) + '</b>\n' +
+    '⏳ مدت: <b>' + faNum(target.plan.days) + ' روز</b>';
+}
+
+/* ---------------- خرید / تمدید ---------------- */
+
+async function chatBuyStart(env, chatId, u) {
+  const plans = await getPlans(env);
+  const allPanels = enabledPanels(await getPanels(env));
+  const sellable = allPanels.filter((p) => plansForPanel(plans, String(p.id)).length > 0);
+  if (!sellable.length) {
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, '😔 در حال حاضر پلن فعالی برای فروش نیست. لطفاً بعداً تلاش کنید یا به پشتیبانی پیام بدهید.', mainBotReplyMarkup());
+    return true;
+  }
+  if (sellable.length === 1) {
+    await chatShowChatPlans(env, chatId, u, String(sellable[0].id), null);
+    return true;
+  }
+  await setState(env, u.tg_id, 'cw_panel', {});
+  const lines = sellable.map((p, i) => faNum(i + 1) + ') 🖥 ' + esc(p.name)).join('\n');
+  await msg(env, chatId,
+    '🛍 <b>خرید اشتراک از داخل چت</b>\n\nهمهٔ مراحل همین‌جا انجام می‌شود؛ نیازی به بازکردن اپ نیست.\n\n' +
+    '<b>لوکیشن را انتخاب کنید</b> (شماره را بفرستید):\n\n' + lines + '\n\n' + chatCancelLine(),
+    mainBotReplyMarkup());
+  return true;
+}
+
+async function chatShowChatPlans(env, chatId, u, panelId, subSid) {
+  const panels = await getPanels(env);
+  const panel = panels[panelId];
+  if (!isRecordEnabled(panel)) {
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, '❌ این سرور دیگر فعال نیست.', mainBotReplyMarkup());
+    return true;
+  }
+  let sub = null;
+  if (subSid) {
+    sub = await getSub(env, subSid);
+    if (!sub || String(sub.tg_id) !== String(u.tg_id)) {
+      await clearState(env, u.tg_id);
+      await msg(env, chatId, '❌ این اشتراک پیدا نشد.', mainBotReplyMarkup());
+      return true;
+    }
+  }
+  const list = plansForPanel(await getPlans(env), panelId);
+  if (!list.length) {
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, '😔 برای این سرور پلن فعالی تعریف نشده است.', mainBotReplyMarkup());
+    return true;
+  }
+  await setState(env, u.tg_id, 'cw_plan', { panel_id: String(panelId), sub_sid: subSid ? String(subSid) : '' });
+  const lines = list.map((p, i) => faNum(i + 1) + ') ' + (Number(p.gb) === 0 ? '♾' : '📦') + ' ' +
+    esc(p.title) + ' · ' + (Number(p.gb) === 0 ? 'نامحدود' : fmtGB(p.gb)) + ' · ' + faNum(p.days) + ' روز · ' + fmtToman(p.price)).join('\n');
+  await msg(env, chatId,
+    (sub ? '🔄 <b>تمدید / ارتقای اشتراک</b>\n\n' : '🛍 <b>خرید اشتراک</b>\n\n') +
+    '🖥 سرور: <b>' + esc(panel.name) + '</b>\n\n<b>پلن را انتخاب کنید</b> (شماره را بفرستید):\n\n' +
+    lines + '\n\n' + chatCancelLine(),
+    mainBotReplyMarkup());
+  return true;
+}
+
+async function chatAskDiscount(env, chatId, u, ctx) {
+  const target = await chatResolveTarget(env, u, ctx);
+  if (!target.ok) {
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, '❌ این پلن یا سرور دیگر فعال نیست؛ یک‌بار دیگر از «🛍 خرید اشتراک» شروع کنید.', mainBotReplyMarkup());
+    return true;
+  }
+  await setState(env, u.tg_id, 'cw_discount', { panel_id: target.panelId, plan_id: String(target.plan.id), sub_sid: ctx.sub_sid || '' });
+  await msg(env, chatId,
+    (target.type === 'renew' ? '🔄 <b>تمدید / ارتقای اشتراک</b>\n\n' : '🛍 <b>تأیید خرید</b>\n\n') +
+    chatTargetSummary(target) +
+    '\n💵 مبلغ پلن: <b>' + fmtToman(target.price) + '</b>' +
+    '\n\n🎟 اگر <b>کد تخفیف</b> دارید همین‌جا بفرستید؛ وگرنه عدد <b>0</b> را بفرستید تا مبلغ کامل ادامه پیدا کند.' +
+    '\n0) ادامهٔ خرید بدون تخفیف' +
+    '\nبرای انصراف، «لغو» را بفرستید.',
+    mainBotReplyMarkup());
+  return true;
+}
+
+/** فهرست روش‌های پرداخت فعال؛ هم برای نمایش و هم برای انتخاب شمارهٔ کاربر. */
+async function chatPayOptions(env, cfgIn) {
+  const cfg = cfgIn || await getCfg(env);
+  const options = [{ method: 'wallet', label: '💰 کیف پول (تحویل فوری)' }];
+  if (cfg.card_auto_enabled === true && cfg.card_number && await resolveShetabSecret(env)) {
+    options.push({ method: 'shetab', label: '⚡ کارت‌به‌کارت خودکار (تأیید خودکار با پیامک بانک)' });
+  }
+  if (cfg.card_manual_enabled !== false && cfg.card_number) {
+    options.push({ method: 'manual', label: '💳 کارت‌به‌کارت دستی (بررسی رسید توسط ادمین)' });
+  }
+  return options;
+}
+
+async function chatPayMenu(env, chatId, u, ctx) {
+  const data = ctx || {};
+  const target = await chatResolveTarget(env, u, data);
+  if (!target.ok) {
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, '❌ این پلن یا سرور دیگر فعال نیست؛ یک‌بار دیگر شروع کنید.', mainBotReplyMarkup());
+    return true;
+  }
+  const priced = await chatDiscountFor(env, u, target, data.discount_code);
+  if (!priced.ok) {
+    await setState(env, u.tg_id, 'cw_discount', { panel_id: target.panelId, plan_id: String(target.plan.id), sub_sid: data.sub_sid || '' });
+    await msg(env, chatId, '⚠️ ' + chatDiscountErrorFa(priced.error) + '\n\nیک کد دیگر بفرستید یا 0 را بزنید.', mainBotReplyMarkup());
+    return true;
+  }
+  const fresh = await getUser(env, u.tg_id) || u;
+  const balance = Number(fresh.balance || 0);
+  const options = await chatPayOptions(env);
+  const lines = options.map((o, i) => faNum(i + 1) + ') ' + o.label).join('\n');
+  await setState(env, u.tg_id, 'cw_pay', {
+    panel_id: target.panelId, plan_id: String(target.plan.id), sub_sid: data.sub_sid || '',
+    discount_code: priced.code || ''
+  });
+  await msg(env, chatId,
+    (target.type === 'renew' ? '🔄 ' : '🛍 ') + '<b>' + (target.type === 'renew' ? 'تمدید / ارتقا' : 'خرید') + '</b>\n\n' +
+    chatTargetSummary(target) +
+    '\n💵 مبلغ پلن: <b>' + fmtToman(target.price) + '</b>' +
+    (priced.discount ? '\n🎟 تخفیف <code>' + esc(priced.code) + '</code>: <b>−' + fmtToman(priced.discount.discount) + '</b>' : '') +
+    '\n✅ <b>مبلغ قابل پرداخت: ' + fmtToman(priced.payable) + '</b>' +
+    '\n💰 موجودی کیف پول: <b>' + fmtToman(balance) + '</b>' +
+    (options.some((o) => o.method === 'wallet') && balance < priced.payable ? '\n<i>برای پرداخت با کیف پول، موجودی کافی نیست؛ روش بانکی را انتخاب کنید یا کیف پول را شارژ کنید.</i>' : '') +
+    (options.length === 1 && balance < priced.payable ? '\n\n⚠️ پرداخت بانکی برای این فروشگاه فعال نیست. با پشتیبانی تماس بگیرید.' : '') +
+    '\n\n<b>روش پرداخت را انتخاب کنید</b> (شماره را بفرستید):\n\n' + lines + '\n\n' + chatCancelLine(),
+    mainBotReplyMarkup());
+  return true;
+}
+
+async function chatPendingForTarget(env, u, target) {
+  if (target.type === 'renew') return await findMiniAppPendingRenewal(env, u.tg_id, target.subSid);
+  return await findMiniAppPendingOrder(env, u.tg_id, 'buy', target.panelId, String(target.plan.id), '');
+}
+
+async function chatCancelOrderRecord(env, order, by, reason) {
+  if (!order || order.status !== 'pending') return false;
+  order.status = 'cancelled';
+  order.closed_reason = String(reason || 'chat_cancelled');
+  order.cancelled_at = Date.now();
+  order.cancelled_by = String(by || 'customer');
+  await saveOrder(env, order);
+  if (order.pay_amount != null) { try { await kvDel(env, 'shetab_amt:' + order.pay_amount); } catch (e) {} }
+  await releaseDiscountUse(env, order).catch(() => {});
+  return true;
+}
+
+/** متن راهنمای پرداخت کارت‌به‌کارت برای یک سفارش باز. */
+function chatCardInstructions(order) {
+  const cfgCard = String(order.payment_card_number || '').replace(/\s/g, '');
+  const exact = Number(order.pay_amount == null ? order.amount : order.pay_amount);
+  const lines = [
+    '🧾 سفارش: <code>' + esc(order.id) + '</code>',
+    '💵 مبلغ سفارش: <b>' + fmtToman(order.amount) + '</b>'
+  ];
+  if (Number(order.discount_amount || 0) > 0) lines.push('🎟 تخفیف <code>' + esc(order.discount_code || '') + '</code>: −' + fmtToman(order.discount_amount) + ' (پلن ' + fmtToman(order.list_amount || 0) + ')');
+  if (order.payment_method === 'shetab') {
+    lines.push('✅ <b>مبلغ دقیق واریز (تومان): ' + fmtToman(exact) + '</b>');
+    lines.push('🏦 <b>معادل ریالی برای اپ بانک: ' + fmtRialFromToman(exact) + '</b>');
+  }
+  if (cfgCard) lines.push('💳 شماره کارت:\n<code>' + esc(cfgCard) + '</code>');
+  if (order.payment_card_holder) lines.push('👤 به‌نام: ' + esc(order.payment_card_holder));
+  return lines.join('\n');
+}
+
+async function chatPlaceOrder(env, chatId, u, ctx, method) {
+  const target = await chatResolveTarget(env, u, ctx);
+  if (!target.ok) {
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, '❌ این پلن یا سرور دیگر فعال نیست.', mainBotReplyMarkup());
+    return true;
+  }
+  const priced = await chatDiscountFor(env, u, target, ctx.discount_code);
+  if (!priced.ok) {
+    await setState(env, u.tg_id, 'cw_discount', { panel_id: target.panelId, plan_id: String(target.plan.id), sub_sid: ctx.sub_sid || '' });
+    await msg(env, chatId, '⚠️ ' + chatDiscountErrorFa(priced.error) + '\n\nیک کد دیگر بفرستید یا 0 را بزنید.', mainBotReplyMarkup());
+    return true;
+  }
+  const discount = priced.discount;
+  const payable = priced.payable;
+  const orderBase = {
+    tg_id: u.tg_id, username: u.username, first_name: u.first_name,
+    type: target.type, panel_id: target.panelId, plan_id: String(target.plan.id), sub_sid: target.subSid,
+    upgrade_from_plan_id: target.sub && String(target.sub.plan_id) !== String(target.plan.id) ? String(target.sub.plan_id) : '',
+    amount: payable, list_amount: target.price,
+    discount_code: discount ? discount.code : '', discount_amount: discount ? discount.discount : 0,
+    discount_type: discount ? discount.type : '', discount_value: discount ? discount.value : 0,
+    discount_counted_at: discount ? Date.now() : 0
+  };
+
+  if (method === 'wallet') {
+    const walletLock = 'chat_wallet_lock:' + String(u.tg_id);
+    const heldLock = await kvGet(env, walletLock, null);
+    if (heldLock && Date.now() - Number(heldLock.created_at || 0) < 30000) {
+      await clearState(env, u.tg_id);
+      await msg(env, chatId, '⏳ پرداخت قبلی شما در حال انجام است؛ چند لحظه صبر کنید و بعد وضعیت را از «🧾 سفارش‌های من» ببینید. پرداخت را تکرار نکنید.', mainBotReplyMarkup());
+      return true;
+    }
+    await kvPut(env, walletLock, { created_at: Date.now() }, 60);
+    const fresh = await getUser(env, u.tg_id) || u;
+    if (Number(fresh.balance || 0) < payable) {
+      await kvDel(env, walletLock);
+      await msg(env, chatId, '❌ موجودی کیف پول برای این پرداخت کافی نیست.\n💰 موجودی: ' + fmtToman(fresh.balance) + '\n💵 مبلغ لازم: ' + fmtToman(payable) + '\n\nیک روش بانکی را انتخاب کنید یا کیف پول را شارژ کنید.', mainBotReplyMarkup());
+      return await chatPayMenu(env, chatId, u, ctx);
+    }
+    const open = await chatPendingForTarget(env, u, target);
+    if (open) await chatCancelOrderRecord(env, open, u.tg_id, 'chat_wallet_replaced');
+    const order = await newOrder(env, Object.assign({ id: uid(8), payment_method: 'wallet', payment_status: 'processing' }, orderBase));
+    if (discount) {
+      const reserved = await reserveDiscountUse(env, discount.code, u.tg_id, order.id, discount.per_account_limit);
+      if (!reserved) {
+        order.discount_counted_at = 0;
+        await chatCancelOrderRecord(env, order, 'system', 'discount_limit_reached');
+        await msg(env, chatId, '⚠️ ' + chatDiscountErrorFa('discount_limit_reached') + '\n\nیک کد دیگر بفرستید یا 0 را بزنید.', mainBotReplyMarkup());
+        return await chatAskDiscount(env, chatId, u, ctx);
+      }
+    }
+    const debit = await getUser(env, u.tg_id) || fresh;
+    if (Number(debit.balance || 0) < payable) {
+      await chatCancelOrderRecord(env, order, 'system', 'insufficient_balance');
+      await msg(env, chatId, '❌ موجودی کیف پول کافی نیست.', mainBotReplyMarkup());
+      return true;
+    }
+    debit.balance = Number(debit.balance || 0) - payable;
+    await saveUser(env, debit);
+    order.wallet_debited_at = Date.now();
+    order.payment_status = 'paid';
+    order.payment_received_at = Date.now();
+    await saveOrder(env, order);
+    try {
+      // approveOrder خودش سفارش را تأیید، سرویس را می‌سازد/تمدید می‌کند و پیام تحویل + QR می‌فرستد.
+      await approveOrder(env, order);
+    } catch (e) {
+      const latest = await getOrder(env, order.id) || order;
+      if (latest.status !== 'approved') {
+        const refundUser = await getUser(env, u.tg_id);
+        if (refundUser && !latest.wallet_refunded_at) {
+          refundUser.balance = Number(refundUser.balance || 0) + payable;
+          await saveUser(env, refundUser);
+          latest.wallet_refunded_at = Date.now();
+        }
+        latest.status = 'cancelled';
+        latest.payment_status = 'refunded';
+        await saveOrder(env, latest);
+        await releaseDiscountUse(env, latest).catch(() => {});
+        await kvDel(env, walletLock).catch(() => {});
+        await clearState(env, u.tg_id);
+        await msg(env, chatId, '❌ <b>ساخت اشتراک انجام نشد.</b>\nمبلغ به کیف پول شما برگشت خورد.\n\nعلت: <code>' + esc(String((e && e.message) || e).slice(0, 200)) + '</code>\nلطفاً به پشتیبانی اطلاع بدهید.', mainBotReplyMarkup());
+        try { await notifyAdmins(env, '🚨 <b>خطای خرید داخل چت</b>\n👤 <code>' + u.tg_id + '</code>\n<code>' + esc(String((e && e.message) || e).slice(0, 400)) + '</code>'); } catch (e2) {}
+        return true;
+      }
+    }
+    await kvDel(env, walletLock).catch(() => {});
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, '✅ پرداخت از کیف پول انجام شد و سفارش تأیید شد. جزئیات اشتراک در پیام بالا ارسال شد.', mainBotReplyMarkup());
+    return true;
+  }
+
+  // کارت‌به‌کارت: اگر همان سفارش باز با همان کد تخفیف هست، دوباره ساخته نمی‌شود.
+  const open = await chatPendingForTarget(env, u, target);
+  if (open) {
+    if (String(open.discount_code || '') === String(discount ? discount.code : '') && (open.payment_method === 'manual' || open.payment_method === 'shetab')) {
+      await setState(env, u.tg_id, 'cw_receipt', { order_id: String(open.id) });
+      await msg(env, chatId, '🧾 <b>همین سفارش هنوز باز است</b> (سفارش تازه ساخته نشد):\n\n' + chatCardInstructions(open) +
+        '\n\nبعد از واریز، <b>عکس رسید یا شمارهٔ پیگیری</b> را همین‌جا بفرستید.\nبرای لغو این سفارش عبارت «لغو» را بفرستید.', mainBotReplyMarkup());
+      return true;
+    }
+    await chatCancelOrderRecord(env, open, u.tg_id, 'chat_replaced');
+  }
+
+  if (method === 'manual') {
+    const cfgManual = await getCfg(env);
+    const order = await newOrder(env, Object.assign({
+      id: uid(6), payment_method: 'manual', payment_status: 'awaiting_receipt',
+      payment_card_number: String(cfgManual.card_number || '').replace(/\s/g, ''),
+      payment_card_holder: String(cfgManual.card_holder || '')
+    }, orderBase));
+    if (discount) {
+      const reserved = await reserveDiscountUse(env, discount.code, u.tg_id, order.id, discount.per_account_limit);
+      if (!reserved) {
+        order.discount_counted_at = 0;
+        await chatCancelOrderRecord(env, order, 'system', 'discount_limit_reached');
+        await msg(env, chatId, '⚠️ ' + chatDiscountErrorFa('discount_limit_reached') + '\n\nیک کد دیگر بفرستید یا 0 را بزنید.', mainBotReplyMarkup());
+        return await chatAskDiscount(env, chatId, u, ctx);
+      }
+    }
+    await setState(env, u.tg_id, 'cw_receipt', { order_id: String(order.id) });
+    await msg(env, chatId, '💳 <b>پرداخت کارت‌به‌کارت دستی</b>\n\n' + chatCardInstructions(order) +
+      '\n\n✅ سفارش ثبت شد. بعد از واریز، <b>عکس رسید یا شمارهٔ پیگیری</b> را همین‌جا بفرستید تا برای ادمین برود.' +
+      '\n⏳ معمولاً در کمتر از چند ساعت تأیید می‌شود. برای لغو سفارش، «لغو» را بفرستید.', mainBotReplyMarkup());
+    return true;
+  }
+
+  // کارت‌به‌کارت خودکار
+  const cfg = await getCfg(env);
+  if (cfg.card_auto_enabled !== true || !cfg.card_number || !await resolveShetabSecret(env)) {
+    await msg(env, chatId, '❌ پرداخت خودکار در حال حاضر فعال نیست؛ روش دستی را انتخاب کنید.', mainBotReplyMarkup());
+    return await chatPayMenu(env, chatId, u, ctx);
+  }
+  const orderId = uid(6);
+  let payAmount;
+  try { payAmount = await reserveShetabAmount(env, payable, orderId); }
+  catch (e) {
+    await msg(env, chatId, '❌ ساخت مبلغ یکتای انتقال ممکن نشد. سفارش جدیدی نسازید و با پشتیبانی تماس بگیرید.', mainBotReplyMarkup());
+    return true;
+  }
+  const order = await newOrder(env, Object.assign({
+    id: orderId, pay_amount: payAmount, payment_method: 'shetab', payment_status: 'waiting',
+    payment_card_number: String(cfg.card_number).replace(/\s/g, ''), payment_card_holder: String(cfg.card_holder || '')
+  }, orderBase));
+  if (discount) {
+    const reserved = await reserveDiscountUse(env, discount.code, u.tg_id, order.id, discount.per_account_limit);
+    if (!reserved) {
+      order.discount_counted_at = 0;
+      await chatCancelOrderRecord(env, order, 'system', 'discount_limit_reached');
+      await msg(env, chatId, '⚠️ ' + chatDiscountErrorFa('discount_limit_reached') + '\n\nیک کد دیگر بفرستید یا 0 را بزنید.', mainBotReplyMarkup());
+      return await chatAskDiscount(env, chatId, u, ctx);
+    }
+  }
+  await setState(env, u.tg_id, 'cw_receipt', { order_id: String(order.id) });
+  await msg(env, chatId, '⚡ <b>پرداخت کارت‌به‌کارت خودکار</b>\n\n' + chatCardInstructions(order) +
+    '\n\n⚠️ مبلغ را <b>دقیقاً</b> همان مبلغ اختصاصی بالا واریز کنید؛ در غیر این صورت تأیید نمی‌شود.' +
+    '\n📲 بعد از رسیدن پیامک بانک به گوشی، اپ تأیید را می‌فرستد و سفارش خودکار تحویل می‌شود.' +
+    '\nاگر تأیید خودکار انجام نشد، <b>عکس رسید یا شمارهٔ پیگیری</b> را همین‌جا بفرستید تا ادمین بررسی کند. سفارش دوم نسازید.' +
+    '\nبرای لغو سفارش، «لغو» را بفرستید.', mainBotReplyMarkup());
+  return true;
+}
+
+/* ---------------- رسید ---------------- */
+
+async function chatSubmitReceipt(env, u, chatId, orderId, receipt) {
+  const order = await getOrder(env, String(orderId || ''));
+  if (!order || String(order.tg_id) !== String(u.tg_id)) {
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, '❌ سفارش پیدا نشد.', mainBotReplyMarkup());
+    return;
+  }
+  if (order.status === 'approved' || order.payment_status === 'paid') {
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, '✅ این سفارش قبلاً تأیید شده است؛ پرداخت دوباره انجام ندهید.', mainBotReplyMarkup());
+    return;
+  }
+  if (order.status !== 'pending') {
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, 'ℹ️ این سفارش باز نیست (وضعیت: ' + miniAppStatusLabel(order.status) + ').', mainBotReplyMarkup());
+    return;
+  }
+  if (order.receipt_submitted_at) {
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, '🧾 رسید این سفارش قبلاً ثبت شده و در انتظار بررسی است؛ لطفاً دوباره نفرستید.', mainBotReplyMarkup());
+    return;
+  }
+  const converting = order.payment_method === 'shetab';
+  order.receipt_text = receipt.text ? String(receipt.text).slice(0, 500) : (receipt.file_id ? 'تصویر رسید در چت پیوست شد' : null);
+  order.receipt_file_id = receipt.file_id || null;
+  order.receipt_upload_attempt_at = Date.now();
+  order.payment_status = 'review_uploading';
+  if (converting) {
+    order.payment_method = 'manual';
+    order.converted_from_shetab_at = Date.now();
+    order.shetab_amount_reserved = Number(order.pay_amount || 0);
+  }
+  await saveOrder(env, order);
+  const plans = await getPlans(env);
+  const panels = await getPanels(env);
+  const plan = plans[String(order.plan_id)] || {};
+  const panel = panels[String(order.panel_id)] || {};
+  const buyer = '<a href="tg://user?id=' + order.tg_id + '">' + esc(order.first_name || order.username || order.tg_id) + '</a> (<code>' + order.tg_id + '</code>)';
+  const text = '🧾 <b>رسید سفارش داخل چت #' + esc(order.id) + '</b>\n' +
+    '👤 خریدار: ' + buyer +
+    '\n📋 نوع: ' + orderTypeFa(order.type) +
+    (plan.title ? '\n📦 پلن: ' + esc(plan.title) : '') +
+    (panel.name ? '\n🖥 سرور: ' + esc(panel.name) : '') +
+    '\n💵 مبلغ: <b>' + fmtToman(order.amount) + '</b>' +
+    (Number(order.discount_amount || 0) > 0 ? '\n🎟 تخفیف <code>' + esc(order.discount_code) + '</code>: −' + fmtToman(order.discount_amount) : '') +
+    (order.pay_amount != null ? '\n🏦 مبلغ یکتای واریز: <b>' + fmtToman(order.pay_amount) + '</b>' : '') +
+    (order.receipt_text ? '\n🔎 رسید/کد پیگیری: <code>' + esc(order.receipt_text).slice(0, 250) + '</code>' : '');
+  const kb = KB([[BTN('✅ تأیید', 'a_ok:' + order.id), BTN('❌ رد', 'a_no:' + order.id)], [BTN('🔍 جزئیات', 'a_ord:' + order.id)]]);
+  let delivered = 0;
+  for (const adminId of adminIds(env)) {
+    try {
+      if (receipt.file_id) await sendPhoto(env, adminId, receipt.file_id, text, kb);
+      else await msg(env, adminId, text, kb);
+      delivered++;
+    } catch (e) {}
+  }
+  if (!delivered) {
+    order.payment_status = 'awaiting_receipt';
+    order.receipt_file_id = null;
+    await saveOrder(env, order);
+    await msg(env, chatId, '⚠️ ارسال رسید به مدیر انجام نشد؛ چند لحظه بعد دوباره بفرستید.', mainBotReplyMarkup());
+    return;
+  }
+  order.receipt_submitted_at = Date.now();
+  order.payment_status = 'review';
+  await saveOrder(env, order);
+  await recordCustomerActivity(env, u.tg_id, 'receipt_submitted', { order_id: order.id, amount: order.amount });
+  await clearState(env, u.tg_id);
+  await msg(env, chatId, '✅ <b>رسید شما ثبت شد.</b>\n\n🧾 سفارش: <code>' + esc(order.id) + '</code>\n💵 مبلغ: ' + fmtToman(order.amount) +
+    '\n\n⏳ برای بررسی به ادمین ارسال شد. نتیجه همین‌جا اعلام می‌شود؛ وجه را دوباره واریز نکنید.', mainBotReplyMarkup());
+}
+
+/* ---------------- شارژ کیف پول ---------------- */
+
+async function chatTopupStart(env, chatId, u) {
+  const fresh = await getUser(env, u.tg_id) || u;
+  const options = await chatPayOptions(env);
+  const bank = options.filter((o) => o.method !== 'wallet');
+  if (!bank.length) {
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, '💰 <b>کیف پول</b>\n\nموجودی: <b>' + fmtToman(fresh.balance) + '</b>\n\nدر حال حاضر پرداخت بانکی برای شارژ فعال نیست؛ برای شارژ با پشتیبانی تماس بگیرید.', mainBotReplyMarkup());
+    return true;
+  }
+  await setState(env, u.tg_id, 'cw_topup', {});
+  await msg(env, chatId,
+    '💰 <b>شارژ کیف پول از داخل چت</b>\n\nموجودی فعلی: <b>' + fmtToman(fresh.balance) + '</b>' +
+    '\n\nمبلغ شارژ را به <b>تومان</b> بفرستید (عدد؛ حداقل ' + fmtToman(CHAT_TOPUP_MIN) + ' و حداکثر ' + fmtToman(CHAT_TOPUP_MAX) + ').' +
+    '\nمثال: <code>150000</code>\n\n' + chatCancelLine(),
+    mainBotReplyMarkup());
+  return true;
+}
+
+async function chatTopupAmount(env, chatId, u, text) {
+  const amount = parseMoney(text);
+  if (!amount || amount < CHAT_TOPUP_MIN || amount > CHAT_TOPUP_MAX) {
+    await msg(env, chatId, '❌ مبلغ باید عددی بین ' + fmtToman(CHAT_TOPUP_MIN) + ' و ' + fmtToman(CHAT_TOPUP_MAX) + ' تومان باشد. دوباره بفرستید یا 0 برای انصراف.', mainBotReplyMarkup());
+    return true;
+  }
+  const options = (await chatPayOptions(env)).filter((o) => o.method !== 'wallet');
+  if (!options.length) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ پرداخت بانکی فعال نیست.', mainBotReplyMarkup()); return true; }
+  await setState(env, u.tg_id, 'cw_tpay', { amount: amount });
+  const lines = options.map((o, i) => faNum(i + 1) + ') ' + o.label).join('\n');
+  await msg(env, chatId, '💵 مبلغ شارژ: <b>' + fmtToman(amount) + '</b>\n\n<b>روش پرداخت را انتخاب کنید:</b>\n\n' + lines + '\n\n' + chatCancelLine(), mainBotReplyMarkup());
+  return true;
+}
+
+async function chatTopupPlace(env, chatId, u, amount, method) {
+  const cfg = await getCfg(env);
+  const base = { tg_id: u.tg_id, username: u.username, first_name: u.first_name, type: 'charge', amount: Number(amount) };
+  if (method === 'manual') {
+    const order = await newOrder(env, Object.assign({
+      id: uid(6), payment_method: 'manual', payment_status: 'awaiting_receipt',
+      payment_card_number: String(cfg.card_number || '').replace(/\s/g, ''),
+      payment_card_holder: String(cfg.card_holder || '')
+    }, base));
+    await setState(env, u.tg_id, 'cw_receipt', { order_id: String(order.id) });
+    await msg(env, chatId, '💳 <b>شارژ کیف پول با کارت‌به‌کارت دستی</b>\n\n' + chatCardInstructions(order) +
+      '\n\nبعد از واریز، <b>عکس رسید یا شمارهٔ پیگیری</b> را همین‌جا بفرستید.\nبرای لغو، «لغو» را بفرستید.', mainBotReplyMarkup());
+    return true;
+  }
+  if (cfg.card_auto_enabled !== true || !cfg.card_number || !await resolveShetabSecret(env)) {
+    await msg(env, chatId, '❌ پرداخت خودکار فعال نیست؛ روش دستی را انتخاب کنید.', mainBotReplyMarkup());
+    await setState(env, u.tg_id, 'cw_tpay', { amount: Number(amount) });
+    return true;
+  }
+  const orderId = uid(6);
+  let payAmount;
+  try { payAmount = await reserveShetabAmount(env, Number(amount), orderId); }
+  catch (e) { await msg(env, chatId, '❌ ساخت مبلغ یکتا ممکن نشد؛ دوباره تلاش کنید.', mainBotReplyMarkup()); return true; }
+  const order = await newOrder(env, Object.assign({
+    id: orderId, pay_amount: payAmount, payment_method: 'shetab', payment_status: 'waiting',
+    payment_card_number: String(cfg.card_number).replace(/\s/g, ''), payment_card_holder: String(cfg.card_holder || '')
+  }, base));
+  await setState(env, u.tg_id, 'cw_receipt', { order_id: String(order.id) });
+  await msg(env, chatId, '⚡ <b>شارژ کیف پول با کارت‌به‌کارت خودکار</b>\n\n' + chatCardInstructions(order) +
+    '\n\n⚠️ دقیقاً همین مبلغ اختصاصی را واریز کنید؛ تأیید با پیامک بانک انجام می‌شود.' +
+    '\nاگر تأیید نشد، رسید را همین‌جا بفرستید. برای لغو، «لغو» را بفرستید.', mainBotReplyMarkup());
+  return true;
+}
+
+/* ---------------- اشتراک‌ها و سفارش‌ها ---------------- */
+
+async function chatSubsMenu(env, chatId, u) {
+  const subs = await chatUserSubs(env, u);
+  if (!subs.length) {
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, '📦 <b>اشتراک‌های من</b>\n\nهنوز اشتراکی ندارید. برای شروع، «🛍 خرید اشتراک» را بزنید.', mainBotReplyMarkup());
+    return true;
+  }
+  const panels = await getPanels(env);
+  const plans = await getPlans(env);
+  const list = subs.slice(0, 8);
+  const lines = list.map((s, i) => {
+    const panel = panels[s.panel_id] || {};
+    const plan = plans[s.plan_id] || {};
+    return faNum(i + 1) + ') 🖥 ' + esc(panel.name || '—') + (plan.title ? ' · ' + esc(plan.title) : '');
+  }).join('\n');
+  await setState(env, u.tg_id, 'cw_subs', { sids: list.map((s) => String(s.sid)) });
+  await msg(env, chatId, '📦 <b>اشتراک‌های من</b>\n\n<b>شمارهٔ اشتراک</b> را بفرستید تا لینک، QR و تمدید را ببینید:\n\n' + lines + '\n\n' + chatCancelLine(), mainBotReplyMarkup());
+  return true;
+}
+
+async function chatSubOpen(env, chatId, u, sid) {
+  const sub = await getSub(env, String(sid));
+  if (!sub || String(sub.tg_id) !== String(u.tg_id)) {
+    await msg(env, chatId, '❌ این اشتراک پیدا نشد.', mainBotReplyMarkup());
+    return true;
+  }
+  const panels = await getPanels(env);
+  const plans = await getPlans(env);
+  const panel = panels[sub.panel_id] || {};
+  const plan = plans[sub.plan_id] || {};
+  const link = panel.user_base ? userLink(panel, sub.uuid) : '';
+  let live = null;
+  try { if (panel.api_url) live = await Promise.race([hGetLive(panel, sub.uuid), new Promise((r) => setTimeout(() => r(null), 2500))]); } catch (e) { live = null; }
+  const gbLimit = live && live.usage_limit_GB != null ? Number(live.usage_limit_GB) : Number(plan.gb || 0);
+  const gbUsed = live && live.current_usage_GB != null ? Number(live.current_usage_GB) : null;
+  const gbText = gbLimit === 0 ? 'نامحدود' : (gbUsed == null ? fmtGB(gbLimit) : fmtGB(Math.max(0, gbLimit - gbUsed)) + ' باقی‌مانده از ' + fmtGB(gbLimit));
+  const expire = live && live.expiry_time ? faDate(Date.parse(live.expiry_time) || 0) : '—';
+  await setState(env, u.tg_id, 'cw_sub', { sid: String(sid) });
+  await msg(env, chatId, '📦 <b>اشتراک شما</b>\n\n🖥 سرور: <b>' + esc(panel.name || '—') + '</b>' +
+    (plan.title ? '\n🧩 پلن: <b>' + esc(plan.title) + '</b>' : '') +
+    '\n📊 ' + gbText + '\n⏳ انقضا: <b>' + expire + '</b>' +
+    (link ? '\n\n🔗 لینک اشتراک:\n<code>' + esc(link) + '</code>' : '') +
+    '\n\n1) 🔄 تمدید یا ارتقا\n2) 📷 دریافت QR و لینک دوباره\n3) 🧾 اشتراک‌های من\n4) 🗑 حذف اشتراک\n\n' + chatCancelLine(),
+    mainBotReplyMarkup());
+  return true;
+}
+
+async function chatSubAction(env, chatId, u, sid, n) {
+  const sub = await getSub(env, String(sid));
+  if (!sub || String(sub.tg_id) !== String(u.tg_id)) { await msg(env, chatId, '❌ این اشتراک پیدا نشد.', mainBotReplyMarkup()); return true; }
+  if (n === 1) return await chatShowChatPlans(env, chatId, u, String(sub.panel_id), String(sid));
+  if (n === 2) {
+    const panels = await getPanels(env);
+    const panel = panels[sub.panel_id] || {};
+    const plans = await getPlans(env);
+    const plan = plans[sub.plan_id] || {};
+    const link = panel.user_base ? userLink(panel, sub.uuid) : '';
+    if (!link) { await msg(env, chatId, '❌ لینک این اشتراک در دسترس نیست؛ با پشتیبانی تماس بگیرید.', mainBotReplyMarkup()); return true; }
+    await deliverSubscriptionWithQr(env, chatId,
+      '📷 <b>QR و لینک اشتراک</b>\n\n🖥 ' + esc(panel.name || '—') + (plan.title ? ' · ' + esc(plan.title) : '') +
+      '\n\n🔗 <code>' + esc(link) + '</code>', link, mainBotReplyMarkup());
+    return true;
+  }
+  if (n === 3) return await chatSubsMenu(env, chatId, u);
+  if (n === 4) {
+    await setState(env, u.tg_id, 'cw_sub_del', { sid: String(sid) });
+    await msg(env, chatId, '🗑 <b>حذف اشتراک</b>\n\nاین کار سرویس را از پنل حذف می‌کند و قابل بازگشت نیست.\nبرای حذف قطعی عبارت <b>حذف</b> را بفرستید؛ برای انصراف 0.', mainBotReplyMarkup());
+    return true;
+  }
+  await msg(env, chatId, '❌ گزینهٔ نامعتبر. 1، 2، 3 یا 4 را بفرستید (0 برای انصراف).', mainBotReplyMarkup());
+  return true;
+}
+
+async function chatOrdersMenu(env, chatId, u) {
+  const rows = await chatRecentOrders(env, u, 8);
+  if (!rows.length) {
+    await clearState(env, u.tg_id);
+    await msg(env, chatId, '🧾 <b>سفارش‌های من</b>\n\nهنوز سفارشی ثبت نکرده‌اید.', mainBotReplyMarkup());
+    return true;
+  }
+  await setState(env, u.tg_id, 'cw_orders', { ids: rows.map((r) => String(r.id)) });
+  const lines = rows.map((r, i) => faNum(i + 1) + ') <code>' + esc(r.id) + '</code> · ' + orderTypeFa(r.type) + ' · ' + fmtToman(r.amount) + ' · ' + miniAppStatusLabel(r.status)).join('\n');
+  await msg(env, chatId, '🧾 <b>سفارش‌های من</b>\n\n<b>شمارهٔ سفارش</b> را بفرستید تا وضعیت، راهنمای پرداخت و امکان لغو را ببینید:\n\n' + lines + '\n\n' + chatCancelLine(), mainBotReplyMarkup());
+  return true;
+}
+
+async function chatOrderOpen(env, chatId, u, orderId) {
+  const order = await getOrder(env, String(orderId));
+  if (!order || String(order.tg_id) !== String(u.tg_id)) {
+    await msg(env, chatId, '❌ سفارش پیدا نشد.', mainBotReplyMarkup());
+    return true;
+  }
+  const plans = await getPlans(env);
+  const panels = await getPanels(env);
+  const plan = plans[String(order.plan_id)] || {};
+  const panel = panels[String(order.panel_id)] || {};
+  let text = '🧾 <b>سفارش ' + esc(order.id) + '</b>\n\n' +
+    '📋 نوع: <b>' + orderTypeFa(order.type) + '</b>' +
+    (plan.title ? '\n📦 پلن: ' + esc(plan.title) : '') +
+    (panel.name ? '\n🖥 سرور: ' + esc(panel.name) : '') +
+    '\n💵 مبلغ: <b>' + fmtToman(order.amount) + '</b>' +
+    (Number(order.discount_amount || 0) > 0 ? '\n🎟 تخفیف <code>' + esc(order.discount_code) + '</code>: −' + fmtToman(order.discount_amount) : '') +
+    '\n📌 وضعیت: <b>' + miniAppStatusLabel(order.status) + '</b>';
+  if (order.status === 'pending' && (order.payment_method === 'manual' || order.payment_method === 'shetab')) {
+    await setState(env, u.tg_id, 'cw_receipt', { order_id: String(order.id) });
+    text += '\n\n' + chatCardInstructions(order) +
+      '\n\nبعد از واریز، <b>عکس رسید یا شمارهٔ پیگیری</b> را همین‌جا بفرستید.\nبرای لغو این سفارش، «لغو» را بفرستید.';
+  } else if (order.status === 'pending') {
+    text += '\n\nاین سفارش در حال پردازش است؛ چند لحظه بعد دوباره بررسی کنید.';
+  } else if (order.status === 'approved' && order.sub_sid) {
+    const sub = await getSub(env, order.sub_sid);
+    if (sub) {
+      const link = panel.user_base ? userLink(panel, sub.uuid) : '';
+      if (link) text += '\n\n🔗 لینک اشتراک:\n<code>' + esc(link) + '</code>';
+    }
+  } else if (order.status === 'rejected') {
+    text += '\n' + (order.reject_reason ? '\n📝 دلیل: ' + esc(order.reject_reason) : '') + '\n\nبرای پیگیری با پشتیبانی تماس بگیرید.';
+  } else if (order.status === 'cancelled') {
+    text += '\n\nاین سفارش لغو شده است؛ برای خرید دوباره «🛍 خرید اشتراک» را بزنید.';
+  }
+  await msg(env, chatId, text, mainBotReplyMarkup());
+  return true;
+}
+
+/* ---------------- مسیریاب متن‌های ویزارد ---------------- */
+
+async function chatWizardText(env, u, chatId, step, d, text) {
+  const data = d || {};
+  const cancel = chatWizardCancelText(text);
+  if (String(step || '').indexOf('cw_agent') === 0) return await chatAgentStep(env, u, chatId, step, data, text);
+
+  if (step === 'cw_panel') {
+    if (cancel) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ خرید لغو شد.', mainBotReplyMarkup()); return true; }
+    const plans = await getPlans(env);
+    const sellable = enabledPanels(await getPanels(env)).filter((p) => plansForPanel(plans, String(p.id)).length > 0);
+    const n = chatChoice(text);
+    const panel = n ? sellable[n - 1] : null;
+    if (!panel) { await msg(env, chatId, '❌ شمارهٔ لوکیشن معتبر نیست. یکی از شماره‌های فهرست را بفرستید یا 0 برای انصراف.', mainBotReplyMarkup()); return true; }
+    return await chatShowChatPlans(env, chatId, u, String(panel.id), null);
+  }
+
+  if (step === 'cw_plan') {
+    if (cancel) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ خرید لغو شد.', mainBotReplyMarkup()); return true; }
+    const list = plansForPanel(await getPlans(env), String(data.panel_id));
+    const n = chatChoice(text);
+    const plan = n ? list[n - 1] : null;
+    if (!plan) { await msg(env, chatId, '❌ شمارهٔ پلن معتبر نیست. یکی از شماره‌های فهرست را بفرستید یا 0 برای انصراف.', mainBotReplyMarkup()); return true; }
+    return await chatAskDiscount(env, chatId, u, { panel_id: String(data.panel_id), plan_id: String(plan.id), sub_sid: data.sub_sid || '' });
+  }
+
+  if (step === 'cw_discount') {
+    // در این مرحله «0» یعنی «بدون تخفیف ادامه بده»؛ انصراف فقط با «لغو/انصراف» است
+    // تا زدن 0 باعث حذف ناخواستهٔ سفارش نشود.
+    const raw = String(text || '').trim();
+    if (/^(لغو|انصراف|cancel)$/i.test(raw)) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ خرید لغو شد.', mainBotReplyMarkup()); return true; }
+    const code = (raw === '0' || raw === '۰') ? '' : normalizeDiscountCode(raw);
+    if (!code) return await chatPayMenu(env, chatId, u, { panel_id: data.panel_id, plan_id: data.plan_id, sub_sid: data.sub_sid || '', discount_code: '' });
+    const target = await chatResolveTarget(env, u, data);
+    if (!target.ok) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ این پلن دیگر فعال نیست.', mainBotReplyMarkup()); return true; }
+    const priced = await chatDiscountFor(env, u, target, code);
+    if (!priced.ok) {
+      await msg(env, chatId, '⚠️ ' + chatDiscountErrorFa(priced.error) + '\n\nیک کد دیگر بفرستید یا 0 را بزنید (بدون تخفیف ادامه).', mainBotReplyMarkup());
+      return true;
+    }
+    return await chatPayMenu(env, chatId, u, { panel_id: data.panel_id, plan_id: data.plan_id, sub_sid: data.sub_sid || '', discount_code: code });
+  }
+
+  if (step === 'cw_pay') {
+    if (cancel) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ خرید لغو شد.', mainBotReplyMarkup()); return true; }
+    const options = await chatPayOptions(env);
+    const n = chatChoice(text);
+    const chosen = n ? options[n - 1] : null;
+    if (!chosen) { await msg(env, chatId, '❌ شمارهٔ روش پرداخت معتبر نیست. یکی از شماره‌ها را بفرستید یا 0 برای انصراف.', mainBotReplyMarkup()); return true; }
+    return await chatPlaceOrder(env, chatId, u, data, chosen.method);
+  }
+
+  if (step === 'cw_topup') {
+    if (cancel) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ شارژ لغو شد.', mainBotReplyMarkup()); return true; }
+    return await chatTopupAmount(env, chatId, u, text);
+  }
+
+  if (step === 'cw_tpay') {
+    if (cancel) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ شارژ لغو شد.', mainBotReplyMarkup()); return true; }
+    const options = (await chatPayOptions(env)).filter((o) => o.method !== 'wallet');
+    const n = chatChoice(text);
+    const chosen = n ? options[n - 1] : null;
+    if (!chosen) { await msg(env, chatId, '❌ شمارهٔ روش پرداخت معتبر نیست. 0 برای انصراف.', mainBotReplyMarkup()); return true; }
+    return await chatTopupPlace(env, chatId, u, data.amount, chosen.method);
+  }
+
+  if (step === 'cw_receipt') {
+    const wantsCancel = /^(لغو|انصراف|cancel)$/i.test(String(text || '').trim());
+    if (wantsCancel) {
+      const order = await getOrder(env, String(data.order_id || ''));
+      if (order && await chatCancelOrderRecord(env, order, u.tg_id, 'chat_cancelled')) {
+        await clearState(env, u.tg_id);
+        await msg(env, chatId, '✅ سفارش <code>' + esc(order.id) + '</code> لغو شد و استفادهٔ کد تخفیف آزاد شد.', mainBotReplyMarkup());
+      } else {
+        await clearState(env, u.tg_id);
+        await msg(env, chatId, 'ℹ️ این سفارش قابل لغو نیست (احتمالاً قبلاً پردازش شده).', mainBotReplyMarkup());
+      }
+      return true;
+    }
+    if (String(text || '').trim().length >= 3) {
+      await chatSubmitReceipt(env, u, chatId, data.order_id, { file_id: null, text: String(text).trim() });
+      return true;
+    }
+    await msg(env, chatId, '🧾 عکس رسید یا شمارهٔ پیگیری را بفرستید (حداقل ۳ نویسه). برای لغو سفارش «لغو» را بفرستید.', mainBotReplyMarkup());
+    return true;
+  }
+
+  if (step === 'cw_orders') {
+    if (cancel) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ بسته شد.', mainBotReplyMarkup()); return true; }
+    const ids = Array.isArray(data.ids) ? data.ids : [];
+    const cancelMatch = String(text || '').trim().match(/^لغو\s*(\d{1,3})$/);
+    if (cancelMatch) {
+      const targetId = ids[Number(cancelMatch[1]) - 1];
+      const order = targetId ? await getOrder(env, String(targetId)) : null;
+      if (order && await chatCancelOrderRecord(env, order, u.tg_id, 'chat_cancelled')) {
+        await msg(env, chatId, '✅ سفارش <code>' + esc(order.id) + '</code> لغو شد.', mainBotReplyMarkup());
+      } else {
+        await msg(env, chatId, 'ℹ️ این سفارش قابل لغو نیست (پرداخت‌شده یا بسته).', mainBotReplyMarkup());
+      }
+      return true;
+    }
+    const n = chatChoice(text);
+    const chosenId = n ? ids[n - 1] : null;
+    if (!chosenId) { await msg(env, chatId, '❌ شمارهٔ سفارش معتبر نیست. برای لغو «لغو شماره» را بفرستید؛ 0 برای انصراف.', mainBotReplyMarkup()); return true; }
+    return await chatOrderOpen(env, chatId, u, chosenId);
+  }
+
+  if (step === 'cw_subs') {
+    if (cancel) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ بسته شد.', mainBotReplyMarkup()); return true; }
+    const sids = Array.isArray(data.sids) ? data.sids : [];
+    const n = chatChoice(text);
+    const sid = n ? sids[n - 1] : null;
+    if (!sid) { await msg(env, chatId, '❌ شمارهٔ اشتراک معتبر نیست. 0 برای انصراف.', mainBotReplyMarkup()); return true; }
+    return await chatSubOpen(env, chatId, u, sid);
+  }
+
+  if (step === 'cw_sub') {
+    if (cancel) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ بسته شد.', mainBotReplyMarkup()); return true; }
+    const n = chatChoice(text);
+    if (!n || n < 1 || n > 4) { await msg(env, chatId, '❌ گزینهٔ معتبر نیست. 1، 2، 3 یا 4 را بفرستید (0 برای انصراف).', mainBotReplyMarkup()); return true; }
+    return await chatSubAction(env, chatId, u, data.sid, n);
+  }
+
+  if (step === 'cw_sub_del') {
+    if (cancel) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ حذف لغو شد.', mainBotReplyMarkup()); return true; }
+    if (String(text || '').trim() !== 'حذف' && String(text || '').trim() !== 'حذف کن') {
+      await msg(env, chatId, 'برای حذف قطعی، عبارت «حذف» را بفرستید یا 0 برای انصراف.', mainBotReplyMarkup());
+      return true;
+    }
+    const result = await deleteCustomerSubscription(env, u.tg_id, data.sid);
+    await clearState(env, u.tg_id);
+    if (result.ok) {
+      await msg(env, chatId, '✅ اشتراک حذف شد. برای خرید مجدد «🛍 خرید اشتراک» را بزنید.', mainBotReplyMarkup());
+    } else {
+      const map = {
+        subscription_not_found: 'این اشتراک پیدا نشد.',
+        subscription_has_pending_order: 'برای این اشتراک یک سفارش باز وجود دارد؛ اول همان سفارش را تعیین تکلیف کنید.',
+        subscription_delete_processing: 'حذف قبلی در حال انجام است؛ چند لحظه بعد دوباره تلاش کنید.',
+        subscription_panel_unavailable: 'پنل این اشتراک در دسترس نیست؛ با پشتیبانی تماس بگیرید.',
+        subscription_delete_failed: 'حذف از پنل انجام نشد و دسترسی دست‌نخورده ماند؛ دوباره تلاش کنید.'
+      };
+      await msg(env, chatId, '❌ ' + (map[result.error] || 'حذف انجام نشد.'), mainBotReplyMarkup());
+    }
+    return true;
+  }
+
+  return false;
+}
+
+async function chatWizardPhoto(env, u, chatId, step, d, fileId) {
+  if (step !== 'cw_receipt') return false;
+  await chatSubmitReceipt(env, u, chatId, (d || {}).order_id, { file_id: fileId, text: null });
+  return true;
+}
+
+/* ---------------- کیف پول ---------------- */
+
+async function chatWalletMenu(env, chatId, u) {
+  const fresh = await getUser(env, u.tg_id) || u;
+  await msg(env, chatId, await chatWalletText(env, fresh), mainBotReplyMarkup());
+  return await chatTopupStart(env, chatId, fresh);
+}
+
+
+/* ---------------- پنل نمایندگی داخل چت ---------------- */
+// نماینده هم بدون مینی‌اپ باید بتواند برای مشتری اشتراک بسازد، تمدید کند و لینک/QR تحویل بدهد.
+const CHAT_AGENT_MAX_PRODUCTS = 30;
+
+function chatAgentErrorFa(error) {
+  const map = {
+    agent_inactive: 'حساب نمایندگی شما غیرفعال است؛ با پشتیبانی تماس بگیرید.',
+    agent_balance_insufficient: 'موجودی کیف پول نمایندگی کافی نیست؛ از مدیر بخواهید شارژ کند.',
+    agent_product_unavailable: 'این پلن یا سرور دیگر فعال نیست.',
+    agent_plan_panel_mismatch: 'این پلن روی این سرور تعریف نشده است.',
+    agent_creation_processing: 'یک درخواست ساخت در حال انجام است؛ چند لحظه بعد دوباره تلاش کنید.',
+    agent_renew_processing: 'یک درخواست تمدید در حال انجام است؛ چند لحظه بعد دوباره تلاش کنید.',
+    agent_subscription_not_found: 'این اشتراک برای حساب نمایندگی شما پیدا نشد.',
+    agent_subscription_purged: 'این اشتراک از پنل پاک شده و قابل تمدید نیست.',
+    agent_panel_unavailable: 'پنل این سرور در دسترس نیست؛ کمی بعد دوباره تلاش کنید.',
+    agent_create_failed: 'ساخت اشتراک انجام نشد؛ هزینه به کیف پول نمایندگی برگشت داده شد.',
+    agent_renew_failed: 'تمدید انجام نشد؛ هزینه به کیف پول نمایندگی برگشت داده شد.',
+    subscription_link_unavailable: 'لینک این اشتراک در دسترس نیست.',
+    invalid_agent_request: 'درخواست معتبر نیست؛ دوباره تلاش کنید.'
+  };
+  return map[String(error || '')] || 'انجام نشد؛ چند لحظه بعد دوباره تلاش کنید.';
+}
+
+function chatAgentProductText(products) {
+  return products.map((p, i) =>
+    (i + 1) + ') ' + esc(p.title || '') + ' · ' + faNum(p.gb) + ' گیگ / ' + faNum(p.days) + ' روز · ' + fmtToman(p.agent_price) +
+    '\n    🖥 ' + esc(p.panel_name || '')
+  ).join('\n');
+}
+
+function chatAgentSubText(items) {
+  return items.map((s, i) => {
+    const status = s.status === 'active' ? '🟢 فعال' : s.status === 'expired' ? '🔴 منقضی' : '⚪ نامشخص';
+    return (i + 1) + ') ' + esc(s.customer_name || 'مشتری') + ' · ' + esc(s.plan_name || '') + ' · ' + status +
+      '\n    کد: <code>' + esc(s.sid) + '</code>';
+  }).join('\n');
+}
+
+async function chatAgentStart(env, chatId, u, cfgIn) {
+  const agent = await getAgent(env, u.tg_id);
+  if (!agent) {
+    const cfg = cfgIn || await getCfg(env);
+    await msg(env, chatId, await chatAgentText(env, u, cfg), mainBotReplyMarkup());
+    return true;
+  }
+  const view = miniAppAgentView(agent, u);
+  const lines = [
+    '🤝 <b>پنل نمایندگی</b>',
+    '',
+    '💰 موجودی نمایندگی: <b>' + fmtToman(view.balance) + '</b>',
+    '🆕 ساخته‌شده: <b>' + faNum(view.total_created) + '</b> · 🔄 تمدید: <b>' + faNum(view.total_renewed) + '</b>',
+    '📈 فروش کل: <b>' + fmtToman(view.total_revenue) + '</b>'
+  ];
+  if (!view.enabled) lines.push('', '⛔ حساب نمایندگی شما غیرفعال است؛ ساخت و تمدید انجام نمی‌شود.');
+  lines.push(
+    '',
+    '1) 🆕 ساخت اشتراک برای مشتری',
+    '2) 🔄 تمدید اشتراک مشتری',
+    '3) 📷 لینک و QR اشتراک مشتری',
+    '4) ⭐ تبدیل امتیاز دعوت به کیف پول',
+    chatCancelLine()
+  );
+  await setState(env, u.tg_id, 'cw_agent', {});
+  await msg(env, chatId, lines.join('\n'), mainBotReplyMarkup());
+  return true;
+}
+
+async function chatAgentRedeemPoints(env, chatId, u) {
+  const result = await redeemReferralPoints(env, await getUser(env, u.tg_id) || u);
+  const data = result.data || {};
+  if (!data.ok) {
+    const map = {
+      referral_points_insufficient: 'امتیاز شما کمتر از ۱۰۰ است؛ هر ۱۰۰ امتیاز = ۲۰۰٬۰۰۰ تومان.',
+      referral_points_redeem_processing: 'درخواست تبدیل قبلی در حال انجام است؛ کمی بعد دوباره تلاش کنید.',
+      customer_not_found: 'حساب شما پیدا نشد.'
+    };
+    await msg(env, chatId, '⚠️ ' + (map[data.error] || 'تبدیل امتیاز انجام نشد.'), mainBotReplyMarkup());
+    return true;
+  }
+  await msg(env, chatId,
+    '✅ <b>امتیاز به کیف پول تبدیل شد.</b>\n' +
+    '⭐ امتیاز مصرف‌شده: <b>' + faNum(data.points_redeemed) + '</b>\n' +
+    '💰 شارژ کیف پول: <b>' + fmtToman(data.credited) + '</b>\n' +
+    '💳 موجودی جدید: <b>' + fmtToman(data.wallet_balance) + '</b>', mainBotReplyMarkup());
+  return true;
+}
+
+async function chatAgentStep(env, u, chatId, step, d, text) {
+  const data = d || {};
+  const cancel = chatWizardCancelText(text);
+
+  if (step === 'cw_agent') {
+    if (cancel) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ بسته شد.', mainBotReplyMarkup()); return true; }
+    const n = chatChoice(text);
+    if (n === 4) { await clearState(env, u.tg_id); return await chatAgentRedeemPoints(env, chatId, u); }
+    if (n === 1) {
+      const overview = await miniAppAgentOverview(env, await getAgent(env, u.tg_id) || {}, u);
+      const products = (Array.isArray(overview.products) ? overview.products : []).slice(0, CHAT_AGENT_MAX_PRODUCTS);
+      if (!products.length) {
+        await clearState(env, u.tg_id);
+        await msg(env, chatId, '⚠️ پلنی برای فروش نمایندگی تعریف نشده است؛ با مدیر تماس بگیرید.', mainBotReplyMarkup());
+        return true;
+      }
+      await setState(env, u.tg_id, 'cw_agent_plan', { products: products });
+      await msg(env, chatId, '🆕 <b>ساخت اشتراک برای مشتری</b>\n\nپلن را انتخاب کنید (شماره را بفرستید):\n\n' + chatAgentProductText(products) + '\n\n' + chatCancelLine(), mainBotReplyMarkup());
+      return true;
+    }
+    if (n === 2 || n === 3) {
+      const list = await miniAppAgentSubscriptions(env, u.tg_id, 20);
+      const items = Array.isArray(list.items) ? list.items : [];
+      if (!items.length) {
+        await clearState(env, u.tg_id);
+        await msg(env, chatId, 'ℹ️ هنوز اشتراکی برای مشتریان نساخته‌اید.', mainBotReplyMarkup());
+        return true;
+      }
+      const mode = n === 2 ? 'renew' : 'deliver';
+      await setState(env, u.tg_id, 'cw_agent_sub', { mode: mode, sids: items.map((s) => String(s.sid)), panels: items.map((s) => String(s.panel_id || '')) });
+      await msg(env, chatId,
+        (mode === 'renew' ? '🔄 <b>تمدید اشتراک مشتری</b>' : '📷 <b>لینک و QR اشتراک مشتری</b>') +
+        '\n\nاشتراک را انتخاب کنید (شماره را بفرستید):\n\n' + chatAgentSubText(items) + '\n\n' + chatCancelLine(), mainBotReplyMarkup());
+      return true;
+    }
+    await msg(env, chatId, '❌ گزینهٔ معتبر نیست. 1، 2، 3 یا 4 را بفرستید (0 برای انصراف).', mainBotReplyMarkup());
+    return true;
+  }
+
+  if (step === 'cw_agent_sub') {
+    if (cancel) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ بسته شد.', mainBotReplyMarkup()); return true; }
+    const sids = Array.isArray(data.sids) ? data.sids : [];
+    const n = chatChoice(text);
+    const sid = n ? sids[n - 1] : '';
+    if (!sid) { await msg(env, chatId, '❌ شمارهٔ اشتراک معتبر نیست. 0 برای انصراف.', mainBotReplyMarkup()); return true; }
+    if (data.mode === 'deliver') {
+      const result = await miniAppAgentDelivery(env, u.tg_id, sid);
+      await clearState(env, u.tg_id);
+      const payload = result.data || {};
+      if (!payload.ok || !payload.delivery || !payload.delivery.link) {
+        await msg(env, chatId, '⚠️ ' + chatAgentErrorFa(payload.error), mainBotReplyMarkup());
+        return true;
+      }
+      const delivery = payload.delivery;
+      await deliverSubscriptionWithQr(env, chatId,
+        '📷 <b>تحویل اشتراک</b>\n\n📦 پلن: <b>' + esc(delivery.plan_title || '') + '</b>\n🖥 سرور: <b>' + esc(delivery.panel_name || '') + '</b>\n\n🔗 لینک اشتراک:\n<code>' + esc(delivery.link) + '</code>',
+        delivery.link);
+      return true;
+    }
+    const overview = await miniAppAgentOverview(env, await getAgent(env, u.tg_id) || {}, u);
+    const panelId = String((Array.isArray(data.panels) ? data.panels[n - 1] : '') || '');
+    const products = (Array.isArray(overview.products) ? overview.products : [])
+      .filter((p) => !panelId || String(p.panel_id || '') === panelId)
+      .slice(0, CHAT_AGENT_MAX_PRODUCTS);
+    if (!products.length) {
+      await clearState(env, u.tg_id);
+      await msg(env, chatId, '⚠️ پلن فعالی روی سرور این اشتراک وجود ندارد؛ با مدیر تماس بگیرید.', mainBotReplyMarkup());
+      return true;
+    }
+    await setState(env, u.tg_id, 'cw_agent_rplan', { sid: sid, products: products });
+    await msg(env, chatId, '🔄 <b>تمدید اشتراک</b>\n\nپلن تازه را انتخاب کنید (شماره را بفرستید):\n\n' + chatAgentProductText(products) + '\n\n' + chatCancelLine(), mainBotReplyMarkup());
+    return true;
+  }
+
+  if (step === 'cw_agent_plan') {
+    if (cancel) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ بسته شد.', mainBotReplyMarkup()); return true; }
+    const products = Array.isArray(data.products) ? data.products : [];
+    const n = chatChoice(text);
+    const product = n ? products[n - 1] : null;
+    if (!product) { await msg(env, chatId, '❌ شمارهٔ پلن معتبر نیست. 0 برای انصراف.', mainBotReplyMarkup()); return true; }
+    await setState(env, u.tg_id, 'cw_agent_name', { product: product });
+    await msg(env, chatId,
+      '👤 <b>نام مشتری</b>\n\n' + esc(product.title || '') + ' · ' + faNum(product.gb) + ' گیگ / ' + faNum(product.days) + ' روز · ' + fmtToman(product.agent_price) +
+      '\n\nنام مشتری را بنویسید (این نام در پنل و توضیحات اشتراک ثبت می‌شود):\n\n' + chatCancelLine(), mainBotReplyMarkup());
+    return true;
+  }
+
+  if (step === 'cw_agent_name') {
+    if (cancel) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ بسته شد.', mainBotReplyMarkup()); return true; }
+    const name = cleanText(String(text || '')).slice(0, 80);
+    if (name.length < 2) { await msg(env, chatId, '❌ نام مشتری را کامل‌تر بنویسید (حداقل ۲ نویسه) یا 0 برای انصراف.', mainBotReplyMarkup()); return true; }
+    const product = data.product || {};
+    const result = await miniAppAgentCreateSubscription(env, u.tg_id, {
+      request_id: 'chat-' + uid(16),
+      plan_id: String(product.plan_id || ''),
+      panel_id: String(product.panel_id || ''),
+      customer_name: name
+    });
+    await clearState(env, u.tg_id);
+    const payload = result.data || {};
+    if (!payload.ok) {
+      await msg(env, chatId, '❌ ' + chatAgentErrorFa(payload.error), mainBotReplyMarkup());
+      return true;
+    }
+    const view = payload.subscription || {};
+    const agentView = payload.agent || {};
+    const caption =
+      '✅ <b>اشتراک مشتری ساخته شد</b>\n\n' +
+      '👤 مشتری: <b>' + esc(view.customer_name || name) + '</b>\n' +
+      '📦 پلن: <b>' + esc(view.plan_name || product.title || '') + '</b>\n' +
+      '🖥 سرور: <b>' + esc(view.panel_name || product.panel_name || '') + '</b>\n' +
+      '💰 هزینه: <b>' + fmtToman(view.agent_price || product.agent_price) + '</b>\n' +
+      '💳 موجودی نمایندگی: <b>' + fmtToman(agentView.balance != null ? agentView.balance : 0) + '</b>';
+    if (view.link) {
+      await deliverSubscriptionWithQr(env, chatId, caption + '\n\n🔗 لینک اشتراک:\n<code>' + esc(view.link) + '</code>', view.link);
+    } else {
+      await msg(env, chatId, caption + '\n\n⚠️ لینک اشتراک در دسترس نبود؛ از دکمهٔ «3) لینک و QR» دوباره تلاش کنید.', mainBotReplyMarkup());
+    }
+    return true;
+  }
+
+  if (step === 'cw_agent_rplan') {
+    if (cancel) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ بسته شد.', mainBotReplyMarkup()); return true; }
+    const products = Array.isArray(data.products) ? data.products : [];
+    const n = chatChoice(text);
+    const product = n ? products[n - 1] : null;
+    if (!product) { await msg(env, chatId, '❌ شمارهٔ پلن معتبر نیست. 0 برای انصراف.', mainBotReplyMarkup()); return true; }
+    const result = await miniAppAgentRenewSubscription(env, u.tg_id, String(data.sid || ''), {
+      request_id: 'chat-' + uid(16),
+      plan_id: String(product.plan_id || '')
+    });
+    await clearState(env, u.tg_id);
+    const payload = result.data || {};
+    if (!payload.ok) {
+      await msg(env, chatId, '❌ ' + chatAgentErrorFa(payload.error), mainBotReplyMarkup());
+      return true;
+    }
+    const view = payload.subscription || {};
+    const agentView = payload.agent || {};
+    const caption =
+      '✅ <b>اشتراک مشتری تمدید شد</b>\n\n' +
+      '👤 مشتری: <b>' + esc(view.customer_name || '') + '</b>\n' +
+      '📦 پلن جدید: <b>' + esc(view.plan_name || product.title || '') + '</b>\n' +
+      '💰 هزینه: <b>' + fmtToman(view.agent_price || product.agent_price) + '</b>\n' +
+      '💳 موجودی نمایندگی: <b>' + fmtToman(agentView.balance != null ? agentView.balance : 0) + '</b>';
+    if (view.link) {
+      await deliverSubscriptionWithQr(env, chatId, caption + '\n\n🔗 لینک اشتراک:\n<code>' + esc(view.link) + '</code>', view.link);
+    } else {
+      await msg(env, chatId, caption + '\n\n⚠️ لینک اشتراک در دسترس نبود؛ از گزینهٔ «3) لینک و QR» دوباره تلاش کنید.', mainBotReplyMarkup());
+    }
+    return true;
+  }
+
+  return false;
 }
 
 /* ============================ خرید ============================ */
@@ -7333,6 +8418,8 @@ async function onStateText(env, u, chatId, text) {
   const step = st.step;
   const d = st.data || {};
   const adm = isAdmin(env, u.tg_id);
+  // ویزارد خرید/مدیریت داخل چت (جایگزین کامل مینی‌اپ برای مشتری).
+  if (CHAT_WIZARD_STEPS.includes(step)) return await chatWizardText(env, u, chatId, step, d, text);
 
   // رسید متنی خرید/تمدید
   if (step === 'rcp') {
@@ -7700,6 +8787,12 @@ async function onStateText(env, u, chatId, text) {
 async function onStatePhoto(env, u, chatId, fileId) {
   const st = await getState(env, u.tg_id);
   if (!st) return false;
+  if ((st.step || '').startsWith('cw_')) {
+    const handled = await chatWizardPhoto(env, u, chatId, st.step, st.data || {}, fileId);
+    if (handled) return true;
+    await msg(env, chatId, 'ℹ️ در این مرحله عکس لازم نیست؛ پاسخ متنی را بفرستید یا 0 برای انصراف.', mainBotReplyMarkup());
+    return true;
+  }
   if (st.step === 'rcp') {
     try { await submitReceiptOrder(env, u, st.data || {}, { file_id: fileId, text: null }); }
     catch (e) { await msg(env, chatId, '❌ خطا در ثبت سفارش.'); }
@@ -7804,8 +8897,23 @@ async function onMessage(env, m, origin) {
       await showMiniAppOnlyStart(env, chatId, origin);
       return;
     }
+    // عکس رسید در حالت فقط‌اپ هم باید به سفارش همان چت وصل شود (قبلاً این پیام‌ها
+    // اصلاً به مرحلهٔ رسید نمی‌رسیدند).
+    if (/^\/cancel(@\w+)?$/i.test(text)) {
+      await clearState(env, u.tg_id);
+      await msg(env, chatId, '❌ عملیات لغو شد.', mainBotReplyMarkup());
+      return;
+    }
+    if (m.photo && m.photo.length) {
+      const fileId = m.photo[m.photo.length - 1].file_id;
+      const handledPhoto = await onStatePhoto(env, u, chatId, fileId);
+      if (!handledPhoto) await msg(env, chatId, 'ℹ️ برای ثبت رسید، اول خرید یا شارژ را از همین چت شروع کنید.', mainBotReplyMarkup());
+      return;
+    }
     if (text && await handleMiniAppOnlyButton(env, u, chatId, text, origin)) return;
-    await msg(env, chatId, 'برای ادامه یکی از دکمه‌های پایین چت را انتخاب کنید.', mainBotReplyMarkup());
+    // شماره/متن مرحلهٔ جاری ویزارد خرید داخل چت.
+    if (text && await onStateText(env, u, chatId, text)) return;
+    await msg(env, chatId, 'برای ادامه یکی از دکمه‌های پایین چت را انتخاب کنید یا «🛍 خرید اشتراک» را بزنید.', mainBotReplyMarkup());
     return;
   }
 
