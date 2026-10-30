@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.55-ubuntu26.57';
+const VERSION = '1.8.56-ubuntu26.58';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -4792,6 +4792,12 @@ async function chatAgentText(env, u, cfg) {
     '\n💰 پورسانت خریدهای واجد شرایط: <b>' + faNum(cfg.commission) + '٪</b>';
 }
 
+// هر بخش ساده یک ردیف دکمهٔ شیشه‌ای همراه دارد تا کسی که فقط با دکمه‌های شیشه‌ای
+// کار می‌کند (مینی‌اپ برایش باز نمی‌شود) راه برگشت و خرید بعدی را همیشه جلوی چشم داشته باشد.
+function chatSectionKb() {
+  return chatMenuKB([[BTN('🛍 خرید اشتراک', 'menu:buy'), BTN('◀️ منو', 'menu:home')]]);
+}
+
 // اجرای یک دکمهٔ کیبورد چت بر اساس شناسه؛ همهٔ مسیرها یک منبع داده دارند.
 async function runChatButton(env, u, chatId, id, origin, cfgIn) {
   const cfg = cfgIn || await getCfg(env);
@@ -4806,7 +4812,7 @@ async function runChatButton(env, u, chatId, id, origin, cfgIn) {
     const body = support
       ? 'برای پشتیبانی به <a href="https://t.me/' + esc(support) + '">@' + esc(support) + '</a> پیام دهید.'
       : 'شناسهٔ پشتیبانی هنوز در تنظیمات فروشگاه ثبت نشده است.';
-    await msg(env, chatId, body, reply);
+    await msg(env, chatId, body, chatSectionKb());
     return true;
   }
   if (id === 'free') {
@@ -4816,7 +4822,7 @@ async function runChatButton(env, u, chatId, id, origin, cfgIn) {
       ? await issueReferralFreeSubscription(env, u, 'bot')
       : await issueFreeSubscription(env, u, 'bot');
     if (!result.ok) {
-      await msg(env, chatId, miniOnlyFreeError(result.error), reply);
+      await msg(env, chatId, miniOnlyFreeError(result.error), chatSectionKb());
       return true;
     }
     const title = referralClaim ? '🎁 <b>هدیهٔ دعوت شما فعال شد.</b>' : '🎁 <b>اشتراک رایگان شما فعال شد.</b>';
@@ -4828,11 +4834,11 @@ async function runChatButton(env, u, chatId, id, origin, cfgIn) {
     return true;
   }
   if (id === 'help') {
-    await msg(env, chatId, helpText(), reply);
+    await msg(env, chatId, helpText(), chatSectionKb());
     return true;
   }
   if (id === 'apps') {
-    await msg(env, chatId, appsText(), reply);
+    await msg(env, chatId, appsText(), chatSectionKb());
     return true;
   }
   if (id === 'account') {
@@ -4846,15 +4852,15 @@ async function runChatButton(env, u, chatId, id, origin, cfgIn) {
       '\nمجموع خرید ثبت‌شده: <b>' + fmtToman(u.total_spent || 0) + '</b>' +
       '\nاشتراک‌های ثبت‌شده: <b>' + faNum(Array.isArray(u.subs) ? u.subs.length : 0) + '</b>' +
       '\nدعوت‌ها: <b>' + faNum(u.invited || 0) + '</b>';
-    await msg(env, chatId, message, reply);
+    await msg(env, chatId, message, chatSectionKb());
     return true;
   }
   // این سه دکمه هم فقط متن نیستند: فهرست شماره‌دار می‌فرستند و شمارهٔ کاربر همان‌جا
   // تمدید/QR/راهنمای پرداخت/لغو سفارش را باز می‌کند.
-  if (id === 'subs') { await chatSubsMenu(env, chatId, u); return true; }
-  if (id === 'wallet') { await chatWalletMenu(env, chatId, u); return true; }
-  if (id === 'orders') { await chatOrdersMenu(env, chatId, u); return true; }
-  if (id === 'ref') { await msg(env, chatId, await chatRefText(env, u, cfg), reply); return true; }
+  if (id === 'subs') { await chatSubsMenu(env, chatId, u, chatSectionKb()); return true; }
+  if (id === 'wallet') { await chatWalletMenu(env, chatId, u, chatSectionKb()); return true; }
+  if (id === 'orders') { await chatOrdersMenu(env, chatId, u, chatSectionKb()); return true; }
+  if (id === 'ref') { await msg(env, chatId, await chatRefText(env, u, cfg), chatSectionKb()); return true; }
   if (id === 'agent') { return await chatAgentStart(env, chatId, u, cfg); }
   return false;
 }
@@ -5416,11 +5422,12 @@ async function chatTopupPlace(env, chatId, u, amount, method) {
 
 /* ---------------- اشتراک‌ها و سفارش‌ها ---------------- */
 
-async function chatSubsMenu(env, chatId, u) {
+async function chatSubsMenu(env, chatId, u, extra) {
+  const kb = extra || mainBotReplyMarkup();
   const subs = await chatUserSubs(env, u);
   if (!subs.length) {
     await clearState(env, u.tg_id);
-    await msg(env, chatId, '📦 <b>اشتراک‌های من</b>\n\nهنوز اشتراکی ندارید. برای شروع، «🛍 خرید اشتراک» را بزنید.', mainBotReplyMarkup());
+    await msg(env, chatId, '📦 <b>اشتراک‌های من</b>\n\nهنوز اشتراکی ندارید. برای شروع، «🛍 خرید اشتراک» را بزنید.', kb);
     return true;
   }
   const panels = await getPanels(env);
@@ -5432,7 +5439,7 @@ async function chatSubsMenu(env, chatId, u) {
     return faNum(i + 1) + ') 🖥 ' + esc(panel.name || '—') + (plan.title ? ' · ' + esc(plan.title) : '');
   }).join('\n');
   await setState(env, u.tg_id, 'cw_subs', { sids: list.map((s) => String(s.sid)) });
-  await msg(env, chatId, '📦 <b>اشتراک‌های من</b>\n\n<b>شمارهٔ اشتراک</b> را بفرستید تا لینک، QR و تمدید را ببینید:\n\n' + lines + '\n\n' + chatCancelLine(), mainBotReplyMarkup());
+  await msg(env, chatId, '📦 <b>اشتراک‌های من</b>\n\n<b>شمارهٔ اشتراک</b> را بفرستید تا لینک، QR و تمدید را ببینید:\n\n' + lines + '\n\n' + chatCancelLine(), kb);
   return true;
 }
 
@@ -5489,16 +5496,17 @@ async function chatSubAction(env, chatId, u, sid, n) {
   return true;
 }
 
-async function chatOrdersMenu(env, chatId, u) {
+async function chatOrdersMenu(env, chatId, u, extra) {
+  const kb = extra || mainBotReplyMarkup();
   const rows = await chatRecentOrders(env, u, 8);
   if (!rows.length) {
     await clearState(env, u.tg_id);
-    await msg(env, chatId, '🧾 <b>سفارش‌های من</b>\n\nهنوز سفارشی ثبت نکرده‌اید.', mainBotReplyMarkup());
+    await msg(env, chatId, '🧾 <b>سفارش‌های من</b>\n\nهنوز سفارشی ثبت نکرده‌اید.', kb);
     return true;
   }
   await setState(env, u.tg_id, 'cw_orders', { ids: rows.map((r) => String(r.id)) });
   const lines = rows.map((r, i) => faNum(i + 1) + ') <code>' + esc(r.id) + '</code> · ' + orderTypeFa(r.type) + ' · ' + fmtToman(r.amount) + ' · ' + miniAppStatusLabel(r.status)).join('\n');
-  await msg(env, chatId, '🧾 <b>سفارش‌های من</b>\n\n<b>شمارهٔ سفارش</b> را بفرستید تا وضعیت، راهنمای پرداخت و امکان لغو را ببینید:\n\n' + lines + '\n\n' + chatCancelLine(), mainBotReplyMarkup());
+  await msg(env, chatId, '🧾 <b>سفارش‌های من</b>\n\n<b>شمارهٔ سفارش</b> را بفرستید تا وضعیت، راهنمای پرداخت و امکان لغو را ببینید:\n\n' + lines + '\n\n' + chatCancelLine(), kb);
   return true;
 }
 
@@ -5697,9 +5705,9 @@ async function chatWizardPhoto(env, u, chatId, step, d, fileId) {
 
 /* ---------------- کیف پول ---------------- */
 
-async function chatWalletMenu(env, chatId, u) {
+async function chatWalletMenu(env, chatId, u, extra) {
   const fresh = await getUser(env, u.tg_id) || u;
-  await msg(env, chatId, await chatWalletText(env, fresh), mainBotReplyMarkup());
+  await msg(env, chatId, await chatWalletText(env, fresh), extra || mainBotReplyMarkup());
   return await chatTopupStart(env, chatId, fresh);
 }
 
