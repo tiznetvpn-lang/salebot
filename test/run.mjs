@@ -125,6 +125,9 @@ let tgChatError = '';
 let tgMemberError = '';
 let tgRejectDecorated = 0; // اگر > 0 باشد، اولین پیام با دکمهٔ استایل‌دار رد می‌شود
 let midSeq = 100;
+// شبیه‌سازی ربات دوم (ربات بکاپ): نام هر توکن و چت‌هایی که ربات نتوانسته شروع کند.
+const tgTokenOverrides = {};   // token => { id, username } یا { unauthorized: true }
+const tgFailChatForToken = {}; // token => chat_id که تلگرام ۴۰۳ می‌دهد
 globalThis.fetch = async (url, init = {}) => {
   const u = String(url);
   // آزمون دامنه از سمت سرور: خود Worker آدرس عمومی را صدا می‌زند.
@@ -138,7 +141,8 @@ globalThis.fetch = async (url, init = {}) => {
         for (const [k, v] of init.body.entries()) { params[k] = typeof v === 'string' ? v : '[file:' + (v && v.size || 0) + ']'; if (typeof v !== 'string' && v) { params[k + '_type'] = v.type || ''; params[k + '_name'] = v.name || ''; } }
       } else params = init.body ? JSON.parse(init.body) : {};
     } catch { params = { _raw: true }; }
-    TG.push({ method, params });
+    const token = (u.split('/bot')[1] || '').split('/')[0];
+    TG.push({ method, params, token });
     if (tgRejectDecorated > 0 && (method === 'sendMessage' || method === 'editMessageText')) {
       const kb = params.reply_markup && (params.reply_markup.inline_keyboard || params.reply_markup.keyboard);
       const hasDecor = Array.isArray(kb) && kb.flat().some((b) => b && (b.style || b.icon_custom_emoji_id));
@@ -147,7 +151,13 @@ globalThis.fetch = async (url, init = {}) => {
         return Response.json({ ok: false, description: 'Bad Request: BUTTON_STYLE_INVALID' }, { status: 400 });
       }
     }
-    if (method === 'getMe') return Response.json({ ok: true, result: { id: 4242, username: 'TestShopBot' } });
+    if (method === 'getMe') {
+      const known = tgTokenOverrides[token];
+      if (known && known.unauthorized) return Response.json({ ok: false, error_code: 401, description: 'Unauthorized' }, { status: 401 });
+      return Response.json({ ok: true, result: { id: (known && known.id) || 4242, username: (known && known.username) || 'TestShopBot' } });
+    }
+    if ((method === 'sendMessage' || method === 'sendDocument') && tgFailChatForToken[token] && String(tgFailChatForToken[token]) === String(params.chat_id))
+      return Response.json({ ok: false, error_code: 403, description: "Forbidden: bot can't initiate conversation with a user" }, { status: 403 });
     if (method === 'getChat') {
       if (tgChatError) return Response.json({ ok: false, description: tgChatError }, { status: 400 });
       const reqId = String(params.chat_id);
@@ -188,7 +198,7 @@ async function get(path) {
   const r = await APP.fetch(new Request('https://t.test' + path), env, {});
   return { status: r.status, text: await r.text() };
 }
-async function signedInitData(tgid, userExtra = {}, ageSeconds = 0) {
+async function signedInitData(tgid, userExtra = {}, ageSeconds = 0, botToken = 'TEST') {
   const params = new URLSearchParams();
   params.set('auth_date', String(Math.floor(Date.now() / 1000) - ageSeconds));
   params.set('query_id', 'AAE-test-query');
@@ -201,7 +211,7 @@ async function signedInitData(tgid, userExtra = {}, ageSeconds = 0) {
     return new Uint8Array(await crypto.subtle.sign('HMAC', ck, enc.encode(String(data))));
   };
   // Telegram specifies HMAC-SHA256(key="WebAppData", data=bot_token).
-  const secret = await hmac('WebAppData', 'TEST');
+  const secret = await hmac('WebAppData', botToken);
   const hash = [...await hmac(secret, check)].map(x => x.toString(16).padStart(2, '0')).join('');
   params.set('hash', hash);
   return params.toString();
@@ -697,6 +707,50 @@ const after1hStart = TG.length;
 await APP.scheduled({ cron: backupCronMatch[1], scheduledTime: backupBase + 3 * HOUR + HOUR }, env, {});
 assert(!TG.slice(after1hStart).some((x) => x.method === 'sendDocument'), 'بکاپ زودتر از بازهٔ ۳ ساعته ارسال تکراری نمی‌کند');
 
+// ربات بکاپ: فایل بکاپ می‌تواند از یک ربات دوم برود و اگر آن ربات خطا داد، خودکار به ربات اصلی برگردد.
+// توکن‌های آزمایشی تکه‌تکه ساخته می‌شوند تا نگهبان «بدون Secret» در CI آن‌ها را توکن واقعی نبیند.
+const TEST_BOT_TOKEN = (id, rest) => id + ':AA' + rest;
+const BACKUP_BOT_TOKEN = TEST_BOT_TOKEN('987654321', 'FbackupBotTokenForTests0123456789');
+const MAIN_BOT_TOKEN = 'TEST';
+tgTokenOverrides[BACKUP_BOT_TOKEN] = { id: 777001, username: 'TiznetBackupBot' };
+env.BACKUP_BOT_TOKEN = BACKUP_BOT_TOKEN;
+await kv.delete('system:kv_backup_last_at');
+await kv.delete('system:kv_backup_last_channel');
+TG.length = 0;
+await APP.scheduled({ cron: backupCronMatch[1], scheduledTime: Date.now() + 2000 }, env, {});
+const backupBotDocs = TG.filter((x) => x.method === 'sendDocument');
+const backupBotChannel = await kvJson('system:kv_backup_last_channel');
+assert(backupBotDocs.length >= 1 && backupBotDocs.every((x) => x.token === BACKUP_BOT_TOKEN) && backupBotChannel.channel === 'backup_bot' && backupBotChannel.via_backup_bot === backupBotDocs.length && backupBotChannel.backup_bot_configured === true, 'با ثبت توکن ربات بکاپ، فایل بکاپ از همان ربات دوم ارسال می‌شود و کانال ارسال در KV ثبت می‌گردد');
+
+// ربات دوم توسط مدیر استارت نشده: تلگرام ۴۰۳ می‌دهد و بکاپ باید با ربات اصلی برسد.
+tgFailChatForToken[BACKUP_BOT_TOKEN] = String(ADMIN);
+await kv.delete('system:kv_backup_last_at');
+await kv.delete('system:kv_backup_last_channel');
+TG.length = 0;
+await APP.scheduled({ cron: backupCronMatch[1], scheduledTime: Date.now() + 3000 }, env, {});
+const fallbackDocs = TG.filter((x) => x.method === 'sendDocument');
+const fallbackForAdmin = fallbackDocs.filter((x) => String(x.params.chat_id) === String(ADMIN));
+const fallbackChannel = await kvJson('system:kv_backup_last_channel');
+assert(fallbackForAdmin.length === 2 && fallbackForAdmin[0].token === BACKUP_BOT_TOKEN && fallbackForAdmin[1].token === MAIN_BOT_TOKEN, 'اگر ربات بکاپ نتواند پیام بدهد، همان فایل با ربات اصلی دوباره ارسال می‌شود و بکاپ از دست نمی‌رود');
+assert(fallbackChannel.channel === (fallbackChannel.via_backup_bot ? 'mixed' : 'main_bot') && fallbackChannel.via_main_bot >= 1, 'کانال ارسال در حالت سقوط، ربات اصلی را نشان می‌دهد');
+delete tgFailChatForToken[BACKUP_BOT_TOKEN];
+delete env.BACKUP_BOT_TOKEN;
+
+// /backupbot در چت: وضعیت، ثبت توکن، حذف و محدود بودن به مدیر
+TG.length = 0;
+await sendText(ADMIN, '/backupbot');
+const botCmdStatus = lastMsgTo(ADMIN);
+assert(botCmdStatus.params.text.includes('ربات بکاپ') && botCmdStatus.params.text.includes('تنظیم نشده') && !JSON.stringify(botCmdStatus.params.reply_markup || {}).includes('inline_keyboard'), 'دستور /backupbot وضعیت ربات بکاپ را با کیبورد پایین چت (بدون دکمهٔ شیشه‌ای) نشان می‌دهد');
+TG.length = 0;
+await sendText(ADMIN, '/backupbot ' + BACKUP_BOT_TOKEN);
+const botCmdSet = lastMsgTo(ADMIN);
+const cfgFromChat = await kvJson('cfg');
+assert(botCmdSet.params.text.includes('ثبت شد') && cfgFromChat.backup_bot_username === 'TiznetBackupBot' && TG.some((x) => x.method === 'deleteMessage'), 'دستور /backupbot توکن ربات دوم را ثبت می‌کند و پیام حاوی توکن را از چت پاک می‌کند');
+await sendText(ADMIN, '/backupbot off');
+assert((await kvJson('cfg')).backup_bot_token === '' && lastMsgTo(ADMIN).params.text.includes('حذف شد'), 'دستور /backupbot off ربات بکاپ را حذف می‌کند');
+await sendText(U1, '/backupbot');
+assert(lastMsgTo(U1).params.text.includes('فقط برای مدیران'), 'دستور /backupbot برای کاربر عادی اجرا نمی‌شود');
+
 // ادمین روش خودکار را از تنظیمات روشن می‌کند
 await press(ADMIN, 'a_set');
 assert((await kvJson('cfg')).card_auto_enabled !== true, 'روش خودکار به‌صورت پیش‌فرض خاموش است');
@@ -1169,6 +1223,75 @@ await restoreKv.put('system:kv_backup_lock', JSON.stringify({ started_at: Date.n
 const duplicateManualBackup = await APP.fetch(new Request('https://t.test/api/miniapp/admin/backup', { headers: { 'X-Telegram-Init-Data': adminInit } }), restoreEnv, {});
 await restoreKv.delete('system:kv_backup_lock');
 assert(duplicateManualBackup.status === 409 && (await duplicateManualBackup.json()).error === 'backup_busy', 'بکاپ دستی هم‌زمان از گرفتن snapshot دوم جلوگیری می‌کند');
+// ---------- ربات بکاپ از مینی‌اپ ----------
+// مدیر می‌تواند توکن یک ربات دوم را ثبت کند؛ توکن با getMe بررسی می‌شود، پیام آزمایشی می‌رود
+// و اگر تلگرام اجازهٔ ارسال ندهد، توکن باز هم ذخیره می‌شود ولی هشدار «استارت نکرده» برمی‌گردد.
+const BACKUP_TOKEN_OK = TEST_BOT_TOKEN('111222333', 'GsecondBackupBotTokenForTests98765');
+const BACKUP_TOKEN_REJECTED = TEST_BOT_TOKEN('444555666', 'ArejectedTokenForTests01234567890');
+const BACKUP_TOKEN_NOT_STARTED = TEST_BOT_TOKEN('700800900', 'AnotStartedTokenForTests0123456789');
+tgTokenOverrides[BACKUP_TOKEN_OK] = { id: 777002, username: 'SecondBackupBot' };
+tgTokenOverrides[BACKUP_TOKEN_REJECTED] = { unauthorized: true };
+tgTokenOverrides[BACKUP_TOKEN_NOT_STARTED] = { id: 777003, username: 'NotStartedBackupBot' };
+const backupBotStatusBefore = await miniApi('/api/miniapp/admin/backup-status', adminInit);
+const backupBotDenied = await miniApi('/api/miniapp/admin/backup-bot', userInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'save', token: BACKUP_TOKEN_OK }) });
+assert(backupBotStatusBefore.status === 200 && backupBotStatusBefore.json.backup_bot.configured === false && backupBotDenied.status === 403, 'وضعیت ربات بکاپ پیش از تنظیم «تنظیم نشده» است و کاربر عادی به آن دسترسی ندارد');
+
+const backupBotSave = (token, init = adminInit) => miniApi('/api/miniapp/admin/backup-bot', init, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'save', token }) });
+const badFormat = await backupBotSave('not-a-token');
+const rejected = await backupBotSave(BACKUP_TOKEN_REJECTED);
+assert(badFormat.status === 400 && badFormat.json.error === 'invalid_backup_bot_token' && rejected.status === 400 && rejected.json.error === 'backup_bot_token_rejected', 'توکن بی‌قالب و توکنی که تلگرام رد می‌کند ثبت نمی‌شوند');
+
+// همان توکن ربات اصلی هم پذیرفته نمی‌شود.
+const mainLikeInit = await signedInitData(ADMIN, {}, 0, BACKUP_TOKEN_OK);
+const mainLikeEnv = Object.assign({}, env, { BOT_TOKEN: BACKUP_TOKEN_OK });
+const sameAsMainResponse = await APP.fetch(new Request('https://t.test/api/miniapp/admin/backup-bot', { method: 'POST', headers: { 'X-Telegram-Init-Data': mainLikeInit, 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'save', token: BACKUP_TOKEN_OK }) }), mainLikeEnv, {});
+const sameAsMain = await sameAsMainResponse.json();
+assert(sameAsMainResponse.status === 400 && sameAsMain.error === 'backup_bot_same_as_main', 'توکن خود ربات فروشگاه به‌عنوان ربات بکاپ پذیرفته نمی‌شود');
+
+TG.length = 0;
+const savedOk = await backupBotSave(BACKUP_TOKEN_OK);
+const cfgAfterBot = await kvJson('cfg');
+const getMeWithBot = TG.find((x) => x.method === 'getMe' && x.token === BACKUP_TOKEN_OK);
+const testMessage = TG.find((x) => x.method === 'sendMessage' && x.token === BACKUP_TOKEN_OK && String(x.params.chat_id) === String(ADMIN));
+assert(savedOk.status === 200 && savedOk.json.test_delivered === true && savedOk.json.backup_bot.configured === true && savedOk.json.backup_bot.source === 'settings' && savedOk.json.backup_bot.username === 'SecondBackupBot' && getMeWithBot && testMessage && cfgAfterBot.backup_bot_username === 'SecondBackupBot' && Number(cfgAfterBot.backup_bot_verified_at) > 0, 'توکن ربات بکاپ با getMe بررسی، در تنظیمات ذخیره و پیام آزمایشی از همان ربات برای مدیر ارسال می‌شود');
+
+const statusWithBot = await miniApi('/api/miniapp/admin/backup-status', adminInit);
+assert(statusWithBot.status === 200 && statusWithBot.json.backup_bot.username === 'SecondBackupBot' && Number(statusWithBot.json.backup_bot.verified_at) > 0 && statusWithBot.json.last_channel != null, 'تنظیمات بکاپ نام ربات دوم، زمان تأیید و کانال آخرین ارسال را نشان می‌دهد');
+
+// ارسال دستی بکاپ با توکن ذخیره‌شده در تنظیمات (نه env) انجام می‌شود.
+await kv.delete('system:kv_backup_last_at');
+TG.length = 0;
+const manualWithBot = await APP.fetch(new Request('https://t.test/api/miniapp/admin/backup-send', { method: 'POST', headers: { 'X-Telegram-Init-Data': adminInit } }), env, {});
+const manualWithBotJson = await manualWithBot.json();
+const manualBotDocs = TG.filter((x) => x.method === 'sendDocument');
+const channelAfterManual = await kvJson('system:kv_backup_last_channel');
+assert(manualWithBot.status === 200 && manualWithBotJson.channel === 'backup_bot' && manualBotDocs.length >= 1 && manualBotDocs.every((x) => x.token === BACKUP_TOKEN_OK) && channelAfterManual.channel === 'backup_bot', 'توکن ربات بکاپِ ذخیره‌شده در مینی‌اپ برای ارسال دستی هم استفاده می‌شود');
+
+// ربات دومی که مدیر آن را استارت نکرده: توکن می‌ماند، ولی هشدار مشخص برمی‌گردد.
+tgTokenOverrides[BACKUP_TOKEN_NOT_STARTED] = { id: 777003, username: 'NotStartedBackupBot' };
+tgFailChatForToken[BACKUP_TOKEN_NOT_STARTED] = String(ADMIN);
+TG.length = 0;
+const notStarted = await backupBotSave(BACKUP_TOKEN_NOT_STARTED);
+const cfgNotStarted = await kvJson('cfg');
+assert(notStarted.status === 200 && notStarted.json.test_delivered === false && notStarted.json.warning === 'backup_bot_not_started' && cfgNotStarted.backup_bot_token === BACKUP_TOKEN_NOT_STARTED && Number(cfgNotStarted.backup_bot_verified_at) === 0, 'اگر مدیر ربات دوم را استارت نکرده باشد، توکن ذخیره می‌شود ولی هشدار «استارت نکرده» به مدیر نشان داده می‌شود');
+delete tgFailChatForToken[BACKUP_TOKEN_NOT_STARTED];
+
+// توکن env مقدم است و از مینی‌اپ حذف نمی‌شود.
+env.BACKUP_BOT_TOKEN = BACKUP_TOKEN_OK;
+const envStatus = await miniApi('/api/miniapp/admin/backup-status', adminInit);
+const envRemove = await backupBotSave('');
+const envRemoveWithAction = await miniApi('/api/miniapp/admin/backup-bot', adminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'remove' }) });
+assert(envStatus.json.backup_bot.source === 'env' && envRemoveWithAction.status === 409 && envRemoveWithAction.json.error === 'backup_bot_from_env' && envRemove.status === 400, 'توکن env بر تنظیمات مینی‌اپ مقدم است و از داخل مینی‌اپ حذف نمی‌شود');
+delete env.BACKUP_BOT_TOKEN;
+
+const removedBot = await miniApi('/api/miniapp/admin/backup-bot', adminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'remove' }) });
+const cfgAfterRemove = await kvJson('cfg');
+assert(removedBot.status === 200 && removedBot.json.removed === true && removedBot.json.backup_bot.configured === false && !cfgAfterRemove.backup_bot_token && !cfgAfterRemove.backup_bot_username, 'حذف ربات بکاپ توکن و نام آن را از تنظیمات پاک می‌کند و ارسال به ربات اصلی برمی‌گردد');
+
+const runtimeSource = fs.readFileSync(path.join(here, '..', 'server', 'runtime.mjs'), 'utf8');
+assert(runtimeSource.includes('BACKUP_BOT_TOKEN:') && fs.readFileSync(path.join(here, '..', '.env.example'), 'utf8').includes('BACKUP_BOT_TOKEN='), 'توکن ربات بکاپ در فهرست env سرور و در .env.example ثبت شده است');
+assert(miniAppSource.includes('id="backupBotToken"') && miniAppSource.includes('id="backupBotSave"') && miniAppSource.includes('id="backupBotRemove"') && miniAppSource.includes('function renderBackupBot(') && miniAppSource.includes("api('/api/miniapp/admin/backup-bot'"), 'بخش «ربات بکاپ» در تنظیمات مینی‌اپ فیلد توکن، ذخیره، حذف و وضعیت دارد');
+
 const tinyRestoreBackup = await gzipText(JSON.stringify({ format: 'tiznetvpn-kv-backup', schema_version: 1, worker_version: '1.8.0', created_at: new Date().toISOString(), entry_count: 1, entries: [{ key: 'new:restored', value: JSON.stringify({ state: 'after' }), expiration: null, metadata: null }] }));
 const noRestoreConfirm = await restoreRequest(restoreEnv, adminInit, tinyRestoreBackup, 'NO');
 assert(noRestoreConfirm.status === 400 && (await restoreKv.get('sentinel:old', { type: 'json' })).state === 'before', 'ریستور بدون عبارت تأیید نهایی رد می‌شود و KV موجود را تغییر نمی‌دهد');
@@ -1234,7 +1357,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.51-ubuntu26.53';"), 'شمارهٔ نسخهٔ سرور 1.8.51-ubuntu26.53 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.52-ubuntu26.54';"), 'شمارهٔ نسخهٔ سرور 1.8.52-ubuntu26.54 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
