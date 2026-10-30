@@ -1367,16 +1367,17 @@
     .subscription-copy { margin:0; }
     .subscription-copy code { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9.5px; }
     .subscription-actions { display:flex; flex-wrap:wrap; gap:7px; }
-    .subscription-actions button { flex:1 1 130px; min-width:0; min-height:34px; border-radius:10px;
-      font:inherit; font-size:10px; font-weight:750; cursor:pointer; }
+    .subscription-actions button, .subscription-actions a { flex:1 1 130px; min-width:0; min-height:34px; border-radius:10px;
+      font:inherit; font-size:10px; font-weight:750; cursor:pointer; text-decoration:none;
+      display:inline-flex; align-items:center; justify-content:center; }
     .hiddify-downloads { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; margin:0; }
-    .hiddify-downloads button { display:flex; align-items:center; justify-content:center; gap:6px;
+    .hiddify-downloads button, .hiddify-downloads a { display:flex; align-items:center; justify-content:center; gap:6px; text-decoration:none;
       min-width:0; min-height:36px; padding:6px 8px; border-radius:10px; cursor:pointer;
       font:inherit; font-size:10px; font-weight:750; color:var(--cv-ink);
       border:1px solid rgba(240, 86, 99, .26); background:linear-gradient(150deg,rgba(118, 8, 17, .9),rgba(100, 15, 22, .92)); }
-    .hiddify-downloads button svg { width:15px; height:15px; flex:0 0 15px; stroke:currentColor; fill:none;
+    .hiddify-downloads button svg, .hiddify-downloads a svg { width:15px; height:15px; flex:0 0 15px; stroke:currentColor; fill:none;
       stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-    .hiddify-downloads button span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .hiddify-downloads button span, .hiddify-downloads a span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .hiddify-downloads .hiddify-github { grid-column:1/-1; border-color:rgba(240, 86, 99, .42); background:rgba(116, 17, 25, .7); }
     .subscription-install-title { margin:2px 0 0; color:#f1e2e3; font-size:9.5px; font-weight:800; text-align:right; }
     .subscription-qr-help { margin:0; color:var(--cv-muted); font-size:8.5px; line-height:1.9; }
@@ -3104,14 +3105,14 @@
       display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
       gap: clamp(6px, 2vw, 9px) !important; width: 100% !important; min-width: 0 !important;
     }
-    .subscription-actions > button {
+    .subscription-actions > button, .subscription-actions > a {
       min-width: 0 !important; width: 100% !important;
       min-height: clamp(36px, 9vw, 42px) !important;
       padding: 0 clamp(8px, 2.6vw, 14px) !important;
       font-size: clamp(10px, 2.8vw, 12.5px) !important;
     }
     .hiddify-downloads { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; min-width: 0 !important; }
-    .hiddify-downloads button { min-width: 0 !important; }
+    .hiddify-downloads button, .hiddify-downloads a { min-width: 0 !important; }
     @media (max-width: 360px) {
       .subscription-actions, .hiddify-downloads { grid-template-columns: minmax(0, 1fr) !important; }
       .hiddify-downloads .hiddify-github { grid-column: auto !important; }
@@ -6077,7 +6078,7 @@
     const HIDDIFY_DOWNLOADS = {
       android: 'https://play.google.com/store/apps/details?id=app.hiddify.com',
       ios: 'https://apps.apple.com/us/app/hiddify-proxy-vpn/id6596777532',
-      windows: 'https://apps.microsoft.com/detail/9pdfnl3qv2s5',
+      windows: 'https://github.com/hiddify/hiddify-app/releases/download/v4.1.1/Hiddify-Windows-Setup-x64.exe',
       github: 'https://github.com/hiddify/hiddify-app/releases'
     };
     function hiddifyDownloadsMarkup() {
@@ -6085,11 +6086,13 @@
       const iosIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 12.6c0-2 1.6-3 1.7-3.1-1-1.4-2.4-1.6-2.9-1.6-1.3-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.4 0-2.6.8-3.3 2-1.4 2.4-.4 6 1 8 .7 1 1.5 2 2.5 2 1 0 1.4-.6 2.6-.6s1.6.6 2.6.6 1.8-1 2.5-2c.8-1.1 1.1-2.2 1.1-2.3-.1 0-2.2-.9-2.2-3z"/><path d="M13.4 6.2c.5-.7.9-1.5.8-2.4-.8 0-1.8.5-2.4 1.2-.5.6-1 1.5-.8 2.4.9.1 1.8-.5 2.4-1.2z"/></svg>';
       const windowsIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5.5 10 4.6v6.6H3.5zM11.5 4.4l9-1.3v7.9h-9zM3.5 12.7H10v6.6l-6.5-.9zM11.5 12.7h9v8l-9-1.3z"/></svg>';
       const githubIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 19c-4 1.4-4-2.1-5.6-2.5M15 21v-3.4c0-1 .1-1.4-.5-2 2.3-.3 4.5-1.2 4.5-5a3.9 3.9 0 0 0-1.1-2.7 3.6 3.6 0 0 0-.1-2.7s-.9-.3-2.9 1.1a10 10 0 0 0-5.2 0C7.7 4.9 6.8 5.2 6.8 5.2a3.6 3.6 0 0 0-.1 2.7A3.9 3.9 0 0 0 5.6 10.6c0 3.8 2.2 4.7 4.5 5-.6.6-.6 1.2-.5 2V21"/></svg>';
+      // لینک واقعی (href) می‌گذاریم تا اگر پل تلگرام هم نبود، خود مرورگر مقصد را باز کند.
+      const downloadLink = (key, label, aria, icon, extraClass) => `<a class="${extraClass ? extraClass + ' ' : ''}hiddify-download" href="${esc(HIDDIFY_DOWNLOADS[key])}" target="_blank" rel="noopener noreferrer" data-open-url="${esc(HIDDIFY_DOWNLOADS[key])}" aria-label="${esc(aria)}">${icon}<span>${esc(label)}</span></a>`;
       return `<div class="subscription-install-title">اپ هیدیفای را نصب کنید و لینک/QR را در آن وارد کنید</div><div class="hiddify-downloads">`
-        + `<button type="button" data-open-url="${esc(HIDDIFY_DOWNLOADS.android)}" aria-label="دانلود هیدیفای از گوگل‌پلی برای اندروید">${androidIcon}<span>اندروید</span></button>`
-        + `<button type="button" data-open-url="${esc(HIDDIFY_DOWNLOADS.ios)}" aria-label="دانلود هیدیفای از اپ‌استور برای آیفون">${iosIcon}<span>آیفون</span></button>`
-        + `<button type="button" data-open-url="${esc(HIDDIFY_DOWNLOADS.windows)}" aria-label="دانلود هیدیفای از مایکروسافت‌استور برای ویندوز">${windowsIcon}<span>ویندوز</span></button>`
-        + `<button class="hiddify-github" type="button" data-open-url="${esc(HIDDIFY_DOWNLOADS.github)}" aria-label="همهٔ سیستم‌عامل‌ها در گیت‌هاب">${githubIcon}<span>همهٔ سیستم‌عامل‌ها</span></button>`
+        + downloadLink('android', 'اندروید', 'دانلود هیدیفای از گوگل‌پلی برای اندروید', androidIcon, '')
+        + downloadLink('ios', 'آیفون', 'دانلود هیدیفای از اپ‌استور برای آیفون', iosIcon, '')
+        + downloadLink('windows', 'ویندوز', 'دانلود نصب‌کنندهٔ رسمی هیدیفای برای ویندوز از گیت‌هاب', windowsIcon, '')
+        + downloadLink('github', 'همهٔ سیستم‌عامل‌ها', 'همهٔ سیستم‌عامل‌ها در گیت‌هاب', githubIcon, 'hiddify-github')
         + `</div>`;
     }
     function subscriptionQrMarkup(delivery,opts) {
@@ -6097,7 +6100,7 @@
       if(!delivery||!delivery.link)return '<div class="order-state warn">لینک اشتراک فعلاً در دسترس نیست؛ صفحهٔ اشتراک‌ها را تازه کنید یا با پشتیبانی تماس بگیرید.</div>';
       const qr=delivery.qr_data_url?`<img class="subscription-qr-image" src="${esc(delivery.qr_data_url)}" alt="QR اشتراک تیزنت VPN" width="260" height="260">`:'<div class="qr-unavailable"><span>QR موقتاً در دسترس نیست</span><small>از لینک زیر برای اتصال استفاده کنید.</small></div>';
       const title=[delivery.plan_title,delivery.panel_name].filter(Boolean).join(' · ');
-      return `<section class="subscription-delivery-card"><div class="delivery-card-heading"><span class="delivery-ready-icon" aria-hidden="true">✓</span><div><strong>${esc(options.heading||'اشتراک شما آماده است')}</strong><small>${esc(title||'TiznetVPN')}</small></div></div><div class="subscription-qr-frame">${qr}</div><div class="subscription-link-heading">لینک اشتراک (قابل کپی)</div><div class="copy-line subscription-copy"><code dir="ltr">${esc(delivery.link)}</code><button type="button" data-copy-text="${esc(delivery.link)}">کپی لینک</button></div><div class="subscription-actions"><button class="btn-secondary" type="button" data-copy-text="${esc(delivery.link)}">کپی لینک اشتراک</button><button class="btn-primary" type="button" data-open-url="${esc(delivery.link)}">بازکردن لینک اشتراک</button></div>${hiddifyDownloadsMarkup()}<p class="subscription-qr-help">QR را در Hiddify اسکن کنید، یا لینک بالا را کپی و در برنامه وارد کنید. اگر QR را نمی‌بینید، از لینک استفاده کنید.</p></section>`;
+      return `<section class="subscription-delivery-card"><div class="delivery-card-heading"><span class="delivery-ready-icon" aria-hidden="true">✓</span><div><strong>${esc(options.heading||'اشتراک شما آماده است')}</strong><small>${esc(title||'TiznetVPN')}</small></div></div><div class="subscription-qr-frame">${qr}</div><div class="subscription-link-heading">لینک اشتراک (قابل کپی)</div><div class="copy-line subscription-copy"><code dir="ltr">${esc(delivery.link)}</code><button type="button" data-copy-text="${esc(delivery.link)}">کپی لینک</button></div><div class="subscription-actions"><button class="btn-secondary" type="button" data-copy-text="${esc(delivery.link)}">کپی لینک اشتراک</button><a class="btn-primary" href="${esc(delivery.link)}" target="_blank" rel="noopener noreferrer" data-open-url="${esc(delivery.link)}">بازکردن لینک اشتراک</a></div>${hiddifyDownloadsMarkup()}<p class="subscription-qr-help">QR را در Hiddify اسکن کنید، یا لینک بالا را کپی و در برنامه وارد کنید. اگر QR را نمی‌بینید، از لینک استفاده کنید.</p></section>`;
     }
     async function openCustomerSubscriptionQr(sid) {
       if(!liveMode){toast('نمایش QR زنده در Mini App تلگرام فعال است.');return;}
@@ -6315,7 +6318,16 @@
     function openExternal(url) {
       let parsed;try{parsed=new URL(url);}catch(_){return;}
       if(parsed.protocol!=='https:')return;
-      if(tg&&typeof tg.openLink==='function')tg.openLink(parsed.toString());else window.open(parsed.toString(),'_blank','noopener,noreferrer');
+      const target=parsed.toString();
+      // اول پل رسمی تلگرام؛ اگر نبود یا خطا داد، مرورگر خودش باز کند.
+      if(tg&&typeof tg.openLink==='function'){
+        try{tg.openLink(target);return;}catch(_){}
+      }
+      const win=window.open(target,'_blank','noopener,noreferrer');
+      if(!win){
+        // بعضی وب‌ویوها پنجرهٔ تازه را می‌بندند؛ کاربر را بدون پاسخ نگذاریم.
+        toast('بازکردن خودکار لینک ممکن نشد؛ لینک را کپی کنید و در مرورگر بچسبانید.');
+      }
     }
     function openTelegramTarget(url) {
       let parsed;try{parsed=new URL(url);}catch(_){return false;}
@@ -6535,7 +6547,18 @@
       if(e.target.closest('[data-auto-transfer-accept]')){acceptAutoTransfer();return;}
       if(e.target.closest('[data-auto-transfer-back]')){cancelAutoTransfer();return;}
       const retry=e.target.closest('[data-retry-checkout]');if(retry&&checkoutContext){startCheckout(checkoutContext.method);return;}
-      const openUrl=e.target.closest('[data-open-url]');if(openUrl){openExternal(openUrl.dataset.openUrl);return;}
+      const openUrl=e.target.closest('[data-open-url]');
+      if(openUrl){
+        const target=String(openUrl.dataset.openUrl||openUrl.getAttribute('href')||'');
+        // اگر پل تلگرام هست، خودمان باز می‌کنیم؛ وگرنه لینک href خودش باز می‌شود.
+        if(tg&&typeof tg.openLink==='function'&&/^https:/i.test(target)){
+          e.preventDefault();
+          try{tg.openLink(target);}catch(_){openExternal(target);}
+          return;
+        }
+        if(openUrl.tagName!=='A'){e.preventDefault();openExternal(target);}
+        return;
+      }
       const copy=e.target.closest('[data-copy-text]');if(copy){copyValue(copy.dataset.copyText);return;}
       if(e.target.closest('#settingShetabCopy')){const el=document.getElementById('settingShetabEndpoint');if(el)copyValue(el.textContent||'');return;}
       if(e.target.closest('[data-demo-action]')){toast('این فقط پیش‌نمایش طراحی است؛ خرید زنده داخل Mini App تلگرام انجام می‌شود.');return;}

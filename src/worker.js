@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.53-ubuntu26.55';
+const VERSION = '1.8.54-ubuntu26.56';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -4498,16 +4498,26 @@ function helpText() {
     '💡 مصرف و روزهای باقی‌مانده را همیشه از «اشتراک‌های من» ببینید.';
 }
 
+// لینک‌های دانلود باید «قابل بازشدن» باشند؛ متن داخل <code> در تلگرام فقط کپی می‌شود
+// و باز نمی‌شود، پس هر آدرس را با <a href> واقعی می‌دهیم. خودِ آدرس هم دیده می‌شود تا
+// اگر کسی خواست کپی کند، با لمس طولانی در دسترس باشد.
+const APP_DOWNLOAD_LINKS = {
+  android: 'https://play.google.com/store/apps/details?id=app.hiddify.com',
+  ios: 'https://apps.apple.com/us/app/hiddify-proxy-vpn/id6596777532',
+  windows: 'https://github.com/hiddify/hiddify-app/releases/download/v4.1.1/Hiddify-Windows-Setup-x64.exe',
+  github: 'https://github.com/hiddify/hiddify-app/releases'
+};
+function appDownloadLine(label, url) {
+  return label + ':\n<a href="' + esc(url) + '">' + esc(url) + '</a>';
+}
 function appsText() {
+  const l = APP_DOWNLOAD_LINKS;
   return '📥 <b>دانلود اپ Hiddify</b>\n\n' +
-    '🤖 <b>اندروید</b> — گوگل‌پلی:\n' +
-    '<code>https://play.google.com/store/apps/details?id=app.hiddify.com</code>\n\n' +
-    '🍏 <b>آیفون</b> — اپ‌استور:\n' +
-    '<code>https://apps.apple.com/us/app/hiddify-proxy-vpn/id6596777532</code>\n\n' +
-    '🪟 <b>ویندوز</b> — مایکروسافت‌استور:\n' +
-    '<code>https://apps.microsoft.com/detail/9pdfnl3qv2s5</code>\n\n' +
-    '📦 <b>همهٔ سیستم‌عامل‌ها</b> — گیت‌هاب:\n' +
-    '<code>https://github.com/hiddify/hiddify-app/releases</code>';
+    appDownloadLine('🤖 <b>اندروید</b> — گوگل‌پلی', l.android) + '\n\n' +
+    appDownloadLine('🍏 <b>آیفون</b> — اپ‌استور', l.ios) + '\n\n' +
+    appDownloadLine('🪟 <b>ویندوز</b> — نصب‌کنندهٔ رسمی (گیت‌هاب)', l.windows) + '\n\n' +
+    appDownloadLine('📦 <b>همهٔ سیستم‌عامل‌ها</b> — گیت‌هاب', l.github) +
+    '\n\n👇 روی لینک سیستم‌عامل خودتان بزنید تا فروشگاه همان دستگاه باز شود.';
 }
 
 function supportText(cfg) {
@@ -6295,10 +6305,10 @@ async function attachNewReferral(env, user, code) {
       state = referralInviteState(refUser);
     }
     const rewardNote = rewardsIssued
-      ? '\\n🎁 هدیهٔ خودکار شما: ' + faNum(rewardsIssued) + ' اشتراک ۳ گیگ / ۳ روز صادر شد.'
-      : (state.available ? '\\n🎁 یک هدیهٔ دعوت برای دریافت دارید؛ آن را از زبانهٔ عضوگیری اپ دریافت کنید.' : '');
+      ? '\n🎁 هدیهٔ خودکار شما: ' + faNum(rewardsIssued) + ' اشتراک ۳ گیگ / ۳ روز صادر شد.'
+      : (state.available ? '\n🎁 یک هدیهٔ دعوت برای دریافت دارید؛ آن را از زبانهٔ عضوگیری اپ دریافت کنید.' : '');
     try {
-      await msg(env, refId, '👥 یک عضو جدید با لینک اختصاصی شما وارد ربات شد.\\n⭐ ۵ امتیاز به حساب شما اضافه شد.\\n🎁 پیشرفت هدیهٔ بعدی: ' + faNum(state.progress || (state.available ? 3 : 0)) + ' از ۳ نفر' + rewardNote);
+      await msg(env, refId, '👥 یک عضو جدید با لینک اختصاصی شما وارد ربات شد.\n⭐ ۵ امتیاز به حساب شما اضافه شد.\n🎁 پیشرفت هدیهٔ بعدی: ' + faNum(state.progress || (state.available ? 3 : 0)) + ' از ۳ نفر' + rewardNote);
     } catch (e) {}
   }
   return true;
