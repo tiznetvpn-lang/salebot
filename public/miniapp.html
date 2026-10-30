@@ -3467,6 +3467,9 @@
             <label>پشتیبانی فروشگاه<input id="settingSupport" type="text" maxlength="32" dir="ltr" placeholder="TiznetSupport" autocomplete="off"></label>
             <label class="settings-wide">متن خوش‌آمدگویی<textarea id="settingWelcome" rows="3" maxlength="1200" placeholder="متن خوش‌آمدگویی فروشگاه"></textarea></label>
           </div>
+          <div class="settings-toggles" data-sgroup="shop">
+            <label class="toggle-row"><input id="settingChatInline" type="checkbox"><span class="switch-ui"></span><span><strong>دکمه‌های شیشه‌ای در چت</strong><small>مشتری‌ای که مینی‌اپ برایش باز نمی‌شود، خرید و همهٔ بخش‌ها را با دکمه‌های داخل چت انجام می‌دهد (خرید، اشتراک‌ها، کیف پول، سفارش‌ها، پشتیبانی). در حالت اپ‌محور اثر دارد.</small></span></label>
+          </div>
           <div class="settings-grid" data-sgroup="pay">
             <label>شماره کارت دریافت<input id="settingCardNumber" type="text" inputmode="numeric" maxlength="24" dir="ltr" placeholder="شماره کارت" autocomplete="off"></label>
             <label>نام صاحب کارت<input id="settingCardHolder" type="text" maxlength="80" placeholder="نام و نام خانوادگی"></label>
@@ -4241,6 +4244,7 @@
         invalid_free_subscription_volume:'حجم اشتراک رایگان باید بین صفر و یک میلیون گیگ باشد.',invalid_free_subscription_days:'مدت اشتراک رایگان باید بین ۱ تا ۳۶۵۰ روز باشد.',invalid_free_subscription_policy:'سیاست دریافت اشتراک رایگان معتبر نیست.',free_subscription_policy_required:'پیش از فعال‌کردن اشتراک رایگان، یک سیاست دریافت انتخاب کنید.',free_subscription_panel_unavailable:'برای اشتراک رایگان، یک پنل فعال و کامل انتخاب کنید.',invalid_free_subscription_panel:'شناسهٔ پنل اشتراک رایگان معتبر نیست.',
         invalid_retention_paid_grace_days:'مهلت تمدید باید عددی بین ۰ تا ۶۰ روز باشد.',
         invalid_retention_enabled:'مقدار پاک‌سازی خودکار معتبر نیست.',
+        invalid_chat_inline_enabled:'وضعیت دکمه‌های شیشه‌ای معتبر نیست.',
         invalid_retention_free_delete:'تنظیم حذف اشتراک رایگان معتبر نیست.',
         invalid_retention_paid_delete:'تنظیم حذف اشتراک پولی معتبر نیست.',
         invalid_retention_action:'درخواست پاک‌سازی معتبر نیست.',
@@ -4418,6 +4422,7 @@
       const auto=document.getElementById('settingAutoEnabled');if(auto){auto.checked=!!settings.card_auto_enabled;auto.disabled=false;}
       const freeEnabled=document.getElementById('settingFreeEnabled');if(freeEnabled)freeEnabled.checked=!!settings.free_subscription_enabled;
       const retentionEnabled=document.getElementById('settingRetentionEnabled');if(retentionEnabled)retentionEnabled.checked=settings.retention_enabled!==false;
+      const chatInline=document.getElementById('settingChatInline');if(chatInline)chatInline.checked=settings.chat_inline_enabled!==false;
       const retentionFree=document.getElementById('settingRetentionFree');if(retentionFree)retentionFree.checked=settings.retention_free_delete!==false;
       const retentionPaid=document.getElementById('settingRetentionPaid');if(retentionPaid)retentionPaid.checked=settings.retention_paid_delete!==false;
       set('settingRetentionGrace',settings.retention_paid_grace_days==null?3:settings.retention_paid_grace_days);
@@ -4466,7 +4471,8 @@
         retention_enabled:document.getElementById('settingRetentionEnabled').checked,
         retention_free_delete:document.getElementById('settingRetentionFree').checked,
         retention_paid_delete:document.getElementById('settingRetentionPaid').checked,
-        retention_paid_grace_days:document.getElementById('settingRetentionGrace').value
+        retention_paid_grace_days:document.getElementById('settingRetentionGrace').value,
+        chat_inline_enabled:document.getElementById('settingChatInline').checked
       };
       try { const data=await api('/api/miniapp/admin/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});renderSettingsView(data.settings||{});if(message)message.textContent='تنظیمات با موفقیت ذخیره شد.';toast('تنظیمات فروشگاه ذخیره شد.'); }
       catch(e){if(message)message.textContent=adminErrorText(e.message);toast(adminErrorText(e.message));}
