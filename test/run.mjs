@@ -1234,7 +1234,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.50-ubuntu26.52';"), 'شمارهٔ نسخهٔ سرور 1.8.50-ubuntu26.52 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.51-ubuntu26.53';"), 'شمارهٔ نسخهٔ سرور 1.8.51-ubuntu26.53 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -2003,7 +2003,7 @@ assert((await kvJson('o:' + photoApprovalId)).status === 'approved' && captionEd
 // ---------- نمایندگی Mini App ----------
 const agentUiSource = fs.readFileSync(path.join(here, '..', 'public', 'miniapp.html'), 'utf8');
 assert(agentUiSource.includes('id="agentsPage"') && agentUiSource.includes('id="agentPage"') && agentUiSource.includes('id="agentPricingForm"') && agentUiSource.includes('id="agentCreateForm"') && agentUiSource.includes('data-page="agents"') && !agentUiSource.includes('data-page="agent"') && !agentUiSource.includes('>پنل نماینده</span>'), 'Mini App پنل مدیریت نماینده و قیمت پلن را دارد و تب «پنل نماینده» از ناوبری حذف شده است');
-assert(agentUiSource.includes('مشتری نیازی به حساب تلگرام ندارد') && agentUiSource.includes('agent/subscriptions') && agentUiSource.includes('agent/overview') && agentUiSource.includes('کپی لینک اشتراک'), 'رابط نماینده ساخت و تحویل دستی لینک اشتراک به مشتری بدون تلگرام را توضیح می‌دهد');
+assert(agentUiSource.includes('agent/subscriptions') && agentUiSource.includes('agent/overview') && agentUiSource.includes('کپی لینک اشتراک') && agentUiSource.includes('id="agentCreateForm"') && !agentUiSource.includes('مشتری نیازی به حساب تلگرام ندارد'), 'رابط نماینده ساخت و تحویل دستی لینک اشتراک به مشتری بدون تلگرام را دارد و متن‌های توضیحی اضافی از آن حذف شده‌اند');
 assert(agentUiSource.includes('function openAgentRenewSelector') && agentUiSource.includes('data-agent-renew-plan="') && agentUiSource.includes('data-agent-renew-confirm="') && agentUiSource.includes("agentAvailableProducts.filter(p=>String(p.panel_id)===String(sub.panel_id)") && agentUiSource.includes('plan_id:String(plan.plan_id)') && agentUiSource.includes('همهٔ پلن‌های فعال سرور'), 'تمدید در پنل نماینده همهٔ پلن‌های همان سرور را نشان می‌دهد و پلن انتخابی برای تمدید فرستاده می‌شود');
 // نوار تب نماینده باید بیرون از هر .page باشد؛ چون هر .page یک transform ماندگار دارد
 // (انیمیشن fadeIn با fill-mode:both) و والدِ transform‌دار برای فرزند position:fixed
@@ -2022,19 +2022,100 @@ function outerHtmlOfSection(source, id) {
 }
 const agentPageHtml = outerHtmlOfSection(agentUiSource, 'agentPage');
 const agentBarCss = (agentUiSource.match(/body\.agent-shell #agentTabbar \{[^}]*\}/) || [''])[0];
+const agentTabsHtml = (agentUiSource.match(/<div class="agent-tabbar"[\s\S]*?<\/div>/) || [''])[0];
+const agentTabKeys = [...agentTabsHtml.matchAll(/data-atab="([a-z]+)"/g)].map((m) => m[1]);
 assert(agentUiSource.split('id="agentTabbar"').length === 2
   && agentPageHtml.length > 0 && !agentPageHtml.includes('agentTabbar')
   && agentBarCss.includes('position:fixed') && agentBarCss.includes('left:0') && agentBarCss.includes('right:0')
   && agentBarCss.includes('bottom:0') && agentBarCss.includes('transform:none')
   && agentUiSource.includes('body.agent-shell #agentPage { animation-name:fadeInNoTransform;')
   && agentUiSource.includes('body.agent-role .sidebar, body.agent-role #mobileNav')
-  && agentUiSource.includes('font-size:13.5px')
-  && agentUiSource.includes('data-atab="dash"') && agentUiSource.includes('data-atab="buy"')
-  && agentUiSource.includes('data-atab="renew"') && agentUiSource.includes('data-atab="subs"')
-  && agentUiSource.includes('data-atab="wallet"') && agentUiSource.includes('function showAgentGroup')
-  && agentUiSource.includes('#agentTabbar .agent-tab') && agentUiSource.includes('id="agentRenewList"')
-  && agentUiSource.includes('agent-dash-card') && agentUiSource.includes('agent-dash-balance'),
-  'نوار تب پنل نماینده بیرون از صفحه‌ها (بدون والد transform) و ثابت در پایین پنجره است؛ ۵ تب هم‌اندازه با متن بزرگ‌تر، و صفحهٔ نماینده فضای امن پایین دارد');
+  && JSON.stringify(agentTabKeys) === JSON.stringify(['dash','buy','renew','subs','prices','wallet'])
+  && agentUiSource.includes('function showAgentGroup')
+  && agentUiSource.includes("['dash','buy','renew','subs','prices','wallet'].includes(String(name||''))")
+  && agentUiSource.includes('#agentTabbar .agent-tab'),
+  'نوار تب پنل نماینده بیرون از صفحه‌ها (بدون والد transform)، ثابت در پایین پنجره و شامل ۶ تب یکدست است');
+assert(!agentUiSource.includes('id="agentReload"') && !agentUiSource.includes('agentReload') && !agentUiSource.includes('id="agentWelcome"')
+  && agentUiSource.includes('if(agentRole){await loadAgentPortal();return;}')
+  && agentUiSource.includes('id="agentBalanceValue"') && agentUiSource.includes('id="agentCreatedValue"') && agentUiSource.includes('id="agentRenewedValue"')
+  && agentUiSource.includes('ag-hero-value') && agentUiSource.includes('ag-stat-grid') && agentUiSource.includes('id="agentRecentList"')
+  && agentUiSource.includes('id="agentCreatedHint"') && agentUiSource.includes('id="agentRenewedHint"'),
+  'دکمهٔ «به‌روزرسانی» و متن‌های اضافی حذف شده‌اند؛ داشبورد کارت کیف پول، کارت جداگانهٔ خریدها، کارت تمدیدها و فهرست آخرین فعالیت‌ها را دارد و خودکار تازه می‌شود');
+// اجرای واقعی renderAgentPortal با DOM ساختگی: خطای زمان اجرا (متغیر تعریف‌نشده/TDZ/آی‌دی غلط)
+// در بررسی متن دیده نمی‌شود، پس خودِ تابع را با دادهٔ نمونه اجرا می‌کنیم.
+function runAgentPortalRender(data) {
+  const start = agentUiSource.indexOf('    function renderAgentPortal(data) {');
+  const end = agentUiSource.indexOf('    async function loadAgentPortal() {');
+  if (start < 0 || end < 0) return { error: 'renderAgentPortal پیدا نشد' };
+  const source = agentUiSource.slice(start, end);
+  const nodes = new Map();
+  const node = (id) => {
+    if (!nodes.has(id)) nodes.set(id, {
+      id, textContent: '', innerHTML: '', value: '', disabled: false, style: {},
+      classList: { toggle() {}, add() {}, remove() {}, contains() { return false; } },
+      querySelector() { return null; }, insertAdjacentHTML() {}
+    });
+    return nodes.get(id);
+  };
+  const document = { getElementById: node, querySelectorAll() { return []; }, body: { classList: { toggle() {} } } };
+  const esc = (value) => String(value == null ? '' : value).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  const fmt = (value) => String(Number(value || 0));
+  const money = (value) => Number(value || 0).toLocaleString('en-US') + ' تومان';
+  const fmtDate = (value) => 'date:' + Number(value || 0);
+  const fmtDec = (value) => String(Number(value || 0));
+  const groups = [];
+  try {
+    const runner = new Function('document', 'esc', 'fmt', 'money', 'fmtDate', 'fmtDec', 'profile', 'showAgentGroup', 'restoreAgentPendingCreate', 'agentTxLabel', 'data',
+      'let agentPortalData = null; let agentAvailableProducts = []; let agentGroup = "dash";\n' + source +
+      '\nrenderAgentPortal(data);\nreturn { products: agentAvailableProducts, group: agentGroup };');
+    // showAgentGroup با بستن روی آرایهٔ محلی تزریق می‌شود تا تب فعالِ اعمال‌شده بررسی شود.
+    const result = runner(document, esc, fmt, money, fmtDate, fmtDec, {}, (name) => groups.push(name), () => null, (type) => String(type || ''), data);
+    return { nodes, groups, products: result.products, group: result.group };
+  } catch (error) {
+    return { error: 'runtime: ' + (error && error.message ? error.message : String(error)) };
+  }
+}
+const agentRender = runAgentPortalRender({
+  agent: { first_name: 'نماینده تست', balance: 9000000, total_created: 3, total_renewed: 2, enabled: true },
+  products: [
+    { title: 'پلن یک', panel_name: 'آلمان', gb: 50, days: 30, agent_price: 120000, public_price: 180000 },
+    { title: 'پلن دو', panel_name: 'هلند', gb: 0, days: 90, agent_price: 240000, public_price: 300000 }
+  ],
+  subscriptions: [{ sid: 'SID1', customer_name: 'مشتری', plan_name: 'پلن یک', panel_name: 'آلمان', status: 'active', status_label: 'فعال', usage_used: 1, usage_total: 50, days_remaining: 12, agent_price: 120000, created_at: 1700000000000, link: 'https://sub.example/x' }],
+  transactions: [
+    { id: 't1', type: 'subscription_created', direction: 'out', amount: 120000, occurred_at: 1700000000000, description: 'ساخت اشتراک برای مشتری' },
+    { id: 't2', type: 'subscription_renewed', direction: 'out', amount: 240000, occurred_at: 1700000500000, description: 'تمدید اشتراک مشتری' },
+    { id: 't3', type: 'admin_credit', direction: 'in', amount: 500000, occurred_at: 1700000900000, description: 'شارژ کیف پول' }
+  ]
+});
+const agentNode = (id) => (agentRender.nodes && agentRender.nodes.get(id)) || { textContent: '', innerHTML: '' };
+assert(!agentRender.error, 'داشبورد نماینده بدون خطای زمان اجرا رندر می‌شود', agentRender.error || '');
+assert(agentNode('agentBalanceValue').textContent === '9,000,000 تومان'
+  && agentNode('agentWalletBalance').textContent === '9,000,000 تومان'
+  && agentNode('agentDashName').textContent === 'نماینده تست'
+  && agentNode('agentDashChip').textContent === 'نمایندگی فعال',
+  'داشبورد نماینده موجودی کیف پول و نام/وضعیت نماینده را در کارت اصلی نشان می‌دهد');
+assert(agentNode('agentCreatedValue').textContent === '3' && agentNode('agentRenewedValue').textContent === '2'
+  && agentNode('agentCreatedHint').textContent === '120,000 تومان · date:1700000000000'
+  && agentNode('agentRenewedHint').textContent === '240,000 تومان · date:1700000500000',
+  'کارت خریدهای انجام‌شده و کارت تمدیدهای انجام‌شده جداگانه با تعداد، مبلغ و تاریخ آخرین عملیات پر می‌شوند');
+const agentRecentHtml = agentNode('agentRecentList').innerHTML;
+assert((agentRecentHtml.match(/ag-recent-row/g) || []).length === 3
+  && agentRecentHtml.includes('شارژ کیف پول') && agentRecentHtml.includes('+500,000 تومان')
+  && agentRecentHtml.includes('−120,000 تومان') && agentRecentHtml.includes('class="in"') && agentRecentHtml.includes('class="out"'),
+  'فهرست آخرین فعالیت‌ها تراکنش‌ها را با برچسب، جهت (+/−) و مبلغ نشان می‌دهد');
+assert(agentNode('agentPriceCount').textContent === '2 پلن'
+  && (agentNode('agentPricesList').innerHTML.match(/ag-price-card/g) || []).length === 2
+  && agentNode('agentPricesList').innerHTML.includes('پلن یک') && agentNode('agentPricesList').innerHTML.includes('120,000 تومان')
+  && agentNode('agentPricesList').innerHTML.includes('نامحدود')
+  && agentNode('agentPricesList').innerHTML.includes('قیمت خرید شما'),
+  'تب قیمت‌ها قیمت خرید هر پلن را با حجم (و نامحدود)، مدت و سرور نشان می‌دهد');
+assert(JSON.stringify(agentRender.groups) === JSON.stringify(['dash']), 'پس از رندر، تب فعال داشبورد دوباره اعمال می‌شود');
+assert(agentUiSource.includes('id="agentPricesList"') && agentUiSource.includes('id="agentPriceCount"')
+  && agentUiSource.includes('قیمت خرید شما') && agentUiSource.includes('ag-price-card')
+  && agentUiSource.includes('agentAvailableProducts.map((p)=>{')
+  && agentUiSource.includes('agent_price'),
+  'تب «قیمت‌ها» قیمت خرید هر پلن نماینده را با حجم، مدت و سرور نشان می‌دهد');
 assert(agentUiSource.includes('id="agentDeliveryPage"') && agentUiSource.includes('function showAgentDelivery') && agentUiSource.includes('agent/subscriptions/\'+encodeURIComponent(sid)+\'/delivery') && agentUiSource.includes('data-agent-renew=') && agentUiSource.includes('function renewAgentSubscription') && !agentUiSource.includes('agentQuotaValue') && !agentUiSource.includes('data-agent-quota'), 'سهمیه از رابط نماینده حذف شده، صفحهٔ جدا برای QR/لینک و دکمهٔ تمدید با کسر کیف پول وجود دارد');
 const promoterInit = await signedInitData(U12, { first_name: 'PromotedAgent', username: 'promoted_agent' });
 const inviteeInit = await signedInitData(U13, { first_name: 'InvitedAgent', username: 'invited_agent' });

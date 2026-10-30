@@ -903,22 +903,88 @@
     body.agent-role .sidebar, body.agent-role #mobileNav { display:none !important; }
     body.agent-shell .main { padding-left:14px !important; padding-right:14px !important; }
     .agent-tab { flex:1 1 0; min-width:0; min-height:54px; display:grid; align-content:center; gap:4px;
-      justify-items:center; padding:7px 0; border:0; border-radius:13px; background:transparent;
-      color:#ffe3e6; font:inherit; font-size:13.5px; font-weight:800; letter-spacing:-.2px;
-      line-height:1.25; white-space:nowrap; cursor:pointer;
-      transition:color .16s ease, background .16s ease; }
+      justify-items:center; padding:7px 1px; border:0; border-radius:12px; background:transparent;
+      color:#ffe3e6; font:inherit; font-size:clamp(10.5px, 3.05vw, 13px); font-weight:800;
+      letter-spacing:-.35px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      cursor:pointer; transition:color .16s ease, background .16s ease; }
     .agent-tab .agent-tab-icon { width:20px; height:20px; stroke:currentColor; fill:none; stroke-width:1.8;
       stroke-linecap:round; stroke-linejoin:round; opacity:.92; }
     .agent-tab.active { color:#ffffff; background:linear-gradient(165deg, rgba(240, 86, 99, .62), rgba(240, 86, 99, .24));
       box-shadow:inset 0 0 0 1px rgba(255, 255, 255, .34); }
     .agent-tab.active .agent-tab-icon { opacity:1; }
     .agent-tab:active { transform:scale(.97); }
-    @media (max-width:390px) { .agent-tab { font-size:12.5px; } .agent-tab .agent-tab-icon { width:18px; height:18px; } }
-    .agent-dash-card { display:grid; gap:6px; justify-items:center; text-align:center; padding:22px 16px; }
-    .agent-dash-label { color:#f0e2e3; font-size:var(--fs-2xs); font-weight:700; }
-    .agent-dash-balance { font-size:30px; font-weight:800; color:#fff; letter-spacing:-.5px; line-height:1.4; }
-    .agent-dash-line { display:flex; justify-content:center; gap:18px; flex-wrap:wrap; color:#f0e2e3; font-size:var(--fs-2xs); }
-    .agent-dash-line b { color:#fff; }
+    @media (max-width:390px) { .agent-tab .agent-tab-icon { width:17px; height:17px; } .agent-tab { gap:3px; min-height:50px; } }
+    /* ── داشبورد مدرن نماینده ───────────────────────────────────────────── */
+    .ag-hero { position:relative; overflow:hidden; display:grid; gap:9px; padding:22px 20px 20px;
+      border-radius:22px; border:1px solid rgba(240, 86, 99, .3);
+      background:linear-gradient(150deg, rgba(126, 14, 24, .96), rgba(74, 9, 17, .98) 58%, rgba(48, 5, 10, 1));
+      box-shadow:0 22px 44px -22px rgba(0, 0, 0, .85), inset 0 1px 0 rgba(255, 255, 255, .1); }
+    .ag-hero-glow { position:absolute; inset:-70px -40px auto auto; width:230px; height:230px; border-radius:50%;
+      background:radial-gradient(circle, rgba(240, 86, 99, .5), transparent 68%); pointer-events:none; }
+    .ag-hero-head { position:relative; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .ag-hero-label { color:#ffd9dd; font-size:12px; font-weight:800; letter-spacing:.2px; }
+    .ag-hero-chip { border-radius:999px; padding:4px 11px; font-size:10.5px; font-weight:800; color:#fff;
+      background:rgba(255, 255, 255, .14); border:1px solid rgba(255, 255, 255, .24); }
+    .ag-hero-value { position:relative; color:#fff; font-size:32px; font-weight:850; line-height:1.25;
+      letter-spacing:-.8px; text-shadow:0 8px 26px rgba(0, 0, 0, .35); }
+    .ag-hero-foot { position:relative; display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+      color:#f4d6d9; font-size:11px; font-weight:600; }
+    .ag-dot { width:4px; height:4px; border-radius:50%; background:rgba(255, 255, 255, .45); }
+    .ag-hero-compact { margin-bottom:14px; }
+    .ag-hero-compact .ag-hero-value { font-size:28px; }
+
+    .ag-stat-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:11px; margin-top:12px; }
+    .ag-stat { display:flex; align-items:center; gap:12px; min-width:0; padding:15px 14px; border-radius:17px;
+      border:1px solid rgba(240, 86, 99, .22); background:linear-gradient(160deg, rgba(88, 12, 19, .82), rgba(58, 8, 14, .9));
+      box-shadow:inset 0 1px 0 rgba(255, 255, 255, .07); }
+    .ag-stat-icon { flex:0 0 36px; width:36px; height:36px; display:grid; place-items:center; border-radius:12px;
+      background:rgba(240, 86, 99, .16); border:1px solid rgba(240, 86, 99, .26); }
+    .ag-stat-icon svg { width:18px; height:18px; stroke:#ff9aa4; fill:none; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+    .ag-stat-body { display:grid; min-width:0; gap:1px; }
+    .ag-stat-body strong { color:#fff; font-size:23px; font-weight:850; line-height:1.2; letter-spacing:-.5px; }
+    .ag-stat-body span { color:#ffd9dd; font-size:11.5px; font-weight:700; }
+    .ag-stat-body small { color:#e6b3b9; font-size:10px; font-weight:600; }
+    .ag-stat-body small:empty { display:none; }
+
+    .ag-recent { margin-top:12px; padding:15px 15px 6px; border-radius:18px; border:1px solid rgba(240, 86, 99, .18);
+      background:rgba(52, 7, 12, .62); }
+    .ag-recent-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .ag-recent-head strong { color:#fff; font-size:13px; font-weight:800; }
+    .ag-recent-list { display:grid; gap:8px; }
+    .ag-recent-row { display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:12px;
+      background:rgba(255, 255, 255, .04); border:1px solid rgba(255, 255, 255, .07); }
+    .ag-recent-row i { width:7px; height:7px; border-radius:50%; flex:0 0 7px; }
+    .ag-recent-row i.in { background:#ffd0d5; } .ag-recent-row i.out { background:#ff7d88; }
+    .ag-recent-row div { display:grid; min-width:0; gap:1px; }
+    .ag-recent-row strong { color:#fff; font-size:11.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .ag-recent-row small { color:#e6b3b9; font-size:10px; }
+    .ag-recent-row span { margin-right:auto; color:#fff; font-size:11.5px; font-weight:800; white-space:nowrap; direction:ltr; }
+    .ag-empty { padding:14px; border-radius:12px; color:#e6b3b9; font-size:11.5px; text-align:center;
+      background:rgba(255, 255, 255, .035); border:1px dashed rgba(240, 86, 99, .24); }
+
+    /* تب قیمت‌ها */
+    .ag-price-list { display:grid; gap:9px; margin-top:14px; }
+    .ag-price-card { display:flex; align-items:center; gap:12px; padding:13px 14px; border-radius:15px;
+      border:1px solid rgba(240, 86, 99, .2); background:linear-gradient(150deg, rgba(84, 11, 18, .7), rgba(54, 7, 13, .82)); }
+    .ag-price-main { display:grid; min-width:0; gap:2px; }
+    .ag-price-main strong { color:#fff; font-size:13px; font-weight:800; }
+    .ag-price-main small { color:#e6b3b9; font-size:10.5px; }
+    .ag-price-value { margin-right:auto; text-align:left; direction:rtl; display:grid; gap:1px; }
+    .ag-price-value b { color:#fff; font-size:13.5px; font-weight:850; white-space:nowrap; }
+    .ag-price-value small { color:#ffb8bf; font-size:9.5px; font-weight:700; }
+    @media (max-width:390px) { .ag-hero-value { font-size:29px; } .ag-stat-body strong { font-size:21px; } }
+    /* ورود نرم کارت‌های داشبورد (بدون transform تا هیچ فرزند fixed جابه‌جا نشود) */
+    @keyframes agFade { from { opacity:0; } to { opacity:1; } }
+    body.agent-shell #agentPage [data-agroup="dash"] > article,
+    body.agent-shell #agentPage [data-agroup="dash"] > div { animation: agFade .38s ease both; }
+    body.agent-shell #agentPage [data-agroup="dash"] > :nth-child(2) { animation-delay:.06s; }
+    body.agent-shell #agentPage [data-agroup="dash"] > :nth-child(3) { animation-delay:.12s; }
+    @media (prefers-reduced-motion: reduce) {
+      body.agent-shell #agentPage [data-agroup="dash"] > * { animation:none; }
+      .agent-tab { transition:none; }
+    }
+    .ag-price-card { transition:border-color .18s ease, background .18s ease; }
+    .ag-price-card:active { border-color:rgba(240, 86, 99, .48); background:linear-gradient(150deg, rgba(104, 14, 22, .82), rgba(64, 8, 15, .9)); }
     .agent-sub-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
     .agent-sub-actions .table-action { flex:1 1 140px; min-height:40px; }
     .agent-stat-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:0 0 14px; }
@@ -3273,61 +3339,93 @@
     </section>
 
     <section class="page hidden" id="agentPage">
-      <div class="page-top"><p class="mini-note" id="agentWelcome">موجودی مستقل، ساخت و تمدید اشتراک‌ها</p><button class="outline-btn" id="agentReload" type="button">به‌روزرسانی</button></div>
-
-      <div class="customer-notice hidden" id="agentDisabledNotice" role="status">دسترسی نمایندگی غیرفعال شده است؛ اشتراک‌های قبلی شما برای مشاهده باقی می‌مانند، اما امکان ساخت جدید ندارید. برای فعال‌سازی با مدیر فروشگاه تماس بگیرید.</div>
+      <div class="customer-notice hidden" id="agentDisabledNotice" role="status">دسترسی نمایندگی غیرفعال شده است؛ اشتراک‌های قبلی برای مشاهده می‌مانند، اما ساخت و تمدید ممکن نیست. برای فعال‌سازی با مدیر فروشگاه تماس بگیرید.</div>
 
       <div data-agroup="dash">
-        <article class="panel agent-dash-card">
-          <span class="agent-dash-label">موجودی کیف پول نمایندگی</span>
-          <strong class="agent-dash-balance" id="agentBalanceValue">—</strong>
-          <div class="agent-dash-line"><span>ساخته‌شده: <b id="agentCreatedValue">—</b></span><span>تمدید: <b id="agentRenewedValue">—</b></span></div>
+        <article class="ag-hero">
+          <div class="ag-hero-glow" aria-hidden="true"></div>
+          <div class="ag-hero-head">
+            <span class="ag-hero-label">کیف پول نمایندگی</span>
+            <span class="ag-hero-chip" id="agentDashChip">نمایندگی</span>
+          </div>
+          <strong class="ag-hero-value" id="agentBalanceValue">—</strong>
+          <div class="ag-hero-foot"><span id="agentDashName">—</span><i class="ag-dot" aria-hidden="true"></i><span>خرید و تمدید از همین موجودی</span></div>
+        </article>
+
+        <div class="ag-stat-grid">
+          <article class="ag-stat">
+            <span class="ag-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 9.5h16l-1.3-5H5.3L4 9.5ZM5 9.5v9A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5v-9M9 21v-6h6v6"/></svg></span>
+            <div class="ag-stat-body">
+              <strong id="agentCreatedValue">—</strong>
+              <span>خرید انجام‌شده</span>
+              <small id="agentCreatedHint">—</small>
+            </div>
+          </article>
+          <article class="ag-stat">
+            <span class="ag-stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4.5h-4.5"/></svg></span>
+            <div class="ag-stat-body">
+              <strong id="agentRenewedValue">—</strong>
+              <span>تمدید انجام‌شده</span>
+              <small id="agentRenewedHint">—</small>
+            </div>
+          </article>
+        </div>
+
+        <article class="ag-recent">
+          <div class="ag-recent-head"><strong>آخرین فعالیت‌ها</strong></div>
+          <div class="ag-recent-list" id="agentRecentList"><div class="ag-empty">فعالیتی ثبت نشده است.</div></div>
         </article>
       </div>
 
       <div data-agroup="buy" class="hidden">
         <article class="panel agent-create-panel">
-          <div class="panel-head"><div><h3>خرید / ساخت اشتراک برای مشتری</h3></div><span class="status paid">پنل فروش مجدد</span></div>
-          <div class="mini-note">مشتری نیازی به حساب تلگرام ندارد؛ لینک اشتراک را شما برایش ارسال می‌کنید.</div>
+          <div class="panel-head"><div><h3>خرید اشتراک</h3></div><span class="status paid">فروش مجدد</span></div>
           <form id="agentCreateForm" class="admin-form agent-create-form">
             <div class="settings-grid">
-              <label>نام یا برچسب مشتری<input id="agentCustomerName" type="text" maxlength="80" autocomplete="off" placeholder="مثلاً مشتری فروشگاه ۱۲" required></label>
+              <label>نام مشتری<input id="agentCustomerName" type="text" maxlength="80" autocomplete="off" placeholder="مثلاً مشتری فروشگاه ۱۲" required></label>
               <label>سرور و پلن<select id="agentProductSelect" required><option value="">در حال دریافت پلن‌ها…</option></select></label>
             </div>
-            <div class="form-actions"><button class="btn-primary" id="agentCreateButton" type="submit">ساخت اشتراک</button><span class="mini-note" id="agentCreateMessage" role="status" aria-live="polite">پیش از ساخت، موجودی کیف پول را بررسی کنید.</span></div>
+            <div class="form-actions"><button class="btn-primary" id="agentCreateButton" type="submit">ساخت اشتراک</button><span class="mini-note" id="agentCreateMessage" role="status" aria-live="polite"></span></div>
           </form>
         </article>
       </div>
 
       <div data-agroup="renew" class="hidden">
         <article class="panel agent-history-panel">
-          <div class="panel-head"><div><h3>تمدید اشتراک مشتری</h3></div></div>
-          <div class="mini-note">اشتراک را انتخاب کنید؛ همهٔ پلن‌های فعال همان سرور نمایش داده می‌شوند و هزینه از کیف پول نمایندگی کسر می‌شود.</div>
-          <div class="agent-sub-list" id="agentRenewList"><div class="empty-state">در حال دریافت اشتراک‌ها…</div></div>
+          <div class="panel-head"><div><h3>تمدید اشتراک</h3></div></div>
+          <div class="agent-sub-list" id="agentRenewList"><div class="ag-empty">در حال دریافت اشتراک‌ها…</div></div>
         </article>
       </div>
 
       <div data-agroup="subs" class="hidden">
         <article class="panel agent-history-panel">
-          <div class="panel-head"><div><h3>اشتراک‌های ساخته‌شده</h3></div><span class="status paid" id="agentSubCount">۰ اشتراک</span></div>
-          <div class="agent-sub-list" id="agentSubscriptionsList"><div class="empty-state">هنوز اشتراکی ساخته نشده است.</div></div>
+          <div class="panel-head"><div><h3>اشتراک‌های من</h3></div><span class="status paid" id="agentSubCount">۰ اشتراک</span></div>
+          <div class="agent-sub-list" id="agentSubscriptionsList"><div class="ag-empty">هنوز اشتراکی ساخته نشده است.</div></div>
+        </article>
+      </div>
+
+      <div data-agroup="prices" class="hidden">
+        <article class="panel agent-history-panel">
+          <div class="panel-head"><div><h3>قیمت خرید پلن‌ها</h3></div><span class="status paid" id="agentPriceCount">۰ پلن</span></div>
+          <div class="ag-price-list" id="agentPricesList"><div class="ag-empty">در حال دریافت قیمت‌ها…</div></div>
         </article>
       </div>
 
       <div data-agroup="wallet" class="hidden">
-        <article class="panel agent-dash-card">
-          <span class="agent-dash-label">موجودی کیف پول نمایندگی</span>
-          <strong class="agent-dash-balance" id="agentWalletBalance">—</strong>
+        <article class="ag-hero ag-hero-compact">
+          <div class="ag-hero-glow" aria-hidden="true"></div>
+          <div class="ag-hero-head"><span class="ag-hero-label">کیف پول نمایندگی</span></div>
+          <strong class="ag-hero-value" id="agentWalletBalance">—</strong>
         </article>
         <article class="panel agent-history-panel">
           <div class="panel-head"><div><h3>تاریخچهٔ کیف پول</h3></div></div>
-          <div class="agent-transaction-list" id="agentTransactionsList"><div class="empty-state">تراکنشی ثبت نشده است.</div></div>
+          <div class="agent-transaction-list" id="agentTransactionsList"><div class="ag-empty">تراکنشی ثبت نشده است.</div></div>
         </article>
       </div>
     </section>
 
     <section class="page hidden" id="agentDeliveryPage">
-      <div class="page-top"><p class="mini-note">این صفحه فقط برای تحویل به مشتری است؛ لینک و QR را برای او بفرستید.</p><button class="outline-btn" id="agentDeliveryBack" type="button">بازگشت به پنل نماینده</button></div>
+      <div class="page-top"><h1 style="margin:0;font-size:17px">تحویل اشتراک</h1><button class="outline-btn" id="agentDeliveryBack" type="button">بازگشت</button></div>
       <article class="panel agent-delivery-panel">
         <div class="panel-head"><div><h3 id="agentDeliveryTitle">اشتراک آمادهٔ تحویل است</h3><p id="agentDeliveryMeta">TiznetVPN</p></div><span class="status paid">تحویل آماده</span></div>
         <div id="agentDeliveryQrSlot" class="subscription-qr-slot"><div class="empty-state">در حال ساخت QR…</div></div>
@@ -3661,6 +3759,7 @@
       <button class="agent-tab" type="button" role="tab" aria-selected="false" data-atab="buy"><svg class="agent-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h16l-1.3-5H5.3L4 9.5ZM5 9.5v9A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5v-9M9 21v-6h6v6"/></svg><span>خرید</span></button>
       <button class="agent-tab" type="button" role="tab" aria-selected="false" data-atab="renew"><svg class="agent-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4.5h-4.5"/></svg><span>تمدید</span></button>
       <button class="agent-tab" type="button" role="tab" aria-selected="false" data-atab="subs"><svg class="agent-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1.6"/><rect x="3" y="11" width="18" height="4" rx="1.4"/><path d="M5 21h14"/></svg><span>اشتراک‌ها</span></button>
+      <button class="agent-tab" type="button" role="tab" aria-selected="false" data-atab="prices"><svg class="agent-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><path d="M7.5 7.5h.01"/></svg><span>قیمت‌ها</span></button>
       <button class="agent-tab" type="button" role="tab" aria-selected="false" data-atab="wallet"><svg class="agent-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M16.5 14.5h.01"/></svg><span>کیف پول</span></button>
     </div>
   </main>
@@ -4621,9 +4720,18 @@
       }catch(e){if(message)message.textContent=agentErrorText(e.message,e.data&&e.data.detail);toast(agentErrorText(e.message,e.data&&e.data.detail));}
       finally{if(button){button.disabled=false;button.textContent='ذخیرهٔ قیمت‌ها';}}
     }
+    // برچسب فارسی انواع تراکنش نماینده برای فهرست فعالیت‌ها
+    function agentTxLabel(type) {
+      const map = {
+        subscription_created: 'خرید اشتراک', subscription_renewed: 'تمدید اشتراک',
+        admin_credit: 'شارژ کیف پول', admin_debit: 'کسر از کیف پول',
+        creation_rollback: 'برگشت هزینهٔ ساخت', renew_rollback: 'برگشت هزینهٔ تمدید'
+      };
+      return map[String(type||'')] || 'تراکنش';
+    }
     let agentGroup = 'dash';
     function showAgentGroup(name) {
-      const group = ['dash','buy','renew','subs','wallet'].includes(String(name||'')) ? String(name) : 'dash';
+      const group = ['dash','buy','renew','subs','prices','wallet'].includes(String(name||'')) ? String(name) : 'dash';
       agentGroup = group;
       document.querySelectorAll('#agentPage [data-agroup]').forEach((el)=>{ el.classList.toggle('hidden', el.getAttribute('data-agroup')!==group); });
       document.querySelectorAll('#agentTabbar .agent-tab').forEach((tab)=>{
@@ -4640,17 +4748,48 @@
       const disabledNotice=document.getElementById('agentDisabledNotice');if(disabledNotice)disabledNotice.classList.toggle('hidden',!disabled);
       const createButton=document.getElementById('agentCreateButton');if(createButton)createButton.disabled=disabled;
       const customerNameInput=document.getElementById('agentCustomerName');if(customerNameInput)customerNameInput.disabled=disabled;
-      const createMessage=document.getElementById('agentCreateMessage');if(createMessage)createMessage.textContent=disabled?'نمایندگی غیرفعال است؛ با مدیر فروشگاه تماس بگیرید.':'پیش از ساخت، موجودی کیف پول را بررسی کنید.';
+      const createMessage=document.getElementById('agentCreateMessage');if(createMessage)createMessage.textContent=disabled?'نمایندگی غیرفعال است؛ با مدیر فروشگاه تماس بگیرید.':'';
       const balance=document.getElementById('agentBalanceValue');if(balance)balance.textContent=money(a.balance||0);
       const walletBalance=document.getElementById('agentWalletBalance');if(walletBalance)walletBalance.textContent=money(a.balance||0);
       const created=document.getElementById('agentCreatedValue');if(created)created.textContent=fmt(a.total_created||0);
       const renewed=document.getElementById('agentRenewedValue');if(renewed)renewed.textContent=fmt(a.total_renewed||0);
-      const welcome=document.getElementById('agentWelcome');if(welcome)welcome.textContent='سلام '+(a.first_name||profile&&profile.first_name||'نماینده')+'؛ موجودی، ساخت و تمدید اشتراک‌ها در اختیار شماست.';
       agentAvailableProducts=Array.isArray(agentPortalData.products)?agentPortalData.products:[];
       const select=document.getElementById('agentProductSelect');
       if(select){const old=select.value;select.innerHTML='<option value="">'+(agentAvailableProducts.length?'سرور و پلن را انتخاب کنید':'در حال حاضر پلن فعالی برای نمایندگی نیست')+'</option>'+agentAvailableProducts.map(p=>{const value=String(p.panel_id)+'|'+String(p.plan_id);const usage=p.gb===0?'نامحدود':fmtDec(p.gb)+' گیگ';return `<option value="${esc(value)}">${esc(p.panel_name)} — ${esc(p.title)} · ${usage} / ${fmt(p.days)} روز · هزینهٔ خرید ${money(p.agent_price)}</option>`;}).join('');if(old&&agentAvailableProducts.some(p=>(String(p.panel_id)+'|'+String(p.plan_id))===old))select.value=old;select.disabled=disabled||!agentAvailableProducts.length;}
       const pendingCreate=restoreAgentPendingCreate();
       if(pendingCreate&&pendingCreate.payload){const customerInput=document.getElementById('agentCustomerName');if(customerInput&&!customerInput.value)customerInput.value=pendingCreate.payload.customer_name||'';if(select&&pendingCreate.payload.panel_id&&pendingCreate.payload.plan_id)select.value=String(pendingCreate.payload.panel_id)+'|'+String(pendingCreate.payload.plan_id);}
+      // ── داشبورد: کیف پول، کارت خریدها، کارت تمدیدها و آخرین فعالیت‌ها ──
+      const txsAll=Array.isArray(agentPortalData.transactions)?agentPortalData.transactions:[];
+      const firstName=String(a.first_name||(profile&&profile.first_name)||'نماینده');
+      const dashName=document.getElementById('agentDashName');if(dashName)dashName.textContent=firstName;
+      const dashChip=document.getElementById('agentDashChip');if(dashChip)dashChip.textContent=disabled?'غیرفعال':'نمایندگی فعال';
+      const sumOf=(type)=>txsAll.filter((r)=>String(r.type||'')===type).reduce((acc,r)=>acc+Number(r.amount||0),0);
+      const lastOf=(type)=>{const rows=txsAll.filter((r)=>String(r.type||'')===type).map((r)=>Number(r.occurred_at||0)).sort((x,y)=>y-x);return rows[0]||0;};
+      const createdHint=document.getElementById('agentCreatedHint');
+      if(createdHint)createdHint.textContent=[sumOf('subscription_created')?money(sumOf('subscription_created')):'',lastOf('subscription_created')?fmtDate(lastOf('subscription_created')):''].filter(Boolean).join(' · ')||'—';
+      const renewedHint=document.getElementById('agentRenewedHint');
+      if(renewedHint)renewedHint.textContent=[sumOf('subscription_renewed')?money(sumOf('subscription_renewed')):'',lastOf('subscription_renewed')?fmtDate(lastOf('subscription_renewed')):''].filter(Boolean).join(' · ')||'—';
+      const recentBox=document.getElementById('agentRecentList');
+      if(recentBox){
+        const recent=txsAll.filter((r)=>r&&r.type).sort((x,y)=>Number(y.occurred_at||0)-Number(x.occurred_at||0)).slice(0,4);
+        if(!recent.length)recentBox.innerHTML='<div class="ag-empty">فعالیتی ثبت نشده است.</div>';
+        else recentBox.innerHTML=recent.map((row)=>{
+          const inbound=String(row.direction||'')==='in';
+          const amount=(inbound?'+':'−')+money(Number(row.amount||0));
+          return `<div class="ag-recent-row"><i class="${inbound?'in':'out'}"></i><div><strong>${esc(row.description||agentTxLabel(row.type))}</strong><small>${esc(fmtDate(row.occurred_at))}</small></div><span>${esc(amount)}</span></div>`;
+        }).join('');
+      }
+      // ── تب قیمت‌ها: قیمت خرید هر پلن برای نماینده ──
+      const priceList=document.getElementById('agentPricesList');
+      const priceCount=document.getElementById('agentPriceCount');
+      if(priceCount)priceCount.textContent=fmt(agentAvailableProducts.length)+' پلن';
+      if(priceList){
+        if(!agentAvailableProducts.length)priceList.innerHTML='<div class="ag-empty">پلن فعالی برای فروش تعریف نشده است.</div>';
+        else priceList.innerHTML=agentAvailableProducts.map((p)=>{
+          const usage=!p.gb||p.gb>=100000?'نامحدود':fmtDec(p.gb)+' گیگ';
+          return `<div class="ag-price-card"><div class="ag-price-main"><strong>${esc(p.title||'پلن')}</strong><small>${esc(p.panel_name||'')} · ${esc(usage)} · ${fmt(p.days||0)} روز</small></div><div class="ag-price-value"><b>${money(p.agent_price||0)}</b><small>قیمت خرید شما</small></div></div>`;
+        }).join('');
+      }
       const subs=Array.isArray(agentPortalData.subscriptions)?agentPortalData.subscriptions:[];
       const count=document.getElementById('agentSubCount');if(count)count.textContent=fmt(subs.length)+' اشتراک';
       const list=document.getElementById('agentSubscriptionsList');if(list){
@@ -4659,7 +4798,7 @@
       }
       const renewList=document.getElementById('agentRenewList');
       if(renewList){
-        if(!subs.length)renewList.innerHTML='<div class="empty-state">هنوز اشتراکی نساخته‌اید؛ از تب «خرید اشتراک» اولین اشتراک را بسازید.</div>';
+        if(!subs.length)renewList.innerHTML='<div class="empty-state">هنوز اشتراکی نساخته‌اید.</div>';
         else renewList.innerHTML=subs.map(sub=>{
           const cls=sub.status==='active'?'paid':sub.status==='expired'?'failed':'pending';
           const usage=sub.usage_unlimited?'نامحدود':fmtDec(sub.usage_used)+' از '+fmtDec(sub.usage_total)+' گیگ';
@@ -4676,10 +4815,8 @@
     }
     async function loadAgentPortal() {
       if(!liveMode||!agentRole)return;
-      const button=document.getElementById('agentReload');if(button){button.disabled=true;button.textContent='در حال دریافت…';}
       try{const data=await api('/api/miniapp/agent/overview');renderAgentPortal(data);}
       catch(e){toast(agentErrorText(e.message,e.data&&e.data.detail));}
-      finally{if(button){button.disabled=false;button.textContent='به‌روزرسانی';}}
     }
     function agentPendingStorageKey() { return 'tiznet-agent-create-pending-' + String(profile&&profile.id||'agent'); }
     function restoreAgentPendingCreate() {
@@ -6214,7 +6351,6 @@
     document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.page)));
     document.getElementById('agentsReload').addEventListener('click',()=>Promise.all([loadAdminAgents(),loadAgentInvites()]).catch(()=>toast('بازخوانی نماینده‌ها ناموفق بود.')));
     document.getElementById('agentInviteCreate').addEventListener('click',createAgentInvite);
-    document.getElementById('agentReload').addEventListener('click',()=>loadAgentPortal());
     document.querySelectorAll('#agentTabbar .agent-tab').forEach((tab)=>{
       tab.addEventListener('click',()=>showAgentGroup(tab.getAttribute('data-atab')||'dash'));
     });
@@ -6999,6 +7135,7 @@
       livePollBusy=true;
       try{
         if(isCustomer){await loadCustomer();return;}
+        if(agentRole){await loadAgentPortal();return;}
         if(!adminRole)return;
         if(currentPage==='overview')await loadAdminSummary(currentPeriod);
         else if(currentPage==='orders'){await Promise.all([loadAdminSummary(currentPeriod),loadOrders()]);}
