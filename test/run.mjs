@@ -438,9 +438,10 @@ assert((await kvJson('u:' + U5)).referred_by === U1, 'خاموش‌بودن من
 await sendText(U4, '/start ref_' + u1a.ref_code);
 const u1AfterThirdInvite = await kvJson('u:' + U1);
 assert(u1AfterThirdInvite.referral_join_count === 3 && u1AfterThirdInvite.referral_points_balance === 15 && Math.floor(u1AfterThirdInvite.referral_join_count / 3) - (u1AfterThirdInvite.referral_free_rewards_claimed || 0) === 1, 'هر سه عضو یکتای دعوت، پنج امتیاز می‌دهند و یک هدیهٔ ۳ گیگ/۳ روز را مستقل از سیاست عمومی آزاد می‌کنند');
+// با روشن‌بودن «دکمه‌های شیشه‌ای چت»، callback قدیمی هم اجرا می‌شود (خاموش‌کردنش در بخش دکمه‌های شیشه‌ای تست می‌شود).
 await press(U5, 'buy');
-assert(lastMsgTo(U5).params.text === 'جهت خرید وارد اپ فروش شوید.' && !lastMsgTo(U5).params.reply_markup, 'callback دکمهٔ قدیمی خرید اجرا نمی‌شود و کیبورد تازه نمی‌سازد');
-assert(TG.some(x => x.method === 'editMessageReplyMarkup' && String(x.params.chat_id) === String(U5) && x.params.reply_markup?.inline_keyboard?.length === 0), 'با لمس دکمهٔ legacy، همان کیبورد قدیمی هم از پیام حذف می‌شود');
+const legacyBuyMsg = lastMsgTo(U5);
+assert(!lastAnyTextTo(U5).includes('وارد اپ') && (() => { const m = lastMsgTo(U5, 'editMessageText') || lastMsgTo(U5); return m && m.params.reply_markup && Array.isArray(m.params.reply_markup.inline_keyboard) && m.params.reply_markup.inline_keyboard.length > 0; })(), 'callback دکمهٔ قدیمی خرید در حالت اپ‌محور اجرا می‌شود و مسیر خرید دکمه‌ای را باز می‌کند');
 env.MINIAPP_ONLY_MODE = 'false';
 await sendText(U5, '/start');
 const restoredCommands = TG.filter(x => x.method === 'setMyCommands').at(-1);
@@ -1357,7 +1358,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.52-ubuntu26.54';"), 'شمارهٔ نسخهٔ سرور 1.8.52-ubuntu26.54 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.53-ubuntu26.55';"), 'شمارهٔ نسخهٔ سرور 1.8.53-ubuntu26.55 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -2737,6 +2738,13 @@ function panelMsg(tgid) {
   const f = TG.filter(x => String(x.params.chat_id) === String(tgid) && (x.method === 'sendMessage' || x.method === 'editMessageText'));
   return f[f.length - 1];
 }
+// در حالت اپ‌محور ممکن است بعد از پیام کیبورد، پیام «منوی دکمه‌ای» هم بیاید؛
+// برای بررسی کیبورد پایین چت، آخرین پیامی را می‌گیریم که واقعاً کیبورد دارد.
+function lastKeyboardMsg(tgid) {
+  const f = TG.filter(x => x.method === 'sendMessage' && String(x.params.chat_id) === String(tgid)
+    && x.params.reply_markup && Array.isArray(x.params.reply_markup.keyboard));
+  return f[f.length - 1];
+}
 function kbTexts(msg) {
   const kb = msg && msg.params && msg.params.reply_markup && msg.params.reply_markup.keyboard;
   return Array.isArray(kb) ? kb.flat().map(x => x.text) : [];
@@ -2753,7 +2761,7 @@ await sendText(ADMIN, 'اشتراک بخرم');
 const renamedCfg = await kvJson('ui:chat_buttons');
 assert(renamedCfg && renamedCfg.labels && renamedCfg.labels.buy === 'اشتراک بخرم', 'تغییر نام دکمه در KV ذخیره می‌شود');
 await sendText(U12, '/start');
-assert(JSON.stringify(kbTexts(lastMsgTo(U12))) === JSON.stringify(['🛍 اشتراک بخرم', '🎧 پشتیبانی', '🎁 اشتراک رایگان', '📘 راهنما', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی', '📦 اشتراک‌های من', '💰 کیف پول و شارژ', '🧾 سفارش‌های من']), 'نام تازه همان لحظه روی کیبورد مشتری می‌آید');
+assert(JSON.stringify(kbTexts(lastKeyboardMsg(U12))) === JSON.stringify(['🛍 اشتراک بخرم', '🎧 پشتیبانی', '🎁 اشتراک رایگان', '📘 راهنما', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی', '📦 اشتراک‌های من', '💰 کیف پول و شارژ', '🧾 سفارش‌های من']), 'نام تازه همان لحظه روی کیبورد مشتری می‌آید');
 await sendText(U12, 'خرید اشتراک');
 assert(String(lastMsgTo(U12).params.text || '').includes('خرید اشتراک از داخل چت'), 'نام پیش‌فرض قبلی هم بعد از تغییر نام هنوز مسیر درست (خرید داخل چت) را اجرا می‌کند');
 await sendText(U12, 'اشتراک بخرم');
@@ -2761,13 +2769,13 @@ assert(String(lastMsgTo(U12).params.text || '').includes('خرید اشتراک 
 
 await press(ADMIN, 's_kb_tog:support');
 await sendText(U12, '/start');
-assert(kbTexts(lastMsgTo(U12)).length === 8 && !kbTexts(lastMsgTo(U12)).includes('🎧 پشتیبانی'), 'خاموش‌کردن دکمه آن را از کیبورد برمی‌دارد');
+assert(kbTexts(lastKeyboardMsg(U12)).length === 8 && !kbTexts(lastKeyboardMsg(U12)).includes('🎧 پشتیبانی'), 'خاموش‌کردن دکمه آن را از کیبورد برمی‌دارد');
 await sendText(U12, 'پشتیبانی');
 assert(lastMsgTo(U12).params.text.includes('یکی از دکمه‌های پایین'), 'دکمهٔ خاموش دیگر مسیری را اجرا نمی‌کند');
 
 await press(ADMIN, 's_kb_up:help');
 await sendText(U12, '/start');
-assert(JSON.stringify(kbTexts(lastMsgTo(U12))) === JSON.stringify(['🛍 اشتراک بخرم', '📘 راهنما', '🎁 اشتراک رایگان', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی', '📦 اشتراک‌های من', '💰 کیف پول و شارژ', '🧾 سفارش‌های من']), 'جابه‌جایی دکمه ترتیب کیبورد را عوض می‌کند');
+assert(JSON.stringify(kbTexts(lastKeyboardMsg(U12))) === JSON.stringify(['🛍 اشتراک بخرم', '📘 راهنما', '🎁 اشتراک رایگان', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی', '📦 اشتراک‌های من', '💰 کیف پول و شارژ', '🧾 سفارش‌های من']), 'جابه‌جایی دکمه ترتیب کیبورد را عوض می‌کند');
 
 await press(ADMIN, 's_kb_del:apps');
 await press(ADMIN, 's_kb_put:apps');
@@ -2777,7 +2785,7 @@ assert(afterAdd.order[afterAdd.order.length - 1] === 'apps', 'دکمهٔ حذف�
 await press(ADMIN, 's_kb_reset');
 const resetCfg = await kvJson('ui:chat_buttons');
 await sendText(U12, '/start');
-assert(JSON.stringify(kbTexts(lastMsgTo(U12))) === JSON.stringify(DEFAULT_KB) && resetCfg.order.length === 9 && !Object.keys(resetCfg.labels || {}).length, 'بازگردانی پیش‌فرض، نام و ترتیب و وضعیت نه دکمهٔ اصلی را برمی‌گرداند');
+assert(JSON.stringify(kbTexts(lastKeyboardMsg(U12))) === JSON.stringify(DEFAULT_KB) && resetCfg.order.length === 9 && !Object.keys(resetCfg.labels || {}).length, 'بازگردانی پیش‌فرض، نام و ترتیب و وضعیت نه دکمهٔ اصلی را برمی‌گرداند');
 
 // همان تنظیمات از مینی‌اپ
 const chatAdmin = await signedInitData(ADMIN);
@@ -2786,7 +2794,7 @@ assert(lookWithChat.json.buttons && lookWithChat.json.buttons.chat && lookWithCh
 const appChatSave = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['buy', 'subs', 'wallet'], off: ['wallet'], labels: { subs: 'بسته‌های من' } } }) });
 assert(appChatSave.status === 200 && appChatSave.json.chat.items.length === 3 && appChatSave.json.chat.items.find(i => i.id === 'subs').custom === 'بسته‌های من', 'مدیر از مینی‌اپ ترتیب، نام و خاموش‌بودن دکمه‌ها را ذخیره می‌کند');
 await sendText(U12, '/start');
-assert(JSON.stringify(kbTexts(lastMsgTo(U12))) === JSON.stringify(['🛍 خرید اشتراک', '📦 بسته‌های من']), 'تغییر مینی‌اپ همان لحظه روی کیبورد چت اعمال می‌شود');
+assert(JSON.stringify(kbTexts(lastKeyboardMsg(U12))) === JSON.stringify(['🛍 خرید اشتراک', '📦 بسته‌های من']), 'تغییر مینی‌اپ همان لحظه روی کیبورد چت اعمال می‌شود');
 const allOff = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['buy'], off: ['buy'] } }) });
 assert(allOff.status === 400 && allOff.json.error === 'all_buttons_off', 'خاموش‌کردن همهٔ دکمه‌ها از مینی‌اپ رد می‌شود');
 const tooMany = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['buy','support','free','help','account','agent','subs','wallet','orders','apps','ref'] } }) });
@@ -3264,12 +3272,80 @@ assert(miniAppSource.includes("if(pending.mode==='topup'){submitWalletTopup('she
   && miniAppSource.includes("startCheckout('shetab');"),
   'تأیید هشدار در هر دو مسیر (خرید پلن و شارژ کیف پول) سفارش خودکار می‌سازد');
 
-// ---------- هیچ دکمهٔ شیشه‌ای در چت مشتری ----------
-const adminChatIds = new Set(['999', '777003']); // 777003 فقط در تست «مدیران» موقتاً ادمین می‌شود
-const customerInline = TG.filter((x) => ['sendMessage', 'editMessageText', 'editMessageCaption', 'sendPhoto'].includes(x.method)
-  && !adminChatIds.has(String(x.params.chat_id))
+// ---------- دکمه‌های شیشه‌ای چت مشتری (برای کسانی که مینی‌اپ باز نمی‌شود) ----------
+// قاعدهٔ تازه: در حالت اپ‌محور، منوی دکمه‌ای با همهٔ بخش‌ها داخل چت می‌آید و خرید هم
+// با همان دکمه‌ها انجام می‌شود؛ اگر مدیر خاموشش کند، رفتار قبلی (بدون دکمهٔ شیشه‌ای) برمی‌گردد.
+const INLINE_USER = 130, INLINE_USER2 = 131;
+const inlineMsgsFor = (chatId, from) => TG.slice(from).filter((x) =>
+  String(x.params.chat_id) === String(chatId)
+  && ['sendMessage', 'editMessageText'].includes(x.method)
   && x.params.reply_markup && Array.isArray(x.params.reply_markup.inline_keyboard) && x.params.reply_markup.inline_keyboard.length);
-assert(customerInline.length === 0, 'هیچ پیامی به مشتری دکمهٔ شیشه‌ای (inline) ندارد؛ ناوبری فقط با کیبورد پایین چت و مینی‌اپ است');
+const inlineDataOf = (msg) => (msg && msg.params.reply_markup.inline_keyboard.flat().map((b) => String(b.callback_data || ''))) || [];
+
+const inlineModeBefore = env.MINIAPP_ONLY_MODE;
+env.MINIAPP_ONLY_MODE = 'true';
+const inlineStartAt = TG.length;
+await sendText(INLINE_USER, '/start');
+const inlineStartMsg = inlineMsgsFor(INLINE_USER, inlineStartAt).at(-1);
+const inlineStartData = inlineDataOf(inlineStartMsg);
+assert(inlineStartMsg && ['menu:buy', 'menu:subs', 'menu:wallet', 'menu:orders', 'menu:free', 'menu:agent', 'menu:support', 'menu:help', 'menu:apps', 'menu:account', 'menu:ref', 'menu:home'].every((d) => inlineStartData.includes(d)), 'در حالت اپ‌محور، /start یک منوی دکمه‌ای با همهٔ بخش‌ها (خرید، اشتراک‌ها، کیف پول، سفارش‌ها، پشتیبانی…) برای مشتری می‌فرستد');
+
+const inlineBuyAt = TG.length;
+await press(INLINE_USER, 'menu:buy');
+assert(inlineMsgsFor(INLINE_USER, inlineBuyAt).length >= 1 && !lastAnyTextTo(INLINE_USER).includes('وارد اپ'), 'دکمهٔ شیشه‌ای «خرید اشتراک» داخل چت واقعاً مسیر خرید (انتخاب سرور/پلن) را باز می‌کند');
+
+// مسیر خرید با دکمه: سرور → پلن → جزئیات → پرداخت
+const inlinePlanAt = TG.length;
+await press(INLINE_USER, 'bp:' + pid);
+await press(INLINE_USER, 'bl:' + pid + ':' + plid);
+const detailInline = inlineMsgsFor(INLINE_USER, inlinePlanAt).at(-1);
+const detailData = inlineDataOf(detailInline);
+assert(detailInline && detailData.includes('bp:' + pid) && detailData.some((d) => /^(payw|payc|payx):/.test(d) || d === 'noop'), 'مسیر خرید داخل چت با دکمه تا مرحلهٔ پرداخت (کیف پول / کارت‌به‌کارت) باز می‌شود');
+
+const inlineLegacyAt = TG.length;
+await press(INLINE_USER, 'buy');
+assert(TG.slice(inlineLegacyAt).some((x) => x.method === 'editMessageText' || x.method === 'sendMessage') && !lastAnyTextTo(INLINE_USER).includes('وارد اپ'), 'callback قدیمی خرید هم در حالت اپ‌محور اجرا می‌شود و دیگر خنثی نیست');
+
+const inlineWalletAt = TG.length;
+await press(INLINE_USER, 'menu:wallet');
+const walletInlineMsg = inlineMsgsFor(INLINE_USER, inlineWalletAt).at(-1);
+assert(walletInlineMsg && inlineDataOf(walletInlineMsg).includes('menu:charge'), 'دکمهٔ «کیف پول و شارژ» موجودی را نشان می‌دهد و دکمهٔ شارژ را همان‌جا می‌گذارد');
+const inlineChargeAt = TG.length;
+await press(INLINE_USER, 'menu:charge');
+const chargeInlineMsg = inlineMsgsFor(INLINE_USER, inlineChargeAt).at(-1);
+assert(chargeInlineMsg && inlineDataOf(chargeInlineMsg).some((d) => d.startsWith('chg:')), 'دکمهٔ «شارژ کیف پول» مبلغ‌های آماده را با دکمه‌های شیشه‌ای نشان می‌دهد');
+const inlineSubsAt = TG.length;
+await press(INLINE_USER, 'menu:subs');
+const subsInlineMsg = inlineMsgsFor(INLINE_USER, inlineSubsAt).at(-1);
+assert(subsInlineMsg && inlineDataOf(subsInlineMsg).includes('menu:buy') && inlineDataOf(subsInlineMsg).includes('menu:home'), 'دکمهٔ «اشتراک‌های من» فهرست دکمه‌ای اشتراک‌ها را با راه برگشت به منو باز می‌کند');
+
+const inlineHelpAt = TG.length;
+await press(INLINE_USER, 'menu:help');
+assert(TG.slice(inlineHelpAt).some((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(INLINE_USER)), 'دکمهٔ «راهنما» متن راهنمای واقعی را می‌فرستد');
+
+// خاموش‌کردن از پنل ادمین → رفتار قبلی برمی‌گردد و هیچ دکمهٔ شیشه‌ای برای مشتری نمی‌رود.
+await press(ADMIN, 's_inline');
+assert((await kvJson('cfg')).chat_inline_enabled === false, 'ادمین می‌تواند دکمه‌های شیشه‌ای چت را از تنظیمات خاموش کند');
+const inlineOffAt = TG.length;
+await sendText(INLINE_USER2, '/start');
+assert(inlineMsgsFor(INLINE_USER2, inlineOffAt).length === 0, 'با خاموش‌بودن کلید، /start هیچ دکمهٔ شیشه‌ای برای مشتری نمی‌فرستد');
+const inlineOffPressAt = TG.length;
+await press(INLINE_USER2, 'buy');
+const offCustomerInline = TG.slice(inlineOffPressAt).filter((x) => String(x.params.chat_id) === String(INLINE_USER2)
+  && x.params.reply_markup && Array.isArray(x.params.reply_markup.inline_keyboard) && x.params.reply_markup.inline_keyboard.length);
+assert(offCustomerInline.length === 0 && lastAnyTextTo(INLINE_USER2).includes('وارد اپ'), 'با خاموش‌بودن کلید، callback قدیمی مثل قبل خنثی می‌ماند و کیبورد شیشه‌ای فرستاده نمی‌شود');
+await press(ADMIN, 's_inline');
+env.MINIAPP_ONLY_MODE = inlineModeBefore;
+assert((await kvJson('cfg')).chat_inline_enabled === true, 'روشن‌کردن دوبارهٔ دکمه‌های شیشه‌ای ذخیره می‌شود');
+
+// همان کلید از مینی‌اپ هم خوانده و ذخیره می‌شود.
+const inlineAdminInit = await signedInitData(ADMIN);
+const inlineSettingsView = await miniApi('/api/miniapp/admin/settings', inlineAdminInit);
+const inlineOffSave = await miniApi('/api/miniapp/admin/settings', inlineAdminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_inline_enabled: false }) });
+const inlineBadSave = await miniApi('/api/miniapp/admin/settings', inlineAdminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_inline_enabled: 'yes' }) });
+const inlineOnSave = await miniApi('/api/miniapp/admin/settings', inlineAdminInit, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_inline_enabled: true }) });
+assert(inlineSettingsView.json.settings.chat_inline_enabled === true && inlineOffSave.json.settings.chat_inline_enabled === false && inlineBadSave.status === 400 && inlineBadSave.json.error === 'invalid_chat_inline_enabled' && inlineOnSave.json.settings.chat_inline_enabled === true, 'کلید «دکمه‌های شیشه‌ای چت» در تنظیمات مینی‌اپ خوانده و ذخیره می‌شود و مقدار نامعتبر رد می‌شود');
+assert(miniAppSource.includes('id="settingChatInline"') && miniAppSource.includes('chat_inline_enabled:document.getElementById(\'settingChatInline\').checked'), 'کلید «دکمه‌های شیشه‌ای چت» در فرم تنظیمات مینی‌اپ وجود دارد و با ذخیره ارسال می‌شود');
 
 // ---------- اپ اندروید: مجوز پیامک و اجرای پس‌زمینه در زمان اجرا ----------
 const androidRoot = path.join(here, '..', 'android');

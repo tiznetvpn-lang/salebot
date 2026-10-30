@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.52-ubuntu26.54';
+const VERSION = '1.8.53-ubuntu26.55';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -2687,14 +2687,17 @@ const DEFAULT_SETTINGS = {
   join_channels: [],        // [{ id, key, title, url }]
   join_lock_text: '',       // متن دلخواه پیام قفل کانال
   phone_required: false,    // قفل شمارهٔ موبایل
-  phone_lock_text: ''       // متن دلخواه پیام قفل شماره
+  phone_lock_text: '',      // متن دلخواه پیام قفل شماره
+  // دکمه‌های شیشه‌ای (inline) داخل چت مشتری: هر بخش با یک لمس باز می‌شود،
+  // حتی اگر مینی‌اپ روی گوشی مشتری باز نشود. پیش‌فرض روشن است.
+  chat_inline_enabled: true
 };
 
 async function getCfg(env) {
   const c = await kvGet(env, 'cfg', {});
   return Object.assign({}, DEFAULT_SETTINGS, c || {});
 }
-async function saveCfg(env, c) { await kvPut(env, 'cfg', c); }
+async function saveCfg(env, c) { await kvPut(env, 'cfg', c); resetChatInlineCache(); }
 
 async function getPanels(env) { return await kvGet(env, 'panels', {}); }
 async function savePanels(env, p) { await kvPut(env, 'panels', p); }
@@ -3258,15 +3261,36 @@ function miniAppOnlyMode(env) {
 function isAdminChat(env, chatId) {
   return chatId != null && isAdmin(env, chatId);
 }
-function telegramExtra(env, extra, chatId) {
+// ── دکمه‌های شیشه‌ای چت مشتری ────────────────────────────────────────────
+// بعضی مشتری‌ها مینی‌اپ را باز نمی‌کنند (تلگرام قدیمی، کلاینت غیررسمی، اینترنت ضعیف).
+// با روشن‌بودن این کلید، همان ناوبری دکمه‌ای (inline) داخل خود چت کار می‌کند:
+// خرید کامل، اشتراک‌ها، کیف پول، سفارش‌ها و بقیهٔ بخش‌ها.
+// مدیر می‌تواند از تنظیمات چت یا مینی‌اپ خاموشش کند تا رفتار قبلی برگردد.
+const CHAT_INLINE_TTL = 5000;
+let CHAT_INLINE_CACHE = { at: 0, enabled: true };
+async function chatInlineEnabled(env, force) {
+  let flag = CHAT_INLINE_CACHE.enabled;
+  if (force || !CHAT_INLINE_CACHE.at || Date.now() - CHAT_INLINE_CACHE.at >= CHAT_INLINE_TTL) {
+    try { const cfg = await getCfg(env); flag = cfg.chat_inline_enabled !== false; } catch (e) { flag = true; }
+    CHAT_INLINE_CACHE = { at: Date.now(), enabled: flag };
+  }
+  // این قابلیت مخصوص حالت «اپ‌محور» (MINIAPP_ONLY_MODE) است؛ در حالت کلاسیک
+  // همان طراحی قبلی می‌ماند تا رفتار دو حالت با هم قاطی نشود.
+  return flag && miniAppOnlyMode(env);
+}
+function resetChatInlineCache() { CHAT_INLINE_CACHE = { at: 0, enabled: true }; }
+
+async function telegramExtra(env, extra, chatId) {
   const safe = Object.assign({}, extra || {});
   const markup = extra && extra.reply_markup;
-  // در چت مشتری هیچ دکمهٔ شیشه‌ای (inline) فرستاده نمی‌شود؛ ناوبری فقط با کیبورد پایین
-  // چت و مینی‌اپ است. پنل ادمین دست‌نخورده می‌ماند چون ابزار کار مدیر است.
   if (chatId != null && !isAdminChat(env, chatId)) {
-    const keepsReplyKeyboard = markup && (Array.isArray(markup.keyboard) || isPhoneRequestMarkup(markup) || isJoinGateMarkup(markup));
-    if (markup && Array.isArray(markup.inline_keyboard) && !keepsReplyKeyboard) delete safe.reply_markup;
-    if (miniAppOnlyMode(env) && !isAllowedMiniAppOnlyMarkup(safe.reply_markup)) delete safe.reply_markup;
+    // وقتی دکمه‌های شیشه‌ای روشن‌اند، مارک‌آپ همان‌طور که ساخته شده می‌رود؛
+    // پنل ادمین هم از قبل دست‌نخورده است.
+    if (!(await chatInlineEnabled(env))) {
+      const keepsReplyKeyboard = markup && (Array.isArray(markup.keyboard) || isPhoneRequestMarkup(markup) || isJoinGateMarkup(markup));
+      if (markup && Array.isArray(markup.inline_keyboard) && !keepsReplyKeyboard) delete safe.reply_markup;
+      if (miniAppOnlyMode(env) && !isAllowedMiniAppOnlyMarkup(safe.reply_markup)) delete safe.reply_markup;
+    }
   }
   return safe;
 }
@@ -3769,13 +3793,13 @@ function COPYBTN(text, value) { return { text: text, copy_text: { text: String(v
 async function msg(env, chat_id, text, extra) {
   return tg(env, 'sendMessage', Object.assign({
     chat_id: chat_id, text: text, parse_mode: 'HTML', disable_web_page_preview: true
-  }, telegramExtra(env, extra, chat_id)));
+  }, await telegramExtra(env, extra, chat_id)));
 }
 
 async function editMsg(env, chat_id, message_id, text, extra) {
   try {
-    const safeExtra = telegramExtra(env, extra, chat_id);
-    if (miniAppOnlyMode(env) && !isAdminChat(env, chat_id)) safeExtra.reply_markup = { inline_keyboard: [] };
+    const safeExtra = await telegramExtra(env, extra, chat_id);
+    if (miniAppOnlyMode(env) && !isAdminChat(env, chat_id) && !(await chatInlineEnabled(env))) safeExtra.reply_markup = { inline_keyboard: [] };
     await tg(env, 'editMessageText', Object.assign({
       chat_id: chat_id, message_id: message_id, text: text,
       parse_mode: 'HTML', disable_web_page_preview: true
@@ -3794,8 +3818,8 @@ async function editMsg(env, chat_id, message_id, text, extra) {
 // پیام سفارش دستی ممکن است متن یا عکسِ رسید باشد؛ برای هر دو نوع، وضعیت اصلی را همان‌جا عوض می‌کنیم.
 async function updateAdminOrderMessage(env, source, text, extra) {
   if (!source || !source.chat || !source.message_id) return false;
-  const safeExtra = telegramExtra(env, extra, source.chat.id);
-  if (miniAppOnlyMode(env) && !isAdminChat(env, source.chat.id)) safeExtra.reply_markup = { inline_keyboard: [] };
+  const safeExtra = await telegramExtra(env, extra, source.chat.id);
+  if (miniAppOnlyMode(env) && !isAdminChat(env, source.chat.id) && !(await chatInlineEnabled(env))) safeExtra.reply_markup = { inline_keyboard: [] };
   const params = Object.assign({ chat_id: source.chat.id, message_id: source.message_id, parse_mode: 'HTML' }, safeExtra);
   const isMedia = !!(source.photo || source.document || source.video || source.animation || source.audio || source.voice);
   try {
@@ -3819,7 +3843,7 @@ async function ansCb(env, id, text, alert) {
 async function sendPhoto(env, chat_id, photo, caption, extra) {
   return tg(env, 'sendPhoto', Object.assign({
     chat_id: chat_id, photo: photo, caption: caption || '', parse_mode: 'HTML'
-  }, telegramExtra(env, extra, chat_id)));
+  }, await telegramExtra(env, extra, chat_id)));
 }
 
 // دریافت رسید مستقیم از Mini App و ارسال امن همان فایل به گفت‌وگوی ادمین‌ها؛ فایل در KV نگهداری نمی‌شود.
@@ -3828,7 +3852,7 @@ async function sendPhotoUpload(env, chat_id, photoFile, filename, caption, extra
   form.append('chat_id', String(chat_id));
   form.append('caption', caption || '');
   form.append('parse_mode', 'HTML');
-  const safeExtra = telegramExtra(env, extra, chat_id);
+  const safeExtra = await telegramExtra(env, extra, chat_id);
   if (safeExtra.reply_markup) form.append('reply_markup', JSON.stringify(safeExtra.reply_markup));
   form.append('photo', photoFile, filename || 'receipt.jpg');
   const r = await fetch('https://api.telegram.org/bot' + env.BOT_TOKEN + '/sendPhoto', { method: 'POST', body: form });
@@ -4516,12 +4540,40 @@ async function showHome(env, chatId, u, messageId, origin, allowWebApp) {
   else await msg(env, chatId, text, kb);
 }
 
+/* ── منوی دکمه‌های شیشه‌ای چت ────────────────────────────────────────────
+ * همان بخش‌هایی که در کیبورد پایین چت هست، این‌جا هم با یک لمس باز می‌شود.
+ * هدف: مشتری‌ای که مینی‌اپ برایش باز نمی‌شود، هیچ بخشی را از دست ندهد.
+ * هر دکمه به یک مسیر واقعی وصل است (خرید کامل، کیف پول، سفارش‌ها و…).
+ */
+function chatInlineMenuRows() {
+  return [
+    [BTN('🛍 خرید اشتراک', 'menu:buy'), BTN('📦 اشتراک‌های من', 'menu:subs')],
+    [BTN('💰 کیف پول و شارژ', 'menu:wallet'), BTN('🧾 سفارش‌های من', 'menu:orders')],
+    [BTN('🎁 اشتراک رایگان', 'menu:free'), BTN('🤝 دریافت نمایندگی', 'menu:agent')],
+    [BTN('🎧 پشتیبانی', 'menu:support'), BTN('📘 راهنما', 'menu:help')],
+    [BTN('📥 دانلود اپ‌ها', 'menu:apps'), BTN('🪪 اطلاعات حساب', 'menu:account')],
+    [BTN('🎉 دعوت دوستان', 'menu:ref'), BTN('🔄 تازه‌سازی منو', 'menu:home')]
+  ];
+}
+
+async function sendChatInlineMenu(env, chatId, messageId) {
+  const text = '🧩 <b>منوی دکمه‌ای تیزنت</b>\n' +
+    'اگر اپ فروشگاه برای شما باز نمی‌شود، همهٔ کارها را از همین دکمه‌ها انجام دهید: ' +
+    'خرید و تمدید، کیف پول، سفارش‌ها، اشتراک رایگان، نمایندگی و پشتیبانی.\n' +
+    'برای وارد کردن شماره یا مبلغ، همان کیبورد پایین چت هم در دسترس است.';
+  if (messageId) { try { await editMsg(env, chatId, messageId, text, KB(chatInlineMenuRows())); return; } catch (e) {} }
+  await msg(env, chatId, text, KB(chatInlineMenuRows()));
+}
+
 async function showMiniAppOnlyStart(env, chatId, origin) {
   // دکمهٔ وب‌اپ داخل پیام حذف شد؛ ورود به اپ از دکمهٔ منوی تلگرام (☰) انجام می‌شود.
   await msg(env, chatId,
     '🛍 برای خرید، دکمهٔ «🛍 خرید اشتراک» پایین چت را بزنید؛ خرید کامل (پلن، کد تخفیف، کیف پول و کارت‌به‌کارت) داخل همین چت انجام می‌شود.\n' +
     '📱 اپ فروشگاه هم از دکمهٔ منوی تلگرام (☰) باز می‌شود؛ هر دو یک حساب و یک داده دارند.\n' +
+    '🧩 اگر اپ برای شما باز نشد، از «منوی دکمه‌ای» پیام بعدی استفاده کنید — همهٔ بخش‌ها همان‌جا با یک لمس باز می‌شوند.\n' +
     'برای سایر خدمات، یکی از دکمه‌های پایین چت را انتخاب کنید.', mainBotReplyMarkup());
+  // منوی دکمه‌ای در پیام جدا می‌آید چون تلگرام در یک پیام یا کیبورد پایین را می‌پذیرد یا دکمهٔ شیشه‌ای.
+  if (await chatInlineEnabled(env)) { try { await sendChatInlineMenu(env, chatId, null); } catch (e) {} }
 }
 
 async function sendMiniAppEntry(env, chatId, origin, caption) {
@@ -7050,6 +7102,7 @@ async function adminSettings(env, chatId, messageId) {
   const cfg = await getCfg(env);
   const manualOn = cfg.card_manual_enabled !== false;
   const autoOn = cfg.card_auto_enabled === true;
+  const inlineOn = cfg.chat_inline_enabled !== false;
   const secret = await resolveShetabSecret(env);
   const hasSecret = !!secret;
   const hasCard = !!cfg.card_number;
@@ -7066,13 +7119,17 @@ async function adminSettings(env, chatId, messageId) {
     '\n\n💳 کارت‌به‌کارت دستی: ' + (manualOn ? 'روشن ✅' : 'خاموش ⛔') +
     '\n⚡ کارت‌به‌کارت خودکار: ' + autoStatus +
     (autoMissing.length ? '\n❌ برای فعال‌شدن لازم است: ' + autoMissing.join(' + ') : '') +
-    '\n<i>روش خودکار برای خرید و تمدید است؛ روش دستی شامل ارسال رسید و شارژ کیف پول هم می‌شود.</i>';
+    '\n🧩 دکمه‌های شیشه‌ای چت: ' + (inlineOn ? 'روشن ✅' : 'خاموش ⛔') +
+    '\n<i>روش خودکار برای خرید و تمدید است؛ روش دستی شامل ارسال رسید و شارژ کیف پول هم می‌شود.</i>' +
+    '\n<i>دکمه‌های شیشه‌ای برای مشتریانی است که مینی‌اپ را باز نمی‌کنند؛ خرید و همهٔ بخش‌ها داخل چت کار می‌کند.</i>' +
+    '\n<i>این کلید در حالت اپ‌محور (MINIAPP_ONLY_MODE) اثر دارد؛ در حالت کلاسیک همان طراحی قبلی می‌ماند.</i>';
   const rows = [
     [BTN('🤖 یوزرنیم ربات', 's_bot'), BTN('📞 پشتیبانی', 's_sup')],
     [BTN('🎁 درصد پورسانت', 's_com'), BTN('💸 حداقل برداشت', 's_minwd')],
     [BTN(manualOn ? '⛔ خاموش‌کردن کارت‌به‌کارت دستی' : '✅ روشن‌کردن کارت‌به‌کارت دستی', 's_pay_manual')],
     [BTN(autoOn ? '⛔ خاموش‌کردن کارت‌به‌کارت خودکار' : '✅ روشن‌کردن کارت‌به‌کارت خودکار', 's_pay_auto')],
     [BTN('📲 اتصال اپ شتاب', 'a_shapp'), BTN('🧪 آزمون پرداخت خودکار', 'a_shtest')],
+    [BTN(inlineOn ? '⛔ خاموش‌کردن دکمه‌های شیشه‌ای چت' : '✅ روشن‌کردن دکمه‌های شیشه‌ای چت', 's_inline')],
     [BTN('🔒 قفل کانال و شماره', 's_gate')],
     [BTN('🎨 دکمه‌ها و آیکن‌ها', 's_ui')],
     [BTN('🎛 دکمه‌های کیبورد چت', 's_kb')],
@@ -7515,7 +7572,7 @@ async function onCallback(env, q, origin) {
 
   // دکمه‌های inline قدیمی ممکن است در پیام‌های قبلی هنوز دیده شوند؛ در حالت Mini App فقط پاسخ خنثی می‌دهیم.
   // استثنا: ادمین همیشه باید به پنل تلگرام دسترسی داشته باشد.
-  if (miniAppOnlyMode(env) && !admEarly) {
+  if (miniAppOnlyMode(env) && !admEarly && !(await chatInlineEnabled(env))) {
     await ansCb(env, q.id, 'جهت خرید وارد اپ فروش شوید.');
     if (q.message && q.message.chat && q.message.message_id != null) {
       try { await tg(env, 'editMessageReplyMarkup', { chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: [] } }); } catch (e) {}
@@ -7537,7 +7594,51 @@ async function onCallback(env, q, origin) {
   if (data === 'noop') { await ansCb(env, q.id, 'موجودی کافی نیست؛ از کارت‌به‌کارت استفاده کنید.'); return; }
 
   // --- کاربر ---
-  if (data === 'home') { await ansCb(env, q.id); await showHome(env, chatId, u, messageId, origin, !q.message || !q.message.chat || !q.message.chat.type || q.message.chat.type === 'private'); return; }
+  // دکمه‌های منوی شیشه‌ای چت: هر بخش به همان مسیر واقعی خودش می‌رود.
+  if (data.startsWith('menu:')) {
+    const menuId = data.slice(5);
+    await ansCb(env, q.id);
+    if (menuId === 'home') { await sendChatInlineMenu(env, chatId, messageId); return; }
+    if (menuId === 'buy') { await showPanels(env, chatId, messageId); return; }
+    // زیربخش‌هایی که نسخهٔ دکمه‌ای کامل دارند، همان را باز می‌کنیم تا کاربر در چت بماند.
+    if (menuId === 'subs') {
+      // فهرست دکمه‌ای اشتراک‌ها: هر اشتراک یک دکمه تا جزئیات/تمدید/کانفیگ.
+      const subs = (await chatUserSubs(env, u)).slice(0, 8);
+      const panels = await getPanels(env);
+      const plans = await getPlans(env);
+      const rows = subs.map((sub) => {
+        const panel = panels[sub.panel_id] || {};
+        const plan = plans[sub.plan_id] || {};
+        const label = '📦 ' + (panel.name || 'اشتراک') + (plan.title ? ' · ' + plan.title : '');
+        return [BTN(label.slice(0, 60), 'sub:' + sub.sid)];
+      });
+      rows.push([BTN('🛍 خرید اشتراک', 'menu:buy'), BTN('◀️ منو', 'menu:home')]);
+      const text = subs.length
+        ? '📦 <b>اشتراک‌های شما</b>\nبرای دیدن لینک، QR، تمدید و کانفیگ، یکی را انتخاب کنید:'
+        : '📦 <b>اشتراک‌های من</b>\n\nهنوز اشتراکی ندارید؛ از دکمهٔ «خرید اشتراک» شروع کنید.';
+      if (messageId) await editMsg(env, chatId, messageId, text, KB(rows));
+      else await msg(env, chatId, text, KB(rows));
+      return;
+    }
+    if (menuId === 'wallet') {
+      const text = await chatWalletText(env, u);
+      const rows = [[BTN('➕ شارژ کیف پول', 'menu:charge'), BTN('◀️ منو', 'menu:home')]];
+      if (messageId) await editMsg(env, chatId, messageId, text, KB(rows));
+      else await msg(env, chatId, text, KB(rows));
+      return;
+    }
+    if (menuId === 'charge') { await showCharge(env, chatId, messageId); return; }
+    const done = await runChatButton(env, u, chatId, menuId, origin);
+    if (!done) await sendChatInlineMenu(env, chatId, messageId);
+    return;
+  }
+  if (data === 'home') {
+    await ansCb(env, q.id);
+    // مشتری‌ای که با دکمه‌های شیشه‌ای کار می‌کند باید «برگشت» را هم همان‌جا ببیند.
+    if (!admEarly && await chatInlineEnabled(env)) { await sendChatInlineMenu(env, chatId, messageId); return; }
+    await showHome(env, chatId, u, messageId, origin, !q.message || !q.message.chat || !q.message.chat.type || q.message.chat.type === 'private');
+    return;
+  }
   if (data === 'buy') { await ansCb(env, q.id); await showPanels(env, chatId, messageId); return; }
   if (data.startsWith('bp:')) { await ansCb(env, q.id); await showPlans(env, chatId, messageId, data.slice(3), null); return; }
   if (data.startsWith('bl:')) {
@@ -8395,6 +8496,16 @@ async function onCallback(env, q, origin) {
     await shetabSay(env, chatId, messageId, '🙈 این رخداد نادیده گرفته شد.', KB([[BTN('📜 رویدادهای بانکی', 'a_shlog')]]));
     return;
   }
+  if (data === 's_inline') {
+    if (!await needAdmin()) return;
+    const cfg = await getCfg(env);
+    cfg.chat_inline_enabled = cfg.chat_inline_enabled === false;
+    await saveCfg(env, cfg);
+    resetChatInlineCache();
+    await ansCb(env, q.id, cfg.chat_inline_enabled ? '🧩 دکمه‌های شیشه‌ای روشن شد.' : '⛔ دکمه‌های شیشه‌ای خاموش شد.');
+    await adminSettings(env, chatId, messageId);
+    return;
+  }
   if (data === 's_pay_auto') {
     if (!await needAdmin()) return;
     const cfg = await getCfg(env);
@@ -9051,6 +9162,17 @@ async function onMessage(env, m, origin) {
   if (text === '/login' || text === '/web' || text === '/app') {
     await clearState(env, u.tg_id);
     await sendWebLoginCode(env, chatId, u);
+    return;
+  }
+
+  // منوی دکمه‌های شیشه‌ای در چت (برای کسانی که مینی‌اپ باز نمی‌شود): /menu
+  if (/^\/(menu|buttons)(@\w+)?$/i.test(text)) {
+    await clearState(env, u.tg_id);
+    if (!(await chatInlineEnabled(env))) {
+      await msg(env, chatId, '🧩 دکمه‌های شیشه‌ای در چت خاموش است؛ از دکمه‌های پایین چت استفاده کنید.', mainBotReplyMarkup());
+      return;
+    }
+    await sendChatInlineMenu(env, chatId, null);
     return;
   }
 
@@ -11560,7 +11682,9 @@ function miniAppAdminSettingsView(cfg, env, secretReady) {
       retention_enabled: cfg.retention_enabled !== false,
       retention_free_delete: cfg.retention_free_delete !== false,
       retention_paid_delete: cfg.retention_paid_delete !== false,
-      retention_paid_grace_days: retentionConfig(cfg).grace_days
+      retention_paid_grace_days: retentionConfig(cfg).grace_days,
+      // دکمه‌های شیشه‌ای چت: برای مشتریانی که مینی‌اپ باز نمی‌شود
+      chat_inline_enabled: cfg.chat_inline_enabled !== false
     },
     protected: ['BOT_TOKEN', 'BACKUP_BOT_TOKEN', 'WEBHOOK_SECRET', 'SHETAB_API_SECRET', 'ADMIN_IDS', 'Cloudflare bindings']
   };
@@ -11605,6 +11729,11 @@ async function miniAppAdminUpdateSettings(env, body) {
     const v = parseMoney(data.min_withdraw);
     if (v == null || v < 0 || v > 1000000000) return { data: { ok: false, error: 'invalid_min_withdraw' }, status: 400 };
     cfg.min_withdraw = v;
+  }
+  if (has('chat_inline_enabled')) {
+    if (typeof data.chat_inline_enabled !== 'boolean') return { data: { ok: false, error: 'invalid_chat_inline_enabled' }, status: 400 };
+    cfg.chat_inline_enabled = data.chat_inline_enabled;
+    resetChatInlineCache();
   }
   for (const key of ['card_manual_enabled', 'card_auto_enabled']) {
     if (has(key) && typeof data[key] !== 'boolean') return { data: { ok: false, error: 'invalid_' + key }, status: 400 };
