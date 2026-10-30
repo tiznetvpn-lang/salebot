@@ -1,6 +1,6 @@
 {
   "name": "tiznetvpn-ubuntu26-selfhosted",
-  "version": "1.8.53-ubuntu26.55",
+  "version": "1.8.54-ubuntu26.56",
   "private": true,
   "type": "module",
   "description": "Self-hosted TiznetVPN Telegram shop for Ubuntu 26, Node.js and SQLite",
