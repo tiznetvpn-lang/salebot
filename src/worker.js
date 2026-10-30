@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.47-ubuntu26.49';
+const VERSION = '1.8.48-ubuntu26.50';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -2489,8 +2489,10 @@ function planRemaining(huser, at) {
   return { days: days, expiry: addDaysUTC(sd, pkg) };
 }
 
+// نام اکانت در پنل دقیقاً همان آیدی عددی تلگرام است؛ هیچ پیشوند/پسوندی اضافه نمی‌شود.
 function subName(tgid) {
-  return ('u' + tgid + '_' + uid(4)).toLowerCase();
+  const id = String(tgid == null ? '' : tgid).trim();
+  return /^\d{1,20}$/.test(id) ? id : ('u' + uid(6));
 }
 
 /* ============================ دیتابیس (KV) ============================ */
@@ -4061,7 +4063,31 @@ async function hCreateUser(panel, f) {
       throw new Error('Hiddify: پاسخ بدون uuid برگشت');
     } catch (e) {
       lastErr = e;
+      // نام تکراری با ساده‌کردن payload حل نمی‌شود؛ همان‌جا برگرد تا شمارهٔ سری بعدی امتحان شود.
+      if (hiddifyNameConflict(e)) throw e;
       if (!hiddifyRejectedFields(e)) throw e;
+    }
+  }
+  throw lastErr;
+}
+
+// Hiddify نام یوزر را یکتا می‌داند. نام درخواستی دقیقاً آیدی عددی است؛ فقط اگر همان نام
+// از قبل در پنل باشد (مثلاً خرید دوم همان مشتری) شمارهٔ سری به انتها اضافه می‌شود تا خرید
+// مشتری به‌خاطر تکراری‌بودن نام شکست نخورد.
+function hiddifyNameConflict(error) {
+  const status = Number(error && error.status);
+  if (status !== 400 && status !== 422) return false;
+  return /unique|already|duplicate|exists|taken|تکراری/i.test(String((error && error.message) || ''));
+}
+async function hCreateUserForName(panel, baseName, fields) {
+  const base = String(baseName == null ? '' : baseName).trim();
+  let lastErr = null;
+  for (let attempt = 1; attempt <= 25; attempt++) {
+    const name = attempt === 1 ? base : base + '-' + attempt;
+    try { return await hCreateUser(panel, Object.assign({}, fields, { name: name })); }
+    catch (e) {
+      lastErr = e;
+      if (!hiddifyNameConflict(e)) throw e;
     }
   }
   throw lastErr;
@@ -4222,8 +4248,8 @@ async function issueFreeSubscription(env, user, source) {
     if (!Number.isFinite(gb) || gb < 0 || gb > 1000000 || !Number.isInteger(days) || days < 1 || days > 3650) {
       return { ok: false, error: 'free_subscription_panel_unavailable' };
     }
-    created = await hCreateUser(panel, {
-      name: subName(tgId), gb: gb, days: days,
+    created = await hCreateUserForName(panel, subName(tgId), {
+      gb: gb, days: days,
       telegram_id: Number(tgId), comment: 'TiznetVPN free subscription | ' + tgId
     });
     sid = uid(6);
@@ -4297,8 +4323,8 @@ async function issueReferralFreeSubscription(env, user, source) {
       }
       return { ok: false, error: 'referral_reward_already_claimed' };
     }
-    created = await hCreateUser(panel, {
-      name: subName(tgId), gb: 3, days: 3,
+    created = await hCreateUserForName(panel, subName(tgId), {
+      gb: 3, days: 3,
       telegram_id: Number(tgId), comment: 'TiznetVPN referral reward | ' + tgId
     });
     sid = uid(6);
@@ -6308,8 +6334,8 @@ async function approveOrder(env, o, options) {
   if (!panel || panel.enabled === false) throw new Error('پنل این سفارش غیرفعال است');
   if (!plan) throw new Error('پلن این سفارش حذف شده');
   if (o.type === 'buy') {
-    const created = await hCreateUser(panel, {
-      name: subName(o.tg_id), gb: plan.gb, days: plan.days,
+    const created = await hCreateUserForName(panel, subName(o.tg_id), {
+      gb: plan.gb, days: plan.days,
       telegram_id: Number(o.tg_id), comment: 'shop order ' + o.id + ' | ' + plan.title
     });
     const sid = uid(6);
@@ -6397,8 +6423,8 @@ async function walletBuy(env, u, pid, plid, messageId) {
   u.balance -= plan.price;
   await saveUser(env, u);
   try {
-    const created = await hCreateUser(panel, {
-      name: subName(u.tg_id), gb: plan.gb, days: plan.days,
+    const created = await hCreateUserForName(panel, subName(u.tg_id), {
+      gb: plan.gb, days: plan.days,
       telegram_id: Number(u.tg_id), comment: 'shop wallet | ' + plan.title
     });
     const sid = uid(6);
@@ -12421,11 +12447,12 @@ async function miniAppAgentCreateSubscription(env, agentId, body) {
     if (!panel.api_base || !panel.api_key || !panel.user_base) return { data: { ok: false, error: 'agent_panel_unavailable' }, status: 503 };
     requestStarted = true;
     await kvPut(env, requestKey, { state: 'processing', created_at: Date.now() }, 86400);
-    const panelUserName = ('a' + owner.slice(-8) + '_' + uid(8)).toLowerCase().slice(0, 32);
+    // نام اکانت در پنل فقط آیدی عددی است؛ برای اشتراک مشتریِ نماینده، آیدی عددی همان نماینده.
+    const panelUserName = subName(owner);
     // نام نماینده در توضیحات پنل، تا از داخل Hiddify مشخص باشد هر کاربر را چه نماینده‌ای ساخته است.
     const agentLabel = agentPanelLabel(agent, await getUser(env, owner));
-    created = await hCreateUser(panel, {
-      name: panelUserName, gb: plan.gb, days: plan.days,
+    created = await hCreateUserForName(panel, panelUserName, {
+      gb: plan.gb, days: plan.days,
       comment: (agentLabel + ' | ' + customerName).slice(0, 240)
     });
     if (!created || !created.uuid) throw new Error('panel_user_missing_uuid');

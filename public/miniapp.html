@@ -880,6 +880,14 @@
     .agent-admin-grid { display:grid; grid-template-columns:minmax(280px,.9fr) minmax(320px,1.1fr); gap:14px; align-items:start; }
     .agent-admin-stack { display:grid; gap:14px; min-width:0; }
     .agent-detail-panel,.agent-create-panel,.agent-history-panel { margin-top:14px; }
+    .agent-tabs { margin-bottom:14px; }
+    .agent-dash-card { display:grid; gap:6px; justify-items:center; text-align:center; padding:22px 16px; }
+    .agent-dash-label { color:#f0e2e3; font-size:var(--fs-2xs); font-weight:700; }
+    .agent-dash-balance { font-size:30px; font-weight:800; color:#fff; letter-spacing:-.5px; line-height:1.4; }
+    .agent-dash-line { display:flex; justify-content:center; gap:18px; flex-wrap:wrap; color:#f0e2e3; font-size:var(--fs-2xs); }
+    .agent-dash-line b { color:#fff; }
+    .agent-sub-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .agent-sub-actions .table-action { flex:1 1 140px; min-height:40px; }
     .agent-stat-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:0 0 14px; }
     .agent-invites-list,.agent-sub-list,.agent-transaction-list { display:grid; gap:10px; margin-top:14px; }
     .agent-invite-result,.agent-link-box { display:grid; gap:9px; min-width:0; margin-top:12px; padding:13px; border:1px solid rgba(240, 86, 99, .28); border-radius:13px; background:rgba(68, 10, 15, .4); }
@@ -3239,30 +3247,61 @@
       <div class="page-top"><p class="mini-note" id="agentWelcome">موجودی مستقل، ساخت و تمدید اشتراک‌ها</p><button class="outline-btn" id="agentReload" type="button">به‌روزرسانی</button></div>
 
       <div class="customer-notice hidden" id="agentDisabledNotice" role="status">دسترسی نمایندگی غیرفعال شده است؛ اشتراک‌های قبلی شما برای مشاهده باقی می‌مانند، اما امکان ساخت جدید ندارید. برای فعال‌سازی با مدیر فروشگاه تماس بگیرید.</div>
-      <div class="agent-stat-grid">
-        <article class="panel referral-stat"><span>کیف پول مستقل نمایندگی</span><strong id="agentBalanceValue">—</strong><small>هزینهٔ خرید داخلی از این موجودی کسر می‌شود.</small></article>
-        <article class="panel referral-stat"><span>تمدیدهای موفق</span><strong id="agentRenewedValue">—</strong><small>هزینهٔ تمدید از همین کیف پول کسر می‌شود.</small></article>
-        <article class="panel referral-stat"><span>ساخت‌های موفق تا امروز</span><strong id="agentCreatedValue">—</strong><small>قیمت‌ها، بهای خرید داخلی تعیین‌شده توسط مدیر هستند.</small></article>
+      <div class="settings-tabs agent-tabs" role="tablist" aria-label="بخش‌های پنل نماینده">
+        <button class="settings-tab active" type="button" role="tab" aria-selected="true" data-atab="dash">داشبورد</button>
+        <button class="settings-tab" type="button" role="tab" aria-selected="false" data-atab="buy">خرید اشتراک</button>
+        <button class="settings-tab" type="button" role="tab" aria-selected="false" data-atab="renew">تمدید</button>
+        <button class="settings-tab" type="button" role="tab" aria-selected="false" data-atab="subs">اشتراک‌ها</button>
+        <button class="settings-tab" type="button" role="tab" aria-selected="false" data-atab="wallet">کیف پول</button>
       </div>
-      <article class="panel agent-create-panel">
-        <div class="panel-head"><div><h3>ساخت اشتراک برای مشتری</h3></div><span class="status paid">پنل فروش مجدد</span></div>
-        <div class="mini-note">مشتری نیازی به حساب تلگرام ندارد؛ لینک اشتراک را شما برایش ارسال می‌کنید.</div>
-        <form id="agentCreateForm" class="admin-form agent-create-form">
-          <div class="settings-grid">
-            <label>نام یا برچسب مشتری<input id="agentCustomerName" type="text" maxlength="80" autocomplete="off" placeholder="مثلاً مشتری فروشگاه ۱۲" required></label>
-            <label>سرور و پلن<select id="agentProductSelect" required><option value="">در حال دریافت پلن‌ها…</option></select></label>
-          </div>
-          <div class="form-actions"><button class="btn-primary" id="agentCreateButton" type="submit">ساخت اشتراک</button><span class="mini-note" id="agentCreateMessage" role="status" aria-live="polite">پیش از ساخت، موجودی کیف پول را بررسی کنید.</span></div>
-        </form>
-      </article>
-      <article class="panel agent-history-panel">
-        <div class="panel-head"><div><h3>اشتراک‌های ساخته‌شده</h3></div><span class="status paid" id="agentSubCount">۰ اشتراک</span></div>
-        <div class="agent-sub-list" id="agentSubscriptionsList"><div class="empty-state">هنوز اشتراکی ساخته نشده است.</div></div>
-      </article>
-      <article class="panel agent-history-panel">
-        <div class="panel-head"><div><h3>تاریخچهٔ کیف پول</h3></div></div>
-        <div class="agent-transaction-list" id="agentTransactionsList"><div class="empty-state">تراکنشی ثبت نشده است.</div></div>
-      </article>
+
+      <div data-agroup="dash">
+        <article class="panel agent-dash-card">
+          <span class="agent-dash-label">موجودی کیف پول نمایندگی</span>
+          <strong class="agent-dash-balance" id="agentBalanceValue">—</strong>
+          <div class="agent-dash-line"><span>ساخته‌شده: <b id="agentCreatedValue">—</b></span><span>تمدید: <b id="agentRenewedValue">—</b></span></div>
+        </article>
+      </div>
+
+      <div data-agroup="buy" class="hidden">
+        <article class="panel agent-create-panel">
+          <div class="panel-head"><div><h3>خرید / ساخت اشتراک برای مشتری</h3></div><span class="status paid">پنل فروش مجدد</span></div>
+          <div class="mini-note">مشتری نیازی به حساب تلگرام ندارد؛ لینک اشتراک را شما برایش ارسال می‌کنید.</div>
+          <form id="agentCreateForm" class="admin-form agent-create-form">
+            <div class="settings-grid">
+              <label>نام یا برچسب مشتری<input id="agentCustomerName" type="text" maxlength="80" autocomplete="off" placeholder="مثلاً مشتری فروشگاه ۱۲" required></label>
+              <label>سرور و پلن<select id="agentProductSelect" required><option value="">در حال دریافت پلن‌ها…</option></select></label>
+            </div>
+            <div class="form-actions"><button class="btn-primary" id="agentCreateButton" type="submit">ساخت اشتراک</button><span class="mini-note" id="agentCreateMessage" role="status" aria-live="polite">پیش از ساخت، موجودی کیف پول را بررسی کنید.</span></div>
+          </form>
+        </article>
+      </div>
+
+      <div data-agroup="renew" class="hidden">
+        <article class="panel agent-history-panel">
+          <div class="panel-head"><div><h3>تمدید اشتراک مشتری</h3></div></div>
+          <div class="mini-note">اشتراک را انتخاب کنید؛ همهٔ پلن‌های فعال همان سرور نمایش داده می‌شوند و هزینه از کیف پول نمایندگی کسر می‌شود.</div>
+          <div class="agent-sub-list" id="agentRenewList"><div class="empty-state">در حال دریافت اشتراک‌ها…</div></div>
+        </article>
+      </div>
+
+      <div data-agroup="subs" class="hidden">
+        <article class="panel agent-history-panel">
+          <div class="panel-head"><div><h3>اشتراک‌های ساخته‌شده</h3></div><span class="status paid" id="agentSubCount">۰ اشتراک</span></div>
+          <div class="agent-sub-list" id="agentSubscriptionsList"><div class="empty-state">هنوز اشتراکی ساخته نشده است.</div></div>
+        </article>
+      </div>
+
+      <div data-agroup="wallet" class="hidden">
+        <article class="panel agent-dash-card">
+          <span class="agent-dash-label">موجودی کیف پول نمایندگی</span>
+          <strong class="agent-dash-balance" id="agentWalletBalance">—</strong>
+        </article>
+        <article class="panel agent-history-panel">
+          <div class="panel-head"><div><h3>تاریخچهٔ کیف پول</h3></div></div>
+          <div class="agent-transaction-list" id="agentTransactionsList"><div class="empty-state">تراکنشی ثبت نشده است.</div></div>
+        </article>
+      </div>
     </section>
 
     <section class="page hidden" id="agentDeliveryPage">
@@ -4553,6 +4592,18 @@
       }catch(e){if(message)message.textContent=agentErrorText(e.message,e.data&&e.data.detail);toast(agentErrorText(e.message,e.data&&e.data.detail));}
       finally{if(button){button.disabled=false;button.textContent='ذخیرهٔ قیمت‌ها';}}
     }
+    let agentGroup = 'dash';
+    function showAgentGroup(name) {
+      const group = ['dash','buy','renew','subs','wallet'].includes(String(name||'')) ? String(name) : 'dash';
+      agentGroup = group;
+      document.querySelectorAll('#agentPage [data-agroup]').forEach((el)=>{ el.classList.toggle('hidden', el.getAttribute('data-agroup')!==group); });
+      document.querySelectorAll('#agentPage .agent-tabs .settings-tab').forEach((tab)=>{
+        const on = tab.getAttribute('data-atab')===group;
+        tab.classList.toggle('active',on);
+        tab.setAttribute('aria-selected',on?'true':'false');
+      });
+      if(!agentPortalData && liveMode && agentRole) loadAgentPortal().catch(()=>{});
+    }
     function renderAgentPortal(data) {
       agentPortalData=data||{};
       const a=agentPortalData.agent||{};
@@ -4562,6 +4613,7 @@
       const customerNameInput=document.getElementById('agentCustomerName');if(customerNameInput)customerNameInput.disabled=disabled;
       const createMessage=document.getElementById('agentCreateMessage');if(createMessage)createMessage.textContent=disabled?'نمایندگی غیرفعال است؛ با مدیر فروشگاه تماس بگیرید.':'پیش از ساخت، موجودی کیف پول را بررسی کنید.';
       const balance=document.getElementById('agentBalanceValue');if(balance)balance.textContent=money(a.balance||0);
+      const walletBalance=document.getElementById('agentWalletBalance');if(walletBalance)walletBalance.textContent=money(a.balance||0);
       const created=document.getElementById('agentCreatedValue');if(created)created.textContent=fmt(a.total_created||0);
       const renewed=document.getElementById('agentRenewedValue');if(renewed)renewed.textContent=fmt(a.total_renewed||0);
       const welcome=document.getElementById('agentWelcome');if(welcome)welcome.textContent='سلام '+(a.first_name||profile&&profile.first_name||'نماینده')+'؛ موجودی، ساخت و تمدید اشتراک‌ها در اختیار شماست.';
@@ -4576,11 +4628,22 @@
         if(!subs.length)list.innerHTML='<div class="empty-state">هنوز اشتراکی نساخته‌اید.</div>';
         else list.innerHTML=subs.map(sub=>{const statusClass=sub.status==='active'?'paid':sub.status==='expired'?'failed':'pending';const usage=sub.usage_unlimited?'نامحدود':fmtDec(sub.usage_used)+' از '+fmtDec(sub.usage_total)+' گیگ';const expire=sub.days_remaining==null?'':` · روز باقی‌مانده: ${fmt(sub.days_remaining)}`;const renewPlans=agentAvailableProducts.filter(p=>String(p.panel_id)===String(sub.panel_id)&&Number(p.agent_price||0)>0);const renewLabel=renewPlans.length?'تمدید اشتراک ('+fmt(renewPlans.length)+' پلن)':'تمدید اشتراک';const actions=`<div class="referral-share-actions agent-sub-actions"><button class="btn-primary" type="button" data-agent-renew="${esc(sub.sid)}">${esc(renewLabel)}</button><button class="outline-btn" type="button" data-agent-qr="${esc(sub.sid)}">لینک و QR</button></div>`;const link=sub.link&&/^https:\/\//.test(sub.link)?`<div class="agent-link-box"><strong>لینک تحویل مشتری</strong><code>${esc(sub.link)}</code><div class="referral-share-actions"><button class="outline-btn" type="button" data-copy-text="${esc(sub.link)}">کپی لینک اشتراک</button><a class="table-action" href="${esc(sub.link)}" target="_blank" rel="noopener noreferrer">بازکردن لینک</a></div></div>`:'<div class="mini-note">لینک اشتراک از سرور در دسترس نیست؛ وضعیت پنل را بررسی کنید.</div>';return `<article class="agent-sub-card"><div class="agent-sub-card-top"><div><strong>${esc(sub.customer_name||'مشتری')}</strong><span class="agent-sub-meta">${esc(sub.plan_name)} · ${esc(sub.panel_name)} · ${esc(sub.status_label)}</span><span class="agent-sub-meta">ساخت: ${esc(fmtDate(sub.created_at))} · مصرف: ${usage}${expire}</span><span class="agent-sub-meta">هزینهٔ خرید داخلی: ${money(sub.agent_price)}</span></div><span class="status ${statusClass}">${esc(sub.status_label)}</span></div>${actions}${link}</article>`;}).join('');
       }
+      const renewList=document.getElementById('agentRenewList');
+      if(renewList){
+        if(!subs.length)renewList.innerHTML='<div class="empty-state">هنوز اشتراکی نساخته‌اید؛ از تب «خرید اشتراک» اولین اشتراک را بسازید.</div>';
+        else renewList.innerHTML=subs.map(sub=>{
+          const cls=sub.status==='active'?'paid':sub.status==='expired'?'failed':'pending';
+          const usage=sub.usage_unlimited?'نامحدود':fmtDec(sub.usage_used)+' از '+fmtDec(sub.usage_total)+' گیگ';
+          const days=sub.days_remaining==null?'':(' · روز باقی‌مانده: '+fmt(sub.days_remaining));
+          return `<article class="agent-sub-card"><div class="agent-sub-card-top"><div><strong>${esc(sub.customer_name||'مشتری')}</strong><span class="agent-sub-meta">${esc(sub.plan_name)} · ${esc(sub.panel_name)}</span><span class="agent-sub-meta">مصرف: ${usage}${days}</span></div><span class="status ${cls}">${esc(sub.status_label)}</span></div><div class="agent-sub-actions"><button class="table-action" type="button" data-agent-renew="${esc(sub.sid)}">تمدید / تغییر پلن</button></div></article>`;
+        }).join('');
+      }
       const transactions=Array.isArray(agentPortalData.transactions)?agentPortalData.transactions:[];
       const tx=document.getElementById('agentTransactionsList');if(tx){
         if(!transactions.length)tx.innerHTML='<div class="empty-state">تراکنشی ثبت نشده است.</div>';
         else tx.innerHTML=transactions.map(row=>{const inbound=row.direction==='in';const amount=(inbound?'+':'−')+money(row.amount);return `<div class="agent-transaction-card"><div class="agent-transaction-top"><div><strong>${esc(row.description||row.type||'تراکنش')}</strong><span class="agent-transaction-meta">${esc(fmtDate(row.occurred_at))}</span></div><span class="agent-transaction-amount">${esc(amount)}</span></div></div>`;}).join('');
       }
+      showAgentGroup(agentGroup);
     }
     async function loadAgentPortal() {
       if(!liveMode||!agentRole)return;
@@ -6118,6 +6181,9 @@
     document.getElementById('agentsReload').addEventListener('click',()=>Promise.all([loadAdminAgents(),loadAgentInvites()]).catch(()=>toast('بازخوانی نماینده‌ها ناموفق بود.')));
     document.getElementById('agentInviteCreate').addEventListener('click',createAgentInvite);
     document.getElementById('agentReload').addEventListener('click',()=>loadAgentPortal());
+    document.querySelectorAll('#agentPage .agent-tabs .settings-tab').forEach((tab)=>{
+      tab.addEventListener('click',()=>showAgentGroup(tab.getAttribute('data-atab')||'dash'));
+    });
     const agentDeliveryBack=document.getElementById('agentDeliveryBack');if(agentDeliveryBack)agentDeliveryBack.addEventListener('click',()=>{setPageVisible('agent');loadAgentPortal().catch(()=>{});});
     document.getElementById('agentSearch').addEventListener('input',()=>{clearTimeout(agentSearchTimer);agentSearchTimer=setTimeout(()=>loadAdminAgents().catch(()=>toast('جست‌وجوی نماینده‌ها ناموفق بود.')),250);});
     document.addEventListener('click',e=>{
