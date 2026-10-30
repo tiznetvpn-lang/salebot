@@ -81,6 +81,8 @@ function mockHiddify(url, method, body, headers) {
     if (hCreateFailStatus === 422 && !String(body).includes('start_date')) { /* پنل قدیمی این فیلد را نمی‌شناسد */ }
     else if (hCreateFailStatus) return { status: hCreateFailStatus, json: { message: 'synthetic failure' } };
     const b = JSON.parse(body);
+    if ([...hUsers.values()].some((u) => String(u.name) === String(b.name)))
+      return { status: 400, json: { message: 'user with this name already exists' } };
     const uuid = `11111111-2222-3333-4444-55555555555${hSeq++}`;
     const rec = {
       uuid, name: b.name, usage_limit_GB: b.usage_limit_GB, package_days: b.package_days,
@@ -1232,7 +1234,7 @@ assert(miniAppSource.includes('HIDDIFY_DOWNLOADS') && miniAppSource.includes('fu
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.47-ubuntu26.49';"), 'شمارهٔ نسخهٔ سرور 1.8.47-ubuntu26.49 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.48-ubuntu26.50';"), 'شمارهٔ نسخهٔ سرور 1.8.48-ubuntu26.50 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -1830,6 +1832,10 @@ await press(ADMIN, 'a_ok:' + chatOrderId);
 const chatOrderApproved = await kvJson('o:' + chatOrderId);
 assert(chatOrderApproved.status === 'approved' && (await kvJson('discounts')).CHAT15.used['130'] === 1,
   'چت: تأیید مدیر سفارش خرید داخل چت را تکمیل می‌کند و استفادهٔ کد تخفیف شمارش می‌شود');
+const chatSubRecord = chatOrderApproved.sub_sid ? await kvJson('s:' + chatOrderApproved.sub_sid) : null;
+const chatPanelUser = chatSubRecord ? hUsers.get(chatSubRecord.uuid) : null;
+assert(chatPanelUser && chatPanelUser.name === String(CHATU),
+  'نام اکانت ساخته‌شده در پنل دقیقاً آیدی عددی تلگرام است (بدون پیشوند و پسوند)');
 // لغو سفارش باز از داخل چت
 const chatCancelCode = await dcPost('/api/miniapp/admin/discounts', adminInit, { action: 'save', code: 'CANCEL10', type: 'percent', value: 10, per_account_limit: 2 });
 await sendText(CHATU, '🛍 خرید اشتراک');
@@ -1971,6 +1977,16 @@ assert(lastAnyTextTo(AGENTU).includes('لینک اشتراک'),
 await sendText(AGENTU, 'تبدیل امتیاز');
 assert(String(lastMsgTo(AGENTU).params.text || '').includes('امتیاز شما کمتر از ۱۰۰'),
   'چت: تبدیل امتیاز دعوت به کیف پول هم بدون مینی‌اپ با یک پیام ساده انجام می‌شود');
+// خرید دوم همان مشتری: نام تکراری در پنل نباید خرید را خراب کند
+await kv.put('u:' + CHATU2, Object.assign({}, await kvJson('u:' + CHATU2), { balance: 900000 }));
+await sendText(CHATU2, '🛍 خرید اشتراک');
+if (String(lastMsgTo(CHATU2).params.text || '').includes('لوکیشن')) await sendText(CHATU2, String(chatPanelIdx));
+await sendText(CHATU2, String(chatPlanIdx));
+await sendText(CHATU2, '0');
+await sendText(CHATU2, '1');
+const panelNames = [...hUsers.values()].map((u) => String(u.name));
+assert(panelNames.filter((n) => n === String(CHATU2)).length === 1 && panelNames.filter((n) => n === String(CHATU2) + '-2').length === 1,
+  'خرید دوم همان مشتری نام تکراری نمی‌سازد؛ همان آیدی عددی با شمارهٔ سری ثبت می‌شود');
 env.MINIAPP_ONLY_MODE = 'false';
 const staleInit = await signedInitData(U1, {}, 90000);
 const staleApi = await miniApi('/api/miniapp/bootstrap', staleInit);
@@ -1989,6 +2005,7 @@ const agentUiSource = fs.readFileSync(path.join(here, '..', 'public', 'miniapp.h
 assert(agentUiSource.includes('id="agentsPage"') && agentUiSource.includes('id="agentPage"') && agentUiSource.includes('id="agentPricingForm"') && agentUiSource.includes('id="agentCreateForm"') && agentUiSource.includes('data-page="agents"') && agentUiSource.includes('data-page="agent"'), 'Mini App پنل مدیریت نماینده، قیمت پلن و پورتال مستقل نماینده را دارد');
 assert(agentUiSource.includes('مشتری نیازی به حساب تلگرام ندارد') && agentUiSource.includes('agent/subscriptions') && agentUiSource.includes('agent/overview') && agentUiSource.includes('کپی لینک اشتراک'), 'رابط نماینده ساخت و تحویل دستی لینک اشتراک به مشتری بدون تلگرام را توضیح می‌دهد');
 assert(agentUiSource.includes('function openAgentRenewSelector') && agentUiSource.includes('data-agent-renew-plan="') && agentUiSource.includes('data-agent-renew-confirm="') && agentUiSource.includes("agentAvailableProducts.filter(p=>String(p.panel_id)===String(sub.panel_id)") && agentUiSource.includes('plan_id:String(plan.plan_id)') && agentUiSource.includes('همهٔ پلن‌های فعال سرور'), 'تمدید در پنل نماینده همهٔ پلن‌های همان سرور را نشان می‌دهد و پلن انتخابی برای تمدید فرستاده می‌شود');
+assert(agentUiSource.includes('data-atab="dash"') && agentUiSource.includes('data-atab="buy"') && agentUiSource.includes('data-atab="renew"') && agentUiSource.includes('data-atab="subs"') && agentUiSource.includes('data-atab="wallet"') && agentUiSource.includes('function showAgentGroup') && agentUiSource.includes('id="agentRenewList"') && agentUiSource.includes('agent-dash-card') && agentUiSource.includes('agent-dash-balance'), 'پنل نماینده در مینی‌اپ تب‌های جدا دارد (داشبورد کوتاه، خرید، تمدید، اشتراک‌ها، کیف پول) و هر بخش مستقل نمایش داده می‌شود');
 assert(agentUiSource.includes('id="agentDeliveryPage"') && agentUiSource.includes('function showAgentDelivery') && agentUiSource.includes('agent/subscriptions/\'+encodeURIComponent(sid)+\'/delivery') && agentUiSource.includes('data-agent-renew=') && agentUiSource.includes('function renewAgentSubscription') && !agentUiSource.includes('agentQuotaValue') && !agentUiSource.includes('data-agent-quota'), 'سهمیه از رابط نماینده حذف شده، صفحهٔ جدا برای QR/لینک و دکمهٔ تمدید با کسر کیف پول وجود دارد');
 const promoterInit = await signedInitData(U12, { first_name: 'PromotedAgent', username: 'promoted_agent' });
 const inviteeInit = await signedInitData(U13, { first_name: 'InvitedAgent', username: 'invited_agent' });
