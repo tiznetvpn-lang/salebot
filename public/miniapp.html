@@ -3522,7 +3522,8 @@
         <div class="form-actions"><button class="btn-primary" id="btnLookSave" type="button"><svg class="bi bi-save" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h11L19.5 8v11.5h-15z"/><path d="M8 4.5v5h7v-5"/><path d="M8 19.5v-6h8v6"/></svg><span>ذخیرهٔ ظاهر دکمه‌ها</span></button><button class="btn-secondary" id="btnLookGrab" type="button"><svg class="bi bi-download" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5v10"/><path d="M8 11.5l4 4 4-4"/><path d="M5.5 19.5h13"/></svg><span>گرفتن شناسه در چت ربات</span></button><span id="btnLookMessage" class="form-message" role="status"></span></div>
       </article>
       <article class="panel" id="chatButtonsPanel" data-sgroup="look" style="margin-top:14px">
-        <div class="panel-head"><div><h3>دکمه‌های چت</h3></div></div>
+        <div class="panel-head"><div><h3>دکمه‌های منوی چت</h3></div></div>
+        <div class="mini-note" id="chatBtnHint">همین فهرست، منوی دکمه‌ای داخل چت را می‌سازد. کیبورد پایین چت فقط یک دکمه دارد: «📱 ورود به اپ». ترتیب، نام و روشن/خاموش‌بودن هر دکمه همان لحظه روی منوی چت کاربران اعمال می‌شود.</div>
         <div class="chat-btn-list" id="chatBtnList"></div>
         <div class="chat-btn-add">
           <select id="chatBtnAddSelect" aria-label="افزودن دکمه"></select>
@@ -4335,8 +4336,10 @@
       }
     }
     const CHAT_BTNS_FALLBACK=[
-      {id:'buy',icon:'🛍',label:'خرید اشتراک'},{id:'support',icon:'🎧',label:'پشتیبانی'},{id:'free',icon:'🎁',label:'اشتراک رایگان'},
-      {id:'help',icon:'📘',label:'راهنما'},{id:'account',icon:'🪪',label:'اطلاعات حساب'},{id:'agent',icon:'🤝',label:'دریافت نمایندگی'}
+      {id:'buy',icon:'🛍',label:'خرید اشتراک'},{id:'subs',icon:'📦',label:'اشتراک‌های من'},{id:'wallet',icon:'💰',label:'کیف پول و شارژ'},
+      {id:'orders',icon:'🧾',label:'سفارش‌های من'},{id:'free',icon:'🎁',label:'اشتراک رایگان'},{id:'agent',icon:'🤝',label:'دریافت نمایندگی'},
+      {id:'support',icon:'🎧',label:'پشتیبانی'},{id:'help',icon:'📘',label:'راهنما'},{id:'apps',icon:'📥',label:'دانلود اپ‌ها'},
+      {id:'account',icon:'🪪',label:'اطلاعات حساب'},{id:'ref',icon:'🎉',label:'دعوت دوستان'}
     ];
     let chatBtnModel=null;
     function renderChatButtons(chat){
@@ -4344,7 +4347,7 @@
       if(!list)return;
       if(chat)chatBtnModel=chat;
       if(!chatBtnModel){
-        chatBtnModel={limit:10,catalog:CHAT_BTNS_FALLBACK.map(x=>({id:x.id,icon:x.icon,label:x.label})),
+        chatBtnModel={limit:12,catalog:CHAT_BTNS_FALLBACK.map(x=>({id:x.id,icon:x.icon,label:x.label})),
           items:CHAT_BTNS_FALLBACK.map(x=>({id:x.id,icon:x.icon,label:x.label,custom:'',on:true}))};
       }
       const catalog=chatBtnModel.catalog||[];

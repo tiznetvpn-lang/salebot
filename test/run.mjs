@@ -10,7 +10,7 @@ const srcPath = path.join(here, '..', 'src', 'worker.js');
 let src = fs.readFileSync(srcPath, 'utf8');
 if (!src.includes('export default APP;')) throw new Error('export default APP not found');
 const webhookScript = fs.readFileSync(path.join(here, '..', 'scripts', 'setup-webhook.mjs'), 'utf8');
-if (!webhookScript.includes('drop_pending_updates: false') || src.includes('bot_token_head') || !src.includes('tiznetvpn-menu-button-ubuntu-v1')) throw new Error('Self-hosting safety changes are missing from src/worker.js or scripts/setup-webhook.mjs');
+if (!webhookScript.includes('drop_pending_updates: false') || src.includes('bot_token_head') || !src.includes('tiznetvpn-menu-button-ubuntu-v2')) throw new Error('Self-hosting safety changes are missing from src/worker.js or scripts/setup-webhook.mjs');
 if (src.includes("'/setup'") || src.includes("'/diag'")) throw new Error('Legacy /setup and /diag routes must stay removed from src/worker.js');
 const pkgVersion = JSON.parse(fs.readFileSync(path.join(here, '..', 'package.json'), 'utf8')).version;
 if (!src.includes("const VERSION = '" + pkgVersion + "';")) throw new Error('VERSION در src/worker.js با package.json یکی نیست');
@@ -25,7 +25,7 @@ if (!backupCronMatch || backupCronMatch[1] !== '0 */3 * * *') throw new Error('K
 if (!cronScriptSource.includes("'0 */3 * * *'")) throw new Error('زمان‌بندی scripts/run-cron.mjs با KV_BACKUP_CRON یکی نیست');
 if (!backupTimerUnit.includes('OnCalendar=*-*-* 00/3:00:00 UTC')) throw new Error('systemd timer بکاپ باید هر ۳ ساعت اجرا شود');
 if (!workerSource.includes('KV_BACKUP_MIN_INTERVAL_MS') || workerSource.includes('11 * 60 * 60 * 1000')) throw new Error('فاصلهٔ ایمنی بکاپ با بازهٔ ۳ ساعته هماهنگ نیست');
-src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser; globalThis.__normalizePhone = normalizePhone; globalThis.__isJoinGateMarkup = isJoinGateMarkup; globalThis.__isPhoneRequestMarkup = isPhoneRequestMarkup; globalThis.__accessGate = accessGate; globalThis.__DEFAULT_SETTINGS = DEFAULT_SETTINGS; globalThis.__btnSlotFor = btnSlotFor; globalThis.__decorateMarkup = decorateMarkup; globalThis.__btnStyleFor = btnStyleFor; globalThis.__resetBtnUI = () => { BTN_UI_CACHE = { at: 0, colors: true, icons: {} }; }; globalThis.__btnUI = btnUI; globalThis.__resetChatButtons = () => { resetChatButtonCache(); }; globalThis.__chatButtons = chatButtons; globalThis.__retentionSweep = retentionSweep; globalThis.__shetabMakeTestOrder = shetabMakeTestOrder; globalThis.__shetabDropTestOrder = shetabDropTestOrder; globalThis.__retentionConfig = retentionConfig; globalThis.__saveSub = saveSub; globalThis.__saveCfg = saveCfg; globalThis.__getCfg = getCfg; globalThis.__getAgent = getAgent;');
+src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser; globalThis.__normalizePhone = normalizePhone; globalThis.__isJoinGateMarkup = isJoinGateMarkup; globalThis.__isPhoneRequestMarkup = isPhoneRequestMarkup; globalThis.__isAppEntryMarkup = isAppEntryMarkup; globalThis.__withoutWebAppButtons = withoutWebAppButtons; globalThis.__mainBotReplyMarkup = mainBotReplyMarkup; globalThis.__accessGate = accessGate; globalThis.__DEFAULT_SETTINGS = DEFAULT_SETTINGS; globalThis.__btnSlotFor = btnSlotFor; globalThis.__decorateMarkup = decorateMarkup; globalThis.__btnStyleFor = btnStyleFor; globalThis.__resetBtnUI = () => { BTN_UI_CACHE = { at: 0, colors: true, icons: {} }; }; globalThis.__btnUI = btnUI; globalThis.__resetChatButtons = () => { resetChatButtonCache(); }; globalThis.__chatButtons = chatButtons; globalThis.__retentionSweep = retentionSweep; globalThis.__shetabMakeTestOrder = shetabMakeTestOrder; globalThis.__shetabDropTestOrder = shetabDropTestOrder; globalThis.__retentionConfig = retentionConfig; globalThis.__saveSub = saveSub; globalThis.__saveCfg = saveCfg; globalThis.__getCfg = getCfg; globalThis.__getAgent = getAgent;');
 // eslint-disable-next-line no-eval
 eval(src);
 const APP = globalThis.APP;
@@ -388,12 +388,17 @@ const badApi = await miniApi('/api/miniapp/bootstrap', badInitData + '&tampered=
 assert(badApi.status === 401, 'API مینی‌اپ دست‌کاری initData را رد می‌کند');
 
 await sendText(U1, '/start');
-assert((lastMsgTo(U1) || {}).params && lastMsgTo(U1).params.text.includes('تیزنت VPN | TiznetVPN'), '/start صفحهٔ اصلی برند تیزنت را نشان می‌دهد');
-const homeMarkup = lastMsgTo(U1).params.reply_markup;
-assert(homeMarkup && Array.isArray(homeMarkup.keyboard) && homeMarkup.keyboard.flat().length === 9 && !homeMarkup.inline_keyboard, 'منوی اصلی فقط با کیبورد پایین چت می‌آید (خرید، کیف پول، اشتراک‌ها، سفارش‌ها و بقیه) و هیچ دکمهٔ شیشه‌ای داخل پیام ندارد');
+const homeMsg = lastKeyboardMsg(U1);
+assert(homeMsg && String(homeMsg.params.text || '').includes('تیزنت VPN | TiznetVPN'), '/start صفحهٔ اصلی برند تیزنت را نشان می‌دهد');
+const homeKb = (homeMsg.params.reply_markup.keyboard || []).flat();
+assert(homeKb.length === 1 && homeKb[0].text === '📱 ورود به اپ' && homeKb[0].web_app && homeKb[0].web_app.url === 'https://t.test/miniapp' && !homeMsg.params.reply_markup.inline_keyboard,
+  'کیبورد پایین چت فقط یک دکمهٔ «ورود به اپ» با آدرس مینی‌اپ دارد؛ منوی چنددکمه‌ای قبلی حذف شده است');
+const homeMenuData = (lastInlineMsg(U1)?.params.reply_markup?.inline_keyboard || []).flat().map(b => String(b.callback_data || ''));
+assert(homeMenuData.includes('menu:buy') && homeMenuData.includes('menu:wallet') && homeMenuData.includes('menu:apps') && homeMenuData.includes('menu:ref') && homeMenuData.includes('menu:home'),
+  'منوی دکمه‌ای داخل چت همان فهرست کامل بخش‌ها را با یک منبع (کاتالوگ) نشان می‌دهد');
 const privateMenuButton = TG.find(x => x.method === 'setChatMenuButton' && String(x.params.chat_id) === String(U1));
-assert(privateMenuButton && privateMenuButton.params.menu_button.type === 'web_app' && privateMenuButton.params.menu_button.text === 'tiznet' && privateMenuButton.params.menu_button.web_app.url === 'https://t.test/miniapp' && (await kvJson('u:' + U1)).miniapp_menu_set_version === 'tiznetvpn-menu-button-ubuntu-v1', 'MenuButtonWebApp عنوان دقیق tiznet با حروف کوچک دارد و نسخهٔ برچسب به‌روزرسانی می‌شود');
-assert(String(lastMsgTo(U1).params.text || '').includes('از کیبورد پایین چت استفاده کنید'), 'پیام خانه کاربر را به کیبورد پایین چت راهنمایی می‌کند');
+assert(privateMenuButton && privateMenuButton.params.menu_button.type === 'web_app' && privateMenuButton.params.menu_button.text === 'منوی' && privateMenuButton.params.menu_button.web_app.url === 'https://t.test/miniapp' && (await kvJson('u:' + U1)).miniapp_menu_set_version === 'tiznetvpn-menu-button-ubuntu-v2', 'دکمهٔ «منوی» کنار کادر پیام با برچسب فارسی و آدرس مینی‌اپ تنظیم می‌شود و نسخهٔ برچسب به‌روزرسانی می‌شود');
+assert(String(homeMsg.params.text || '').includes('دکمهٔ «منوی» کنار کادر پیام'), 'پیام خانه کاربر را به دکمهٔ «منوی» کنار کادر پیام راهنمایی می‌کند');
 await upd({ callback_query: { id: 'q' + (qSeq++), from: { id: U7, first_name: 'GroupUser' }, message: { message_id: 77, chat: { id: -10001, type: 'group' } }, data: 'home' } });
 const groupHome = TG.filter(x => x.method === 'editMessageText' && String(x.params.chat_id) === '-10001').at(-1);
 const groupMarkup = groupHome && groupHome.params.reply_markup && groupHome.params.reply_markup.inline_keyboard || [];
@@ -430,10 +435,10 @@ assert((emojiBuyText.includes('خرید اشتراک از داخل چت') || emo
   && (plainBuyText.includes('خرید اشتراک از داخل چت') || plainBuyText.includes('پلن فعالی برای فروش نیست'))
   && !emojiBuyText.includes('وارد اپ') && !plainBuyText.includes('وارد اپ'),
   'دکمه‌های ایموجی‌دار ربات کار می‌کنند و متن بدون ایموجی هم پشتیبانی می‌شود؛ خرید به‌جای «وارد اپ» داخل چت شروع می‌شود');
-const exactRobotButtons = ['🛍 خرید اشتراک','🎧 پشتیبانی','🎁 اشتراک رایگان','📘 راهنما','🪪 اطلاعات حساب','🤝 دریافت نمایندگی','📦 اشتراک‌های من','💰 کیف پول و شارژ','🧾 سفارش‌های من'];
+const exactRobotButtons = ['📱 ورود به اپ'];
 const replyTexts = miniOnlyKeyboardMessage?.params.reply_markup?.keyboard?.flat().map(x => x.text) || [];
-assert(miniOnlyEntry && miniOnlyEntry.params.text.includes('دکمهٔ منوی تلگرام') && !miniOnlyEntry.params.reply_markup?.inline_keyboard && miniOnlyKeyboardMessage?.params.reply_markup?.keyboard && JSON.stringify(replyTexts) === JSON.stringify(exactRobotButtons), '/start در Mini App-only فقط کیبورد پایین چت با نه دکمه (شامل خرید، کیف پول، اشتراک‌ها و سفارش‌ها) را می‌فرستد و دکمهٔ شیشه‌ای داخل پیام ندارد');
-assert(miniOnlyMenu && miniOnlyMenu.params.menu_button.text === 'tiznet' && miniOnlyCommands && miniOnlyCommands.params.commands.length === 1 && miniOnlyCommands.params.commands[0].command === 'start', 'در حالت Mini App-only Menu Button دقیقاً tiznet است و فهرست دستورها به /start محدود می‌شود');
+assert(miniOnlyEntry && miniOnlyEntry.params.text.includes('دکمهٔ «منوی»') && !miniOnlyEntry.params.reply_markup?.inline_keyboard && miniOnlyKeyboardMessage?.params.reply_markup?.keyboard && JSON.stringify(replyTexts) === JSON.stringify(exactRobotButtons), '/start در Mini App-only یک کیبورد با تنها دکمهٔ «ورود به اپ» می‌فرستد و دکمهٔ شیشه‌ای داخل همان پیام ندارد');
+assert(miniOnlyMenu && miniOnlyMenu.params.menu_button.text === 'منوی' && miniOnlyCommands && miniOnlyCommands.params.commands.length === 1 && miniOnlyCommands.params.commands[0].command === 'start', 'در حالت Mini App-only دکمهٔ کنار کادر پیام «منوی» است و فهرست دستورها به /start محدود می‌شود');
 assert((await kvJson('u:' + U5)).referred_by === U1, 'خاموش‌بودن منوی legacy انتساب لینک معرف را حفظ می‌کند');
 await sendText(U4, '/start ref_' + u1a.ref_code);
 const u1AfterThirdInvite = await kvJson('u:' + U1);
@@ -1200,7 +1205,7 @@ await sendText(U7, 'اشتراک رایگان');
 const botFreeDelivery = TG.slice(botFreeDeliveryStart).filter(x => x.method === 'sendPhoto' && String(x.params.chat_id) === String(U7)).at(-1);
 const botFreeMarkup = botFreeDelivery ? JSON.parse(botFreeDelivery.params.reply_markup || '{}') : {};
 const botFreeReplyTexts = botFreeMarkup.keyboard?.flat().map(x => x.text) || [];
-assert(!botFreeStartMessages[0]?.params.reply_markup?.inline_keyboard && botFreeStartKb.join('|') === exactRobotButtons.join('|') && botFreeDelivery?.params.caption.includes('اشتراک رایگان شما فعال شد') && botFreeReplyTexts.join('|') === exactRobotButtons.join('|') && hUsers.size === hUsersBeforeBotFree + 1, 'ربات از کیبورد Mini App-only اشتراک رایگان را صادر می‌کند و reply keyboard را حفظ می‌کند');
+assert(!botFreeStartMessages[0]?.params.reply_markup?.inline_keyboard && botFreeStartKb.join('|') === exactRobotButtons.join('|') && botFreeDelivery?.params.caption.includes('اشتراک رایگان شما فعال شد') && botFreeReplyTexts.join('|') === exactRobotButtons.join('|') && hUsers.size === hUsersBeforeBotFree + 1, 'ربات با کیبورد تک‌دکمه‌ای «ورود به اپ» اشتراک رایگان را صادر می‌کند و همان کیبورد را حفظ می‌کند');
 env.MINIAPP_ONLY_MODE = 'false';
 
 const restoreKv = new MockKV();
@@ -1366,7 +1371,7 @@ assert(miniAppSource.includes('<a class="') && miniAppSource.includes('target="_
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.54-ubuntu26.56';"), 'شمارهٔ نسخهٔ سرور 1.8.54-ubuntu26.56 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.55-ubuntu26.57';"), 'شمارهٔ نسخهٔ سرور 1.8.55-ubuntu26.57 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -2380,6 +2385,14 @@ const gateInit2 = await signedInitData(GATE_USER2);
 
 assert(globalThis.__DEFAULT_SETTINGS.join_lock_enabled === false && globalThis.__DEFAULT_SETTINGS.phone_required === false && Array.isArray(globalThis.__DEFAULT_SETTINGS.join_channels) && globalThis.__DEFAULT_SETTINGS.join_channels.length === 0, 'قفل کانال و شماره پیش‌فرض خاموش‌اند و هیچ کانالی ثبت نشده است');
 assert(globalThis.__normalizePhone('۰۹۱۲۱۲۳۴۵۶۷') === '09121234567' && globalThis.__normalizePhone('+989121234567') === '09121234567' && globalThis.__normalizePhone('00989121234567') === '09121234567' && globalThis.__normalizePhone('9121234567') === '09121234567' && globalThis.__normalizePhone('12345') === '' && globalThis.__normalizePhone('۰۹۱۲۱۲۳۴۵') === '', 'شمارهٔ موبایل فارسی/بین‌المللی به یک قالب یکسان تبدیل می‌شود و شمارهٔ ناقص رد می‌شود');
+assert(globalThis.__isAppEntryMarkup({ keyboard: [[{ text: '📱 ورود به اپ', web_app: { url: 'https://t.test/miniapp' } }]] })
+  && globalThis.__isAppEntryMarkup({ keyboard: [[{ text: '📱 ورود به اپ' }]] })
+  && !globalThis.__isAppEntryMarkup({ keyboard: [[{ text: '📱 ورود به اپ', web_app: { url: 'http://t.test/miniapp' } }]] })
+  && !globalThis.__isAppEntryMarkup({ keyboard: [[{ text: '🛍 خرید اشتراک' }]] }),
+  'در حالت فقط‌اپ تنها کیبورد مجاز، همان تک‌دکمهٔ «ورود به اپ» است و آدرس غیر https رد می‌شود');
+const strippedKb = globalThis.__withoutWebAppButtons({ keyboard: [[{ text: '📱 ورود به اپ', web_app: { url: 'https://t.test/miniapp' } }]], resize_keyboard: true });
+assert(strippedKb && strippedKb.keyboard[0][0].text === '📱 ورود به اپ' && !strippedKb.keyboard[0][0].web_app && strippedKb.resize_keyboard === true,
+  'در گروه‌ها دکمهٔ وب‌اپ به دکمهٔ متنی تبدیل می‌شود تا تلگرام پیام را رد نکند');
 assert(globalThis.__isJoinGateMarkup({ inline_keyboard: [[{ text: 'کانال', url: 'https://t.me/x' }], [{ text: 'چک', callback_data: 'jc:check' }]] }) === true && globalThis.__isJoinGateMarkup({ inline_keyboard: [[{ text: 'چک', callback_data: 'jc:check' }], [{ text: 'x', callback_data: 'a_admin' }]] }) === false && globalThis.__isPhoneRequestMarkup({ keyboard: [[{ text: 'شماره', request_contact: true }]] }) === true && globalThis.__isPhoneRequestMarkup({ keyboard: [[{ text: 'شماره' }]] }) === false, 'در حالت فقط‌اپ، فقط مارک‌آپ قفل کانال و دکمهٔ درخواست شماره مجاز است و بقیه حذف می‌شوند');
 
 // --- بدون قفل، رفتار قبلی ---
@@ -2758,14 +2771,23 @@ function lastKeyboardMsg(tgid) {
     && x.params.reply_markup && Array.isArray(x.params.reply_markup.keyboard));
   return f[f.length - 1];
 }
+function lastInlineMsg(tgid) {
+  const f = TG.filter(x => (x.method === 'sendMessage' || x.method === 'editMessageText') && String(x.params.chat_id) === String(tgid)
+    && x.params.reply_markup && Array.isArray(x.params.reply_markup.inline_keyboard));
+  return f[f.length - 1];
+}
+function menuTexts(tgid) {
+  const rows = lastInlineMsg(tgid)?.params.reply_markup?.inline_keyboard || [];
+  return rows.flat().map((b) => String(b.text || ''));
+}
 function kbTexts(msg) {
   const kb = msg && msg.params && msg.params.reply_markup && msg.params.reply_markup.keyboard;
   return Array.isArray(kb) ? kb.flat().map(x => x.text) : [];
 }
-const DEFAULT_KB = ['🛍 خرید اشتراک', '🎧 پشتیبانی', '🎁 اشتراک رایگان', '📘 راهنما', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی', '📦 اشتراک‌های من', '💰 کیف پول و شارژ', '🧾 سفارش‌های من'];
+const DEFAULT_KB = ['🛍 خرید اشتراک', '📦 اشتراک‌های من', '💰 کیف پول و شارژ', '🧾 سفارش‌های من', '🎁 اشتراک رایگان', '🤝 دریافت نمایندگی', '🎧 پشتیبانی', '📘 راهنما', '📥 دانلود اپ‌ها', '🪪 اطلاعات حساب', '🎉 دعوت دوستان'];
 
 await press(ADMIN, 's_kb');
-assert(panelMsg(ADMIN).params.text.includes('دکمه‌های چت') && lookupButtons(panelMsg(ADMIN)).filter(b => String(b.callback_data).startsWith('s_kb_it:')).length === 9, 'پنل «دکمه‌های چت» در تنظیمات ادمین باز می‌شود و نه دکمهٔ فعلی را نشان می‌دهد');
+assert(panelMsg(ADMIN).params.text.includes('دکمه‌های منوی چت') && lookupButtons(panelMsg(ADMIN)).filter(b => String(b.callback_data).startsWith('s_kb_it:')).length === 11, 'پنل «دکمه‌های منوی چت» در تنظیمات ادمین باز می‌شود و یازده دکمهٔ فعلی را نشان می‌دهد');
 await press(ADMIN, 's_kb_it:buy');
 assert(panelMsg(ADMIN).params.text.includes('خرید اشتراک') && lookupButtons(panelMsg(ADMIN)).some(b => b.callback_data === 's_kb_tog:buy') && lookupButtons(panelMsg(ADMIN)).some(b => b.callback_data === 's_kb_ren:buy'), 'هر دکمه صفحهٔ اختصاصی با روشن/خاموش و تغییر نام دارد');
 
@@ -2774,7 +2796,8 @@ await sendText(ADMIN, 'اشتراک بخرم');
 const renamedCfg = await kvJson('ui:chat_buttons');
 assert(renamedCfg && renamedCfg.labels && renamedCfg.labels.buy === 'اشتراک بخرم', 'تغییر نام دکمه در KV ذخیره می‌شود');
 await sendText(U12, '/start');
-assert(JSON.stringify(kbTexts(lastKeyboardMsg(U12))) === JSON.stringify(['🛍 اشتراک بخرم', '🎧 پشتیبانی', '🎁 اشتراک رایگان', '📘 راهنما', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی', '📦 اشتراک‌های من', '💰 کیف پول و شارژ', '🧾 سفارش‌های من']), 'نام تازه همان لحظه روی کیبورد مشتری می‌آید');
+assert(menuTexts(U12).includes('🛍 اشتراک بخرم') && !menuTexts(U12).includes('🛍 خرید اشتراک'), 'نام تازه همان لحظه روی منوی چت مشتری می‌آید');
+assert(kbTexts(lastKeyboardMsg(U12)).join('|') === '📱 ورود به اپ', 'کیبورد پایین چت با تغییر نام دکمه‌های منو دست‌نخورده می‌ماند');
 await sendText(U12, 'خرید اشتراک');
 assert(String(lastMsgTo(U12).params.text || '').includes('خرید اشتراک از داخل چت'), 'نام پیش‌فرض قبلی هم بعد از تغییر نام هنوز مسیر درست (خرید داخل چت) را اجرا می‌کند');
 await sendText(U12, 'اشتراک بخرم');
@@ -2782,13 +2805,14 @@ assert(String(lastMsgTo(U12).params.text || '').includes('خرید اشتراک 
 
 await press(ADMIN, 's_kb_tog:support');
 await sendText(U12, '/start');
-assert(kbTexts(lastKeyboardMsg(U12)).length === 8 && !kbTexts(lastKeyboardMsg(U12)).includes('🎧 پشتیبانی'), 'خاموش‌کردن دکمه آن را از کیبورد برمی‌دارد');
+assert(menuTexts(U12).length === 11 && !menuTexts(U12).includes('🎧 پشتیبانی'), 'خاموش‌کردن دکمه آن را از منوی چت برمی‌دارد');
 await sendText(U12, 'پشتیبانی');
-assert(lastMsgTo(U12).params.text.includes('یکی از دکمه‌های پایین'), 'دکمهٔ خاموش دیگر مسیری را اجرا نمی‌کند');
+assert(lastMsgTo(U12).params.text.includes('منوی دکمه‌ای'), 'دکمهٔ خاموش دیگر مسیری را اجرا نمی‌کند');
 
 await press(ADMIN, 's_kb_up:help');
 await sendText(U12, '/start');
-assert(JSON.stringify(kbTexts(lastKeyboardMsg(U12))) === JSON.stringify(['🛍 اشتراک بخرم', '📘 راهنما', '🎁 اشتراک رایگان', '🪪 اطلاعات حساب', '🤝 دریافت نمایندگی', '📦 اشتراک‌های من', '💰 کیف پول و شارژ', '🧾 سفارش‌های من']), 'جابه‌جایی دکمه ترتیب کیبورد را عوض می‌کند');
+const helpPos = menuTexts(U12).indexOf('📘 راهنما');
+assert(helpPos === 6 && menuTexts(U12).indexOf('🛍 اشتراک بخرم') === 0 && !menuTexts(U12).includes('🎧 پشتیبانی'), 'جابه‌جایی دکمه ترتیب منوی چت را عوض می‌کند');
 
 await press(ADMIN, 's_kb_del:apps');
 await press(ADMIN, 's_kb_put:apps');
@@ -2798,20 +2822,20 @@ assert(afterAdd.order[afterAdd.order.length - 1] === 'apps', 'دکمهٔ حذف�
 await press(ADMIN, 's_kb_reset');
 const resetCfg = await kvJson('ui:chat_buttons');
 await sendText(U12, '/start');
-assert(JSON.stringify(kbTexts(lastKeyboardMsg(U12))) === JSON.stringify(DEFAULT_KB) && resetCfg.order.length === 9 && !Object.keys(resetCfg.labels || {}).length, 'بازگردانی پیش‌فرض، نام و ترتیب و وضعیت نه دکمهٔ اصلی را برمی‌گرداند');
+assert(JSON.stringify(menuTexts(U12).slice(0, 11)) === JSON.stringify(DEFAULT_KB) && resetCfg.order.length === 11 && !Object.keys(resetCfg.labels || {}).length, 'بازگردانی پیش‌فرض، نام و ترتیب و وضعیت یازده دکمهٔ اصلی را برمی‌گرداند');
 
 // همان تنظیمات از مینی‌اپ
 const chatAdmin = await signedInitData(ADMIN);
 const lookWithChat = await miniApi('/api/miniapp/admin/settings', chatAdmin);
-assert(lookWithChat.json.buttons && lookWithChat.json.buttons.chat && lookWithChat.json.buttons.chat.items.length === 9 && lookWithChat.json.buttons.chat.catalog.length >= 11, 'تنظیمات مینی‌اپ فهرست دکمه‌های چت و کاتالوگ کامل را برمی‌گرداند');
+assert(lookWithChat.json.buttons && lookWithChat.json.buttons.chat && lookWithChat.json.buttons.chat.items.length === 11 && lookWithChat.json.buttons.chat.catalog.length >= 11, 'تنظیمات مینی‌اپ فهرست دکمه‌های منوی چت و کاتالوگ کامل را برمی‌گرداند');
 const appChatSave = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['buy', 'subs', 'wallet'], off: ['wallet'], labels: { subs: 'بسته‌های من' } } }) });
 assert(appChatSave.status === 200 && appChatSave.json.chat.items.length === 3 && appChatSave.json.chat.items.find(i => i.id === 'subs').custom === 'بسته‌های من', 'مدیر از مینی‌اپ ترتیب، نام و خاموش‌بودن دکمه‌ها را ذخیره می‌کند');
 await sendText(U12, '/start');
-assert(JSON.stringify(kbTexts(lastKeyboardMsg(U12))) === JSON.stringify(['🛍 خرید اشتراک', '📦 بسته‌های من']), 'تغییر مینی‌اپ همان لحظه روی کیبورد چت اعمال می‌شود');
+assert(JSON.stringify(menuTexts(U12)) === JSON.stringify(['🛍 خرید اشتراک', '📦 بسته‌های من', '🔄 تازه‌سازی منو']), 'تغییر مینی‌اپ همان لحظه روی منوی چت اعمال می‌شود');
 const allOff = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['buy'], off: ['buy'] } }) });
 assert(allOff.status === 400 && allOff.json.error === 'all_buttons_off', 'خاموش‌کردن همهٔ دکمه‌ها از مینی‌اپ رد می‌شود');
-const tooMany = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['buy','support','free','help','account','agent','subs','wallet','orders','apps','ref'] } }) });
-assert(tooMany.status === 400 && tooMany.json.error === 'too_many_buttons', 'بیش از سقف دکمه پذیرفته نمی‌شود');
+const allButtons = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['buy','subs','wallet','orders','free','agent','support','help','apps','account','ref'] } }) });
+assert(allButtons.status === 200 && allButtons.json.chat.items.length === 11, 'کل کاتالوگ (یازده دکمه) در منوی چت جا می‌شود');
 const badBtn = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['nope'] } }) });
 assert(badBtn.status === 400 && badBtn.json.error === 'invalid_button', 'شناسهٔ ناشناختهٔ دکمه رد می‌شود');
 

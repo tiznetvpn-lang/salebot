@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.54-ubuntu26.56';
+const VERSION = '1.8.55-ubuntu26.57';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -3274,22 +3274,26 @@ async function chatInlineEnabled(env, force) {
     try { const cfg = await getCfg(env); flag = cfg.chat_inline_enabled !== false; } catch (e) { flag = true; }
     CHAT_INLINE_CACHE = { at: Date.now(), enabled: flag };
   }
-  // این قابلیت مخصوص حالت «اپ‌محور» (MINIAPP_ONLY_MODE) است؛ در حالت کلاسیک
-  // همان طراحی قبلی می‌ماند تا رفتار دو حالت با هم قاطی نشود.
-  return flag && miniAppOnlyMode(env);
+  // منوی چنددکمه‌ای پایین چت حذف شده است، پس منوی دکمه‌ای داخل چت در هر دو حالت
+  // لازم است؛ در غیر این صورت مشتریِ حالت کلاسیک هیچ راهی برای رفتن به بخش‌ها ندارد.
+  return flag;
 }
 function resetChatInlineCache() { CHAT_INLINE_CACHE = { at: 0, enabled: true }; }
 
 async function telegramExtra(env, extra, chatId) {
   const safe = Object.assign({}, extra || {});
   const markup = extra && extra.reply_markup;
+  // مارک‌آپ منوی چت خودمان با این نشانه از فیلتر حالت کلاسیک رد می‌شود.
+  const keepInline = !!(extra && extra.__keep_inline);
+  if (extra && '__keep_inline' in extra) delete safe.__keep_inline;
   if (chatId != null && !isAdminChat(env, chatId)) {
-    // وقتی دکمه‌های شیشه‌ای روشن‌اند، مارک‌آپ همان‌طور که ساخته شده می‌رود؛
-    // پنل ادمین هم از قبل دست‌نخورده است.
-    if (!(await chatInlineEnabled(env))) {
+    const inlineOn = await chatInlineEnabled(env);
+    // در حالت اپ‌محور و با دکمه‌های روشن، مارک‌آپ همان‌طور که ساخته شده می‌رود (رفتار قبلی).
+    // در حالت کلاسیک فقط منوی چت مجاز است تا بقیهٔ پیام‌ها مثل قبل بدون دکمهٔ شیشه‌ای بمانند.
+    if (!inlineOn || !miniAppOnlyMode(env)) {
       const keepsReplyKeyboard = markup && (Array.isArray(markup.keyboard) || isPhoneRequestMarkup(markup) || isJoinGateMarkup(markup));
-      if (markup && Array.isArray(markup.inline_keyboard) && !keepsReplyKeyboard) delete safe.reply_markup;
-      if (miniAppOnlyMode(env) && !isAllowedMiniAppOnlyMarkup(safe.reply_markup)) delete safe.reply_markup;
+      if (markup && Array.isArray(markup.inline_keyboard) && !keepsReplyKeyboard && !keepInline) delete safe.reply_markup;
+      if (!inlineOn && miniAppOnlyMode(env) && !isAllowedMiniAppOnlyMarkup(safe.reply_markup)) delete safe.reply_markup;
     }
   }
   return safe;
@@ -3489,7 +3493,7 @@ async function adminButtonLook(env, chatId, messageId) {
   await msg(env, chatId, text, KB(rows));
 }
 
-// پنل ادمین: 🎛 مدیریت دکمه‌های کیبورد چت (حذف / ویرایش نام / فعال‌وغیرفعال)
+// پنل ادمین: 🎛 مدیریت دکمه‌های منوی چت (حذف / ویرایش نام / فعال‌وغیرفعال)
 function chatBtnStateText(cache) {
   const enabled = new Set(cache.enabled.map((b) => b.id));
   const lines = cache.cfg.order.map((id, i) => {
@@ -3498,10 +3502,10 @@ function chatBtnStateText(cache) {
     const text = chatBtnText(defn, cache.cfg);
     return faNum(i + 1) + '. ' + esc(text) + ' — ' + (on ? 'روشن ✅' : 'خاموش ⛔');
   });
-  return '🎛 <b>دکمه‌های چت</b>\n\n' +
+  return '🎛 <b>دکمه‌های منوی چت</b>\n\n' +
     'روشن: <b>' + faNum(cache.enabled.length) + '</b> از <b>' + faNum(cache.cfg.order.length) + '</b>' +
     '\n\n' + (lines.join('\n') || 'هیچ دکمه‌ای نیست.') +
-    '\n\n<i>روی هر دکمه بزنید تا روشن/خاموش شود، نامش عوض شود، جابه‌جا شود یا حذف گردد. تغییر همان لحظه روی کیبورد کاربران اعمال می‌شود.</i>';
+    '\n\n<i>روی هر دکمه بزنید تا روشن/خاموش شود، نامش عوض شود، جابه‌جا شود یا حذف گردد. تغییر همان لحظه روی منوی چت کاربران اعمال می‌شود.</i>';
 }
 
 async function adminChatButtons(env, chatId, messageId) {
@@ -3535,7 +3539,7 @@ async function adminChatButtonItem(env, chatId, messageId, id) {
     '\nجایگاه: <b>' + faNum(pos) + '</b> از <b>' + faNum(cache.cfg.order.length) + '</b>' +
     '\nنام پیش‌فرض: <b>' + esc(defn.label) + '</b>' +
     (cache.cfg.labels[id] ? '\nنام سفارشی: <b>' + esc(cache.cfg.labels[id]) + '</b>' : '') +
-    '\n\n<i>خاموش‌کردن دکمه را از کیبورد برمی‌دارد ولی تنظیماتش می‌ماند؛ حذف، آن را از فهرست بیرون می‌برد و با «افزودن دکمه» برمی‌گردد.</i>';
+    '\n\n<i>خاموش‌کردن دکمه را از منوی چت برمی‌دارد ولی تنظیماتش می‌ماند؛ حذف، آن را از فهرست بیرون می‌برد و با «افزودن دکمه» برمی‌گردد.</i>';
   const rows = [
     [BTN(on ? '⛔ خاموش‌کردن' : '✅ روشن‌کردن', 's_kb_tog:' + id)],
     [BTN('✏️ تغییر نام', 's_kb_ren:' + id)]
@@ -3545,7 +3549,7 @@ async function adminChatButtonItem(env, chatId, messageId, id) {
   if (pos < cache.cfg.order.length) nav.push(BTN('⬇️ پایین‌تر', 's_kb_dn:' + id));
   if (nav.length) rows.push(nav);
   if (cache.cfg.labels[id]) rows.push([BTN('↩️ نام پیش‌فرض', 's_kb_lblreset:' + id)]);
-  rows.push([BTN('🗑 حذف از کیبورد', 's_kb_del:' + id)]);
+  rows.push([BTN('🗑 حذف از منو', 's_kb_del:' + id)]);
   rows.push([BTN('◀️ دکمه‌ها', 's_kb')]);
   if (messageId) { try { await editMsg(env, chatId, messageId, text, KB(rows)); return; } catch (e) {} }
   await msg(env, chatId, text, KB(rows));
@@ -3555,17 +3559,36 @@ async function adminChatButtonAdd(env, chatId, messageId) {
   const cache = await chatButtons(env, true);
   const free = CHAT_BTN_CATALOG.filter((a) => !cache.cfg.order.includes(a.id));
   if (!free.length) {
-    await msg(env, chatId, 'همهٔ دکمه‌های موجود در کیبورد هستند.', KB([[BTN('◀️ دکمه‌ها', 's_kb')]]));
+    await msg(env, chatId, 'همهٔ دکمه‌های موجود در منو هستند.', KB([[BTN('◀️ دکمه‌ها', 's_kb')]]));
     return;
   }
   const rows = free.map((a) => [BTN('➕ ' + a.icon + ' ' + a.label, 's_kb_put:' + a.id)]);
   rows.push([BTN('◀️ دکمه‌ها', 's_kb')]);
-  const text = '➕ <b>افزودن دکمه</b>\n\nدکمه‌های آماده‌ای که الان در کیبورد نیستند:\n<i>حداکثر ' + faNum(CHAT_BTN_LIMIT) + ' دکمه در کیبورد جا می‌شود.</i>';
+  const text = '➕ <b>افزودن دکمه</b>\n\nدکمه‌های آماده‌ای که الان در منو نیستند:\n<i>حداکثر ' + faNum(CHAT_BTN_LIMIT) + ' دکمه در منوی چت جا می‌شود.</i>';
   if (messageId) { try { await editMsg(env, chatId, messageId, text, KB(rows)); return; } catch (e) {} }
   await msg(env, chatId, text, KB(rows));
 }
 
 /* ============================ تلگرام ============================ */
+
+// در گروه‌ها دکمهٔ web_app در کیبورد پایین مجاز نیست؛ همان دکمه به متن ساده تبدیل می‌شود.
+function withoutWebAppButtons(markup) {
+  if (!markup || typeof markup !== 'object') return null;
+  let changed = false;
+  const strip = (rows) => (rows || []).map((row) => (row || []).map((btn) => {
+    if (btn && typeof btn === 'object' && btn.web_app) {
+      changed = true;
+      const rest = Object.assign({}, btn);
+      delete rest.web_app;
+      return rest;
+    }
+    return btn;
+  }));
+  const next = Object.assign({}, markup);
+  if (Array.isArray(markup.inline_keyboard)) next.inline_keyboard = strip(markup.inline_keyboard);
+  if (Array.isArray(markup.keyboard)) next.keyboard = strip(markup.keyboard);
+  return changed ? next : null;
+}
 
 async function tg(env, method, params) {
   const original = params && typeof params === 'object' ? params : {};
@@ -3596,30 +3619,41 @@ async function tg(env, method, params) {
     // تا نیم‌دقیقه آیکن‌ها را نمی‌فرستیم تا هر پیام دوبار ارسال نشود.
     if (j.ok) BTN_UI_CACHE = { at: Date.now(), colors: BTN_UI_CACHE.colors, icons: {} };
   }
+  if (!j.ok && /web_app|WEB_APP|button/i.test(String(j.description || '')) && payload && payload.reply_markup) {
+    const plain = withoutWebAppButtons(payload.reply_markup);
+    if (plain) {
+      r = await call(Object.assign({}, payload, { reply_markup: plain }));
+      j = {};
+      try { j = await r.json(); } catch (e) {}
+    }
+  }
   if (!j.ok) throw new Error('TG ' + method + ': ' + (j.description || ('HTTP ' + r.status)));
   return j.result;
 }
 
 function KB(rows) { return { reply_markup: { inline_keyboard: rows } }; }
+// منوی چت باید در هر دو حالت (اپ‌محور و کلاسیک) دیده شود؛ این نشانه همان کار را می‌کند.
+function chatMenuKB(rows) { return { reply_markup: { inline_keyboard: rows }, __keep_inline: true }; }
 function BTN(text, cb) { return { text: text, callback_data: cb }; }
 function WEBAPPBTN(text, url) { return { text: text, web_app: { url: url } }; }
 // دکمه‌های کیبورد چت: هر آیتم یک قابلیت واقعی است و ادمین می‌تواند حذف/ویرایش/فعال‌سازی کند.
 // منبع واحد: همین فهرست؛ چت و مینی‌اپ هر دو از روی KV «ui:chat_buttons» می‌خوانند.
+// ترتیب همین فهرست = ترتیب دکمه‌های منوی چت؛ کیبورد پایین چت فقط دکمهٔ «ورود به اپ» دارد.
 const CHAT_BTN_CATALOG = [
   { id: 'buy',     icon: '🛍', label: 'خرید اشتراک',    fallback: true },
-  { id: 'support', icon: '🎧', label: 'پشتیبانی',        fallback: true },
-  { id: 'free',    icon: '🎁', label: 'اشتراک رایگان',   fallback: true },
-  { id: 'help',    icon: '📘', label: 'راهنما',          fallback: true },
-  { id: 'account', icon: '🪪', label: 'اطلاعات حساب',    fallback: true },
-  { id: 'agent',   icon: '🤝', label: 'دریافت نمایندگی', fallback: true },
   { id: 'subs',    icon: '📦', label: 'اشتراک‌های من',   fallback: true },
   { id: 'wallet',  icon: '💰', label: 'کیف پول و شارژ',  fallback: true },
   { id: 'orders',  icon: '🧾', label: 'سفارش‌های من',    fallback: true },
-  { id: 'apps',    icon: '📥', label: 'دانلود اپ‌ها',    fallback: false },
-  { id: 'ref',     icon: '🎉', label: 'دعوت دوستان',     fallback: false }
+  { id: 'free',    icon: '🎁', label: 'اشتراک رایگان',   fallback: true },
+  { id: 'agent',   icon: '🤝', label: 'دریافت نمایندگی', fallback: true },
+  { id: 'support', icon: '🎧', label: 'پشتیبانی',        fallback: true },
+  { id: 'help',    icon: '📘', label: 'راهنما',          fallback: true },
+  { id: 'apps',    icon: '📥', label: 'دانلود اپ‌ها',    fallback: true },
+  { id: 'account', icon: '🪪', label: 'اطلاعات حساب',    fallback: true },
+  { id: 'ref',     icon: '🎉', label: 'دعوت دوستان',     fallback: true }
 ];
 const CHAT_BTN_KV = 'ui:chat_buttons';
-const CHAT_BTN_LIMIT = 10;   // بیش از این، کیبورد روی موبایل شلوغ می‌شود
+const CHAT_BTN_LIMIT = 12;   // سقف دکمه‌های منوی چت (۱۱ بخش + جای یک دکمهٔ تازه)
 const CHAT_BTN_TTL = 20000;  // کش کوتاه تا تغییر ادمین سریع دیده شود
 let CHAT_BTN_CACHE = { at: 0, cfg: null, enabled: [], rows: [], texts: new Set() };
 
@@ -3714,8 +3748,8 @@ async function resolveChatButton(env, text) {
 
 function isAllowedMiniAppOnlyMarkup(markup) {
   if (!markup || typeof markup !== 'object') return false;
-  // دو مارک‌آپ مجاز دیگر: پیام قفل کانال و دکمهٔ درخواست شماره.
-  if (isJoinGateMarkup(markup) || isPhoneRequestMarkup(markup)) return true;
+  // مارک‌آپ‌های مجاز دیگر: پیام قفل کانال، دکمهٔ درخواست شماره و تنها کیبورد «ورود به اپ».
+  if (isJoinGateMarkup(markup) || isPhoneRequestMarkup(markup) || isAppEntryMarkup(markup)) return true;
   if (Array.isArray(markup.inline_keyboard)) {
     const rows = markup.inline_keyboard;
     if (rows.length !== 1 || !Array.isArray(rows[0]) || rows[0].length !== 1) return false;
@@ -3740,12 +3774,30 @@ function isAllowedMiniAppOnlyMarkup(markup) {
   }
   return false;
 }
-function mainBotReplyMarkup() {
+/* ── تنها کیبورد پایین چت: یک دکمهٔ «ورود به اپ» ──────────────────────────────
+ * منوی چنددکمه‌ای پایین چت حذف شد؛ چون با منوی دکمه‌ای داخل چت یکی نبود و کاربر
+ * دو فهرست متفاوت می‌دید. حالا یک دکمهٔ ورود به اپ پایین چت است و ناوبری بخش‌ها
+ * از دکمهٔ «منوی» کنار کادر پیام و منوی دکمه‌ای داخل چت (همان فهرست، یک منبع) انجام می‌شود.
+ */
+const APP_ENTRY_TEXT = '📱 ورود به اپ';
+let MINIAPP_ENTRY_URL = '';
+function isAppEntryMarkup(markup) {
+  const rows = markup && markup.keyboard;
+  if (!Array.isArray(rows) || rows.length !== 1 || !Array.isArray(rows[0]) || rows[0].length !== 1) return false;
+  const button = rows[0][0];
+  if (!button || typeof button !== 'object' || button.text !== APP_ENTRY_TEXT) return false;
+  if (Object.keys(button).some((key) => !['text', 'web_app'].includes(key))) return false;
+  if (!button.web_app) return true;
+  try { return new URL(String(button.web_app.url || '')).protocol === 'https:'; } catch (e) { return false; }
+}
+function mainBotReplyMarkup(url) {
+  const appUrl = url || MINIAPP_ENTRY_URL;
+  const button = appUrl ? { text: APP_ENTRY_TEXT, web_app: { url: appUrl } } : { text: APP_ENTRY_TEXT };
   return { reply_markup: {
-    keyboard: chatBtnKeyboardRows(CHAT_BTN_CACHE.enabled && CHAT_BTN_CACHE.enabled.length ? CHAT_BTN_CACHE.enabled : []),
+    keyboard: [[button]],
     resize_keyboard: true,
     is_persistent: true,
-    input_field_placeholder: 'یک گزینه را انتخاب کنید'
+    input_field_placeholder: '«منوی» کنار کادر پیام'
   } };
 }
 function miniAppUrl(env, origin) {
@@ -3755,7 +3807,8 @@ function miniAppUrl(env, origin) {
   }
   try { const u = new URL('/miniapp', origin); return u.protocol === 'https:' ? u.toString() : ''; } catch (e) { return ''; }
 }
-const MINIAPP_MENU_BUTTON_VERSION = 'tiznetvpn-menu-button-ubuntu-v1';
+// دکمهٔ «منوی» کنار کادر پیام (ChatMenuButton): تنها راه ناوبری بیرون از پیام‌ها.
+const MINIAPP_MENU_BUTTON_VERSION = 'tiznetvpn-menu-button-ubuntu-v2';
 async function ensureBotCommandsMode(env) {
   const mode = miniAppOnlyMode(env) ? 'miniapp-approved-buttons-v2' : 'legacy-v1';
   if (await kvGet(env, 'system:bot_commands_mode', '') === mode) return;
@@ -3781,7 +3834,7 @@ async function ensureMiniAppMenuButton(env, user, chatId, origin) {
     // برچسب کوتاه لاتین در دکمهٔ آبی Mini App تلگرام.
     await tg(env, 'setChatMenuButton', {
       chat_id: chatId,
-      menu_button: { type: 'web_app', text: 'tiznet', web_app: { url: webAppUrl } }
+      menu_button: { type: 'web_app', text: 'منوی', web_app: { url: webAppUrl } }
     });
     user.miniapp_menu_set = true;
     user.miniapp_menu_set_version = MINIAPP_MENU_BUTTON_VERSION;
@@ -4543,45 +4596,51 @@ async function showHome(env, chatId, u, messageId, origin, allowWebApp) {
   const cfg = await getCfg(env);
   const text = '✨ <b>تیزنت VPN | TiznetVPN</b>\n' + esc(cfg.welcome) +
     '\n\n💰 موجودی کیف پول: <b>' + fmtToman(u.balance) + '</b>' +
-    '\n\n👇 از کیبورد پایین چت استفاده کنید.';
-  // منوی شیشه‌ای داخل پیام حذف شده؛ ناوبری فقط با کیبورد پایین چت انجام می‌شود.
+    '\n\n📱 برای دیدن همهٔ بخش‌ها دکمهٔ «منوی» کنار کادر پیام را بزنید.';
   const kb = mainBotReplyMarkup();
-  if (messageId) await editMsg(env, chatId, messageId, text, kb);
-  else await msg(env, chatId, text, kb);
+  if (messageId) { await editMsg(env, chatId, messageId, text, kb); return; }
+  await msg(env, chatId, text, kb);
+  // در حالت کلاسیک هم منوی دکمه‌ای در پیام جدا می‌آید؛ تنها راه رسیدن به بخش‌هاست.
+  // برای ادمین لازم نیست؛ پنل مدیریت خودش همهٔ مسیرها را دارد.
+  if (!isAdminChat(env, chatId) && await chatInlineEnabled(env)) { try { await sendChatInlineMenu(env, chatId, null); } catch (e) {} }
 }
 
 /* ── منوی دکمه‌های شیشه‌ای چت ────────────────────────────────────────────
- * همان بخش‌هایی که در کیبورد پایین چت هست، این‌جا هم با یک لمس باز می‌شود.
+ * همان بخش‌هایی که در کاتالوگ دکمه‌ها تعریف شده‌اند، این‌جا هم با یک لمس باز می‌شوند.
  * هدف: مشتری‌ای که مینی‌اپ برایش باز نمی‌شود، هیچ بخشی را از دست ندهد.
  * هر دکمه به یک مسیر واقعی وصل است (خرید کامل، کیف پول، سفارش‌ها و…).
  */
-function chatInlineMenuRows() {
-  return [
-    [BTN('🛍 خرید اشتراک', 'menu:buy'), BTN('📦 اشتراک‌های من', 'menu:subs')],
-    [BTN('💰 کیف پول و شارژ', 'menu:wallet'), BTN('🧾 سفارش‌های من', 'menu:orders')],
-    [BTN('🎁 اشتراک رایگان', 'menu:free'), BTN('🤝 دریافت نمایندگی', 'menu:agent')],
-    [BTN('🎧 پشتیبانی', 'menu:support'), BTN('📘 راهنما', 'menu:help')],
-    [BTN('📥 دانلود اپ‌ها', 'menu:apps'), BTN('🪪 اطلاعات حساب', 'menu:account')],
-    [BTN('🎉 دعوت دوستان', 'menu:ref'), BTN('🔄 تازه‌سازی منو', 'menu:home')]
-  ];
+// یک منبع برای همهٔ منوها: همین فهرست هم منوی داخل چت را می‌سازد، هم در مینی‌اپ
+// توسط ادمین ویرایش می‌شود. دیگر دو منوی متفاوت با هم وجود ندارد.
+async function chatInlineMenuRows(env) {
+  const cache = await chatButtons(env);
+  const items = (cache.enabled || []).map((btn) => BTN(btn.text, 'menu:' + btn.id));
+  const rows = [];
+  for (let i = 0; i < items.length; i += 2) rows.push(items.slice(i, i + 2));
+  const refresh = BTN('🔄 تازه‌سازی منو', 'menu:home');
+  // اگر تعداد دکمه‌ها فرد بود، «تازه‌سازی» کنار آخرین دکمه می‌نشیند تا یک ردیف خالی نماند.
+  if (rows.length && rows[rows.length - 1].length === 1) rows[rows.length - 1].push(refresh);
+  else rows.push([refresh]);
+  return rows;
 }
 
 async function sendChatInlineMenu(env, chatId, messageId) {
   const text = '🧩 <b>منوی دکمه‌ای تیزنت</b>\n' +
-    'اگر اپ فروشگاه برای شما باز نمی‌شود، همهٔ کارها را از همین دکمه‌ها انجام دهید: ' +
+    'همهٔ کارها را از همین دکمه‌ها انجام دهید: ' +
     'خرید و تمدید، کیف پول، سفارش‌ها، اشتراک رایگان، نمایندگی و پشتیبانی.\n' +
-    'برای وارد کردن شماره یا مبلغ، همان کیبورد پایین چت هم در دسترس است.';
-  if (messageId) { try { await editMsg(env, chatId, messageId, text, KB(chatInlineMenuRows())); return; } catch (e) {} }
-  await msg(env, chatId, text, KB(chatInlineMenuRows()));
+    'برای وارد کردن شماره یا مبلغ، همان کادر پیام کافی است.';
+  const rows = await chatInlineMenuRows(env);
+  if (messageId) { try { await editMsg(env, chatId, messageId, text, chatMenuKB(rows)); return; } catch (e) {} }
+  await msg(env, chatId, text, chatMenuKB(rows));
 }
 
 async function showMiniAppOnlyStart(env, chatId, origin) {
-  // دکمهٔ وب‌اپ داخل پیام حذف شد؛ ورود به اپ از دکمهٔ منوی تلگرام (☰) انجام می‌شود.
+  // ورود به اپ فقط از دو جای ثابت: دکمهٔ پایین چت و دکمهٔ «منوی» کنار کادر پیام.
   await msg(env, chatId,
-    '🛍 برای خرید، دکمهٔ «🛍 خرید اشتراک» پایین چت را بزنید؛ خرید کامل (پلن، کد تخفیف، کیف پول و کارت‌به‌کارت) داخل همین چت انجام می‌شود.\n' +
-    '📱 اپ فروشگاه هم از دکمهٔ منوی تلگرام (☰) باز می‌شود؛ هر دو یک حساب و یک داده دارند.\n' +
-    '🧩 اگر اپ برای شما باز نشد، از «منوی دکمه‌ای» پیام بعدی استفاده کنید — همهٔ بخش‌ها همان‌جا با یک لمس باز می‌شوند.\n' +
-    'برای سایر خدمات، یکی از دکمه‌های پایین چت را انتخاب کنید.', mainBotReplyMarkup());
+    '👋 خوش آمدید.\n' +
+    '🛍 خرید کامل (پلن، کد تخفیف، کیف پول و کارت‌به‌کارت) داخل همین چت هم انجام می‌شود.\n' +
+    '🧩 همهٔ بخش‌ها در «منوی دکمه‌ای» پیام بعدی است؛ با یک لمس باز می‌شوند.\n' +
+    '📱 برای ورود به اپ فروشگاه، دکمهٔ «ورود به اپ» پایین چت یا دکمهٔ «منوی» کنار کادر پیام را بزنید.', mainBotReplyMarkup());
   // منوی دکمه‌ای در پیام جدا می‌آید چون تلگرام در یک پیام یا کیبورد پایین را می‌پذیرد یا دکمهٔ شیشه‌ای.
   if (await chatInlineEnabled(env)) { try { await sendChatInlineMenu(env, chatId, null); } catch (e) {} }
 }
@@ -4589,7 +4648,7 @@ async function showMiniAppOnlyStart(env, chatId, origin) {
 async function sendMiniAppEntry(env, chatId, origin, caption) {
   const appUrl = miniAppUrl(env, origin);
   const text = (caption || 'برای ادامه وارد اپ فروش تیزنت شوید.') +
-    (appUrl ? '\n\n☰ اپ را از دکمهٔ منوی تلگرام باز کنید.' : '');
+    (appUrl ? '\n\n📱 اپ را از دکمهٔ «📱 ورود به اپ» پایین چت یا دکمهٔ «منوی» کنار کادر پیام باز کنید.' : '');
   await msg(env, chatId, text, mainBotReplyMarkup());
 }
 
@@ -4802,6 +4861,8 @@ async function runChatButton(env, u, chatId, id, origin, cfgIn) {
 
 async function handleMiniAppOnlyButton(env, u, chatId, text, origin) {
   const key = botButtonKey(text);
+  // کیبورد پایین چت یک دکمه دارد؛ اگر آدرس https در دسترس نبود، همان دکمه متن می‌فرستد.
+  if (key === botButtonKey(APP_ENTRY_TEXT) || key === 'ورود به اپ') { await sendMiniAppEntry(env, chatId, origin); return true; }
   if (key === 'تبدیل امتیاز' || key === 'تبدیل امتیاز به کیف پول') { await chatAgentRedeemPoints(env, chatId, u); return true; }
   const id = await resolveChatButton(env, text);
   if (!id) return false;
@@ -7142,7 +7203,7 @@ async function adminSettings(env, chatId, messageId) {
     [BTN(inlineOn ? '⛔ خاموش‌کردن دکمه‌های شیشه‌ای چت' : '✅ روشن‌کردن دکمه‌های شیشه‌ای چت', 's_inline')],
     [BTN('🔒 قفل کانال و شماره', 's_gate')],
     [BTN('🎨 دکمه‌ها و آیکن‌ها', 's_ui')],
-    [BTN('🎛 دکمه‌های کیبورد چت', 's_kb')],
+    [BTN('🎛 دکمه‌های منوی چت', 's_kb')],
     [BTN('🧹 نگهداری پنل', 's_retn')],
     [BTN('💾 بکاپ KV همین حالا', 'a_kvb'), BTN('📜 رویدادهای بانکی', 'a_shlog')],
     [BTN('◀️ پنل مدیریت', 'admin')]
@@ -7626,15 +7687,15 @@ async function onCallback(env, q, origin) {
       const text = subs.length
         ? '📦 <b>اشتراک‌های شما</b>\nبرای دیدن لینک، QR، تمدید و کانفیگ، یکی را انتخاب کنید:'
         : '📦 <b>اشتراک‌های من</b>\n\nهنوز اشتراکی ندارید؛ از دکمهٔ «خرید اشتراک» شروع کنید.';
-      if (messageId) await editMsg(env, chatId, messageId, text, KB(rows));
-      else await msg(env, chatId, text, KB(rows));
+      if (messageId) await editMsg(env, chatId, messageId, text, chatMenuKB(rows));
+      else await msg(env, chatId, text, chatMenuKB(rows));
       return;
     }
     if (menuId === 'wallet') {
       const text = await chatWalletText(env, u);
       const rows = [[BTN('➕ شارژ کیف پول', 'menu:charge'), BTN('◀️ منو', 'menu:home')]];
-      if (messageId) await editMsg(env, chatId, messageId, text, KB(rows));
-      else await msg(env, chatId, text, KB(rows));
+      if (messageId) await editMsg(env, chatId, messageId, text, chatMenuKB(rows));
+      else await msg(env, chatId, text, chatMenuKB(rows));
       return;
     }
     if (menuId === 'charge') { await showCharge(env, chatId, messageId); return; }
@@ -9070,7 +9131,7 @@ async function onMessage(env, m, origin) {
     if (text && await handleMiniAppOnlyButton(env, u, chatId, text, origin)) return;
     // شماره/متن مرحلهٔ جاری ویزارد خرید داخل چت.
     if (text && await onStateText(env, u, chatId, text)) return;
-    await msg(env, chatId, 'برای ادامه یکی از دکمه‌های پایین چت را انتخاب کنید یا «🛍 خرید اشتراک» را بزنید.', mainBotReplyMarkup());
+    await msg(env, chatId, 'برای ادامه از منوی دکمه‌ای بالا یا دکمهٔ «📱 ورود به اپ» استفاده کنید.', mainBotReplyMarkup());
     return;
   }
 
@@ -9179,7 +9240,7 @@ async function onMessage(env, m, origin) {
   if (/^\/(menu|buttons)(@\w+)?$/i.test(text)) {
     await clearState(env, u.tg_id);
     if (!(await chatInlineEnabled(env))) {
-      await msg(env, chatId, '🧩 دکمه‌های شیشه‌ای در چت خاموش است؛ از دکمه‌های پایین چت استفاده کنید.', mainBotReplyMarkup());
+      await msg(env, chatId, '🧩 منوی دکمه‌ای چت خاموش است؛ از دکمهٔ «منوی» کنار کادر پیام یا «📱 ورود به اپ» استفاده کنید.', mainBotReplyMarkup());
       return;
     }
     await sendChatInlineMenu(env, chatId, null);
@@ -13850,6 +13911,8 @@ async function manualBackupDownloadResponse(request, env, url) {
 
 async function handleRequest(request, env) {
   const url = new URL(request.url);
+  // آدرس مینی‌اپ برای دکمهٔ «ورود به اپ» پایین چت (در هر درخواست تازه می‌شود).
+  try { MINIAPP_ENTRY_URL = miniAppUrl(env, url.origin); } catch (e) {}
 
   if (request.method === 'GET' && (url.pathname === '/miniapp' || url.pathname === '/miniapp/' || url.pathname === '/app' || url.pathname === '/app/')) {
     return await serveMiniAppAsset(env, request, true);
