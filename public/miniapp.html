@@ -880,7 +880,26 @@
     .agent-admin-grid { display:grid; grid-template-columns:minmax(280px,.9fr) minmax(320px,1.1fr); gap:14px; align-items:start; }
     .agent-admin-stack { display:grid; gap:14px; min-width:0; }
     .agent-detail-panel,.agent-create-panel,.agent-history-panel { margin-top:14px; }
-    .agent-tabs { margin-bottom:14px; }
+    /* نوار تب پایین پنل نماینده: متن بزرگ‌تر و روشن‌تر، همیشه در دسترس */
+    .agent-tabbar { display:none; }
+    body.agent-shell #agentTabbar { display:flex; position:fixed; z-index:32; left:0; right:0; bottom:0; gap:3px;
+      padding:9px 6px calc(9px + var(--safe-bottom)); border-top:1px solid rgba(240, 86, 99, .38);
+      background:linear-gradient(180deg, rgba(74, 9, 17, .98), rgba(38, 4, 9, .99));
+      box-shadow:0 -14px 34px rgba(0, 0, 0, .5);
+      -webkit-backdrop-filter:blur(18px); backdrop-filter:blur(18px); }
+    body.agent-shell #agentPage { padding-bottom:calc(104px + var(--safe-bottom)); }
+    body.agent-shell .sidebar, body.agent-shell #mobileNav { display:none !important; }
+    body.agent-shell .main { padding-left:14px !important; padding-right:14px !important; }
+    .agent-tab { flex:1 1 0; min-width:0; display:grid; gap:4px; justify-items:center; padding:8px 0;
+      border:0; border-radius:13px; background:transparent; color:#ffd8dc; font:inherit;
+      font-size:13.5px; font-weight:800; letter-spacing:-.2px; line-height:1.25; white-space:nowrap;
+      cursor:pointer; transition:color .16s ease, background .16s ease; }
+    .agent-tab .agent-tab-icon { font-size:16px; line-height:1; opacity:.92; }
+    .agent-tab.active { color:#ffffff; background:linear-gradient(165deg, rgba(240, 86, 99, .55), rgba(240, 86, 99, .2));
+      box-shadow:inset 0 0 0 1px rgba(255, 255, 255, .3); }
+    .agent-tab.active .agent-tab-icon { opacity:1; }
+    .agent-tab:active { transform:scale(.97); }
+    @media (max-width:370px) { .agent-tab { font-size:12.5px; } .agent-tab .agent-tab-icon { font-size:15px; } }
     .agent-dash-card { display:grid; gap:6px; justify-items:center; text-align:center; padding:22px 16px; }
     .agent-dash-label { color:#f0e2e3; font-size:var(--fs-2xs); font-weight:700; }
     .agent-dash-balance { font-size:30px; font-weight:800; color:#fff; letter-spacing:-.5px; line-height:1.4; }
@@ -2509,7 +2528,6 @@
     @keyframes ico-doc { 0%, 64%, 100% { rotate: 0deg; } 72% { rotate: -8deg; } 82% { rotate: 0deg; } }
     @keyframes ico-people { 0%, 62%, 100% { translate: 0 0; } 70% { translate: 0 -2.5px; } 80% { translate: 0 0; } }
     @keyframes ico-badge { 0%, 62%, 100% { rotate: 0deg; scale: 1; } 70% { rotate: 9deg; scale: 1.1; } 80% { rotate: 0deg; scale: 1; } }
-    @keyframes ico-panel { 0%, 64%, 100% { translate: 0 0; } 72% { translate: 2px 0; } 80% { translate: -1px 0; } 88% { translate: 0 0; } }
     @keyframes ico-bag { 0%, 64%, 100% { rotate: 0deg; } 72% { rotate: -8deg; } 82% { rotate: 7deg; } 90% { rotate: 0deg; } }
     @keyframes ico-book { 0%, 66%, 100% { rotate: y 0deg; } 76% { rotate: y -24deg; } 88% { rotate: y 0deg; } }
     @keyframes ico-server { 0%, 66%, 100% { opacity: 1; } 72% { opacity: .35; } 78% { opacity: 1; } 84% { opacity: .55; } 90% { opacity: 1; } }
@@ -2534,8 +2552,6 @@
     .nav-btn[data-page="customers"] svg { animation: ico-people 9s var(--ease-out) infinite; }
     .mobile-nav button[data-page="agents"] svg,
     .nav-btn[data-page="agents"] svg { animation: ico-badge 8.7s var(--ease-out) infinite; }
-    .mobile-nav button[data-page="agent"] svg,
-    .nav-btn[data-page="agent"] svg { animation: ico-panel 9.4s var(--ease-out) infinite; }
     .mobile-nav button[data-page="store"] svg,
     .nav-btn[data-page="store"] svg { animation: ico-bag 8.4s var(--ease-out) infinite; }
     .mobile-nav button[data-page="plans"] svg,
@@ -3063,7 +3079,6 @@
       <button class="nav-btn" data-page="orders"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M7 3.5h8l4 4V20a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 20V5a1.5 1.5 0 0 1 1.5-1.5Z"/><path d="M14.5 3.5V8H19M8 12h8M8 16h8"/></svg></span><span class="nav-label">سفارش‌ها</span><span class="nav-count" id="ordersNavCount">۰</span></button>
       <button class="nav-btn" data-page="customers"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM16 4.3a3.5 3.5 0 0 1 0 6.7M17 15h1.5a3.5 3.5 0 0 1 3.5 3.5V20"/></svg></span><span class="nav-label">مشتری‌ها</span></button>
       <button class="nav-btn" data-page="agents"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20v-1a6.5 6.5 0 0 1 13 0v1M17 7h4M19 5v4M17.5 14h1a3 3 0 0 1 3 3v2"/></svg></span><span class="nav-label">نماینده‌ها</span></button>
-      <button class="nav-btn" data-page="agent"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 6h16v12H4zM8 10h8M8 14h5"/><circle cx="18" cy="18" r="3"/></svg></span><span class="nav-label">پنل نماینده</span></button>
       <button class="nav-btn" data-page="plans"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v18H6.5A2.5 2.5 0 0 1 4 18.5v-13Z"/><path d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20M8 7h7M8 10.5h8"/></svg></span><span class="nav-label">پلن‌ها</span></button>
       <button class="nav-btn" data-page="servers"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01M11 7h6M11 17h6"/></svg></span><span class="nav-label">سرورها</span></button>
       <button class="nav-btn" data-page="store"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 9.5h16l-1.3-5H5.3L4 9.5ZM5 9.5v9A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5v-9M9 21v-6h6v6M3 9.5h18"/></svg></span><span class="nav-label">پیش‌نمایش فروشگاه</span></button>
@@ -3247,13 +3262,6 @@
       <div class="page-top"><p class="mini-note" id="agentWelcome">موجودی مستقل، ساخت و تمدید اشتراک‌ها</p><button class="outline-btn" id="agentReload" type="button">به‌روزرسانی</button></div>
 
       <div class="customer-notice hidden" id="agentDisabledNotice" role="status">دسترسی نمایندگی غیرفعال شده است؛ اشتراک‌های قبلی شما برای مشاهده باقی می‌مانند، اما امکان ساخت جدید ندارید. برای فعال‌سازی با مدیر فروشگاه تماس بگیرید.</div>
-      <div class="settings-tabs agent-tabs" role="tablist" aria-label="بخش‌های پنل نماینده">
-        <button class="settings-tab active" type="button" role="tab" aria-selected="true" data-atab="dash">داشبورد</button>
-        <button class="settings-tab" type="button" role="tab" aria-selected="false" data-atab="buy">خرید اشتراک</button>
-        <button class="settings-tab" type="button" role="tab" aria-selected="false" data-atab="renew">تمدید</button>
-        <button class="settings-tab" type="button" role="tab" aria-selected="false" data-atab="subs">اشتراک‌ها</button>
-        <button class="settings-tab" type="button" role="tab" aria-selected="false" data-atab="wallet">کیف پول</button>
-      </div>
 
       <div data-agroup="dash">
         <article class="panel agent-dash-card">
@@ -3301,6 +3309,14 @@
           <div class="panel-head"><div><h3>تاریخچهٔ کیف پول</h3></div></div>
           <div class="agent-transaction-list" id="agentTransactionsList"><div class="empty-state">تراکنشی ثبت نشده است.</div></div>
         </article>
+      </div>
+
+      <div class="agent-tabbar" id="agentTabbar" role="tablist" aria-label="بخش‌های پنل نماینده">
+        <button class="agent-tab active" type="button" role="tab" aria-selected="true" data-atab="dash"><span class="agent-tab-icon" aria-hidden="true">◉</span><span>داشبورد</span></button>
+        <button class="agent-tab" type="button" role="tab" aria-selected="false" data-atab="buy"><span class="agent-tab-icon" aria-hidden="true">＋</span><span>خرید</span></button>
+        <button class="agent-tab" type="button" role="tab" aria-selected="false" data-atab="renew"><span class="agent-tab-icon" aria-hidden="true">↻</span><span>تمدید</span></button>
+        <button class="agent-tab" type="button" role="tab" aria-selected="false" data-atab="subs"><span class="agent-tab-icon" aria-hidden="true">▤</span><span>اشتراک‌ها</span></button>
+        <button class="agent-tab" type="button" role="tab" aria-selected="false" data-atab="wallet"><span class="agent-tab-icon" aria-hidden="true">◍</span><span>کیف پول</span></button>
       </div>
     </section>
 
@@ -3629,7 +3645,6 @@
       <button data-page="orders"><svg viewBox="0 0 24 24"><path d="M7 3.5h8l4 4V20H5V5a1.5 1.5 0 0 1 2-1.5ZM14 4v4h4M8 12h8M8 16h8"/></svg><span>سفارش‌ها</span></button>
       <button data-page="customers"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="4"/><path d="M2.5 21v-1.5a6.5 6.5 0 0 1 13 0V21M17 15h1.5a3.5 3.5 0 0 1 3.5 3.5V20"/></svg><span>مشتری‌ها</span></button>
       <button data-page="agents"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20v-1a6.5 6.5 0 0 1 13 0v1M17 7h4M19 5v4M17.5 14h1a3 3 0 0 1 3 3v2"/></svg><span>نماینده‌ها</span></button>
-      <button data-page="agent"><svg viewBox="0 0 24 24"><path d="M4 6h16v12H4zM8 10h8M8 14h5"/><circle cx="18" cy="18" r="3"/></svg><span>پنل نماینده</span></button>
       <button data-page="store"><svg viewBox="0 0 24 24"><path d="M4 9.5h16l-1.3-5H5.3L4 9.5ZM5 9.5v9A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5v-9"/></svg><span>فروشگاه</span></button>
       <button data-page="plans"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v18H6.5A2.5 2.5 0 0 1 4 18.5zM8 8h8M8 12h8"/></svg><span>پلن‌ها</span></button>
       <button data-page="servers"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01"/></svg><span>سرورها</span></button>
@@ -3924,6 +3939,7 @@
       document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
       document.getElementById(page+'Page')?.classList.remove('hidden');
       document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+      document.body.classList.toggle('agent-shell',page==='agent');
       const crumb=document.getElementById('crumbTitle'); if(crumb) crumb.textContent=titleMap[page]||'تیزنت';
       window.scrollTo({top:0,behavior:'smooth'});
     }
@@ -4597,7 +4613,7 @@
       const group = ['dash','buy','renew','subs','wallet'].includes(String(name||'')) ? String(name) : 'dash';
       agentGroup = group;
       document.querySelectorAll('#agentPage [data-agroup]').forEach((el)=>{ el.classList.toggle('hidden', el.getAttribute('data-agroup')!==group); });
-      document.querySelectorAll('#agentPage .agent-tabs .settings-tab').forEach((tab)=>{
+      document.querySelectorAll('#agentTabbar .agent-tab').forEach((tab)=>{
         const on = tab.getAttribute('data-atab')===group;
         tab.classList.toggle('active',on);
         tab.setAttribute('aria-selected',on?'true':'false');
@@ -6156,6 +6172,11 @@
     function setNavForRole() {
       const visible=page=>!liveMode?!['agents','agent'].includes(page):(adminRole?['overview','orders','customers','agents','plans','servers','store','settings'].includes(page):agentRole?page==='agent':page==='store');
       document.querySelectorAll('#sideNav [data-page],#mobileNav [data-page]').forEach(b=>{b.style.display=visible(b.dataset.page)?'':'none';});
+      ['sideNav','mobileNav'].forEach((id)=>{
+        const box=document.getElementById(id);if(!box)return;
+        const anyVisible=[...box.querySelectorAll('[data-page]')].some((b)=>b.style.display!=='none');
+        box.style.display=anyVisible?'':'none';
+      });
       const cap=document.querySelector('.side-caption');if(cap&&liveMode)cap.textContent=adminRole?'مدیریت فروشگاه':agentRole?'پنل نمایندگی':'فروشگاه مشتری';
       const toggle=document.getElementById('roleToggle');if(toggle)toggle.style.display=liveMode&&adminRole?'':'none';
       updateAccountTrigger((isCustomer&&customerData&&customerData.customer)||profile);
@@ -6181,7 +6202,7 @@
     document.getElementById('agentsReload').addEventListener('click',()=>Promise.all([loadAdminAgents(),loadAgentInvites()]).catch(()=>toast('بازخوانی نماینده‌ها ناموفق بود.')));
     document.getElementById('agentInviteCreate').addEventListener('click',createAgentInvite);
     document.getElementById('agentReload').addEventListener('click',()=>loadAgentPortal());
-    document.querySelectorAll('#agentPage .agent-tabs .settings-tab').forEach((tab)=>{
+    document.querySelectorAll('#agentTabbar .agent-tab').forEach((tab)=>{
       tab.addEventListener('click',()=>showAgentGroup(tab.getAttribute('data-atab')||'dash'));
     });
     const agentDeliveryBack=document.getElementById('agentDeliveryBack');if(agentDeliveryBack)agentDeliveryBack.addEventListener('click',()=>{setPageVisible('agent');loadAgentPortal().catch(()=>{});});
