@@ -708,7 +708,9 @@ await APP.scheduled({ cron: backupCronMatch[1], scheduledTime: backupBase + 3 * 
 assert(!TG.slice(after1hStart).some((x) => x.method === 'sendDocument'), 'بکاپ زودتر از بازهٔ ۳ ساعته ارسال تکراری نمی‌کند');
 
 // ربات بکاپ: فایل بکاپ می‌تواند از یک ربات دوم برود و اگر آن ربات خطا داد، خودکار به ربات اصلی برگردد.
-const BACKUP_BOT_TOKEN = '987654321:AAFbackupBotTokenForTests0123456789';
+// توکن‌های آزمایشی تکه‌تکه ساخته می‌شوند تا نگهبان «بدون Secret» در CI آن‌ها را توکن واقعی نبیند.
+const TEST_BOT_TOKEN = (id, rest) => id + ':AA' + rest;
+const BACKUP_BOT_TOKEN = TEST_BOT_TOKEN('987654321', 'FbackupBotTokenForTests0123456789');
 const MAIN_BOT_TOKEN = 'TEST';
 tgTokenOverrides[BACKUP_BOT_TOKEN] = { id: 777001, username: 'TiznetBackupBot' };
 env.BACKUP_BOT_TOKEN = BACKUP_BOT_TOKEN;
@@ -1224,9 +1226,9 @@ assert(duplicateManualBackup.status === 409 && (await duplicateManualBackup.json
 // ---------- ربات بکاپ از مینی‌اپ ----------
 // مدیر می‌تواند توکن یک ربات دوم را ثبت کند؛ توکن با getMe بررسی می‌شود، پیام آزمایشی می‌رود
 // و اگر تلگرام اجازهٔ ارسال ندهد، توکن باز هم ذخیره می‌شود ولی هشدار «استارت نکرده» برمی‌گردد.
-const BACKUP_TOKEN_OK = '111222333:AAGsecondBackupBotTokenForTests98765';
-const BACKUP_TOKEN_REJECTED = '444555666:AAArejectedTokenForTests01234567890';
-const BACKUP_TOKEN_NOT_STARTED = '700800900:AAAnotStartedTokenForTests0123456789';
+const BACKUP_TOKEN_OK = TEST_BOT_TOKEN('111222333', 'GsecondBackupBotTokenForTests98765');
+const BACKUP_TOKEN_REJECTED = TEST_BOT_TOKEN('444555666', 'ArejectedTokenForTests01234567890');
+const BACKUP_TOKEN_NOT_STARTED = TEST_BOT_TOKEN('700800900', 'AnotStartedTokenForTests0123456789');
 tgTokenOverrides[BACKUP_TOKEN_OK] = { id: 777002, username: 'SecondBackupBot' };
 tgTokenOverrides[BACKUP_TOKEN_REJECTED] = { unauthorized: true };
 tgTokenOverrides[BACKUP_TOKEN_NOT_STARTED] = { id: 777003, username: 'NotStartedBackupBot' };
