@@ -3543,6 +3543,17 @@
         </div>
         <div class="customer-notice kv-backup-warning">این فایل <strong>بدون رمزگذاری</strong> است و همهٔ داده‌های KV، از جمله اطلاعات حساس ذخیره‌شده در KV را در بر می‌گیرد؛ Secretهای محیط Cloudflare داخل آن نیستند. ریستور، کل KV فعلی را جایگزین می‌کند. قبل از اجرا، Worker یک بکاپ از وضعیت فعلی برای مدیران می‌فرستد و تأیید نهایی می‌گیرد.</div>
         <div id="kvBackupStatus" class="form-message" role="status" aria-live="polite"></div>
+        <div class="panel-head" style="margin-top:22px"><div><h3>ربات بکاپ جداگانه</h3><p>اختیاری: فایل بکاپ از یک ربات دوم ارسال شود، نه ربات فروشگاه.</p></div><span class="status pending" id="backupBotVerdict">تنظیم نشده</span></div>
+        <div class="domain-grid" id="backupBotMeta"><div class="empty-state">وضعیت ربات بکاپ در حال بارگذاری…</div></div>
+        <div class="settings-grid">
+          <label>توکن ربات بکاپ<input id="backupBotToken" type="password" dir="ltr" autocomplete="off" spellcheck="false" placeholder="123456789:AAF..."></label>
+        </div>
+        <div class="kv-backup-actions">
+          <button class="btn-primary" id="backupBotSave" type="button">ذخیره و آزمایش ربات بکاپ</button>
+          <button class="table-action danger" id="backupBotRemove" type="button">حذف ربات بکاپ</button>
+        </div>
+        <div class="mini-note">در BotFather یک ربات دوم بسازید، توکنش را این‌جا بگذارید و <strong>همان ربات را در تلگرام باز کنید و Start بزنید</strong>؛ تا وقتی Start نزده باشید تلگرام اجازهٔ ارسال فایل را نمی‌دهد. اگر این ربات از کار بیفتد، بکاپ خودکار از ربات اصلی ارسال می‌شود و هیچ بکاپی از دست نمی‌رود.</div>
+        <div id="backupBotStatus" class="form-message" role="status" aria-live="polite"></div>
       </article>
       <article class="panel domain-panel" id="domainPanel" data-sgroup="domain" style="margin-top:14px">
         <div class="panel-head"><div><h3>سلامت دامنه و HTTPS</h3><p>همان دامنه‌ای که سایت، نسخهٔ وب و وبهوک تلگرام روی آن کار می‌کنند.</p></div><span class="status" id="domainVerdict">—</span></div>
@@ -6445,6 +6456,10 @@
     document.getElementById('referralRedeemButton').addEventListener('click',()=>redeemCustomerReferralPoints());
     document.getElementById('referralClaimReward').addEventListener('click',()=>claimCustomerReferralReward());
     document.getElementById('kvBackupDownload').addEventListener('click',()=>downloadKvBackup());
+    const backupBotSaveBtn=document.getElementById('backupBotSave');
+    if(backupBotSaveBtn)backupBotSaveBtn.addEventListener('click',()=>saveBackupBot());
+    const backupBotRemoveBtn=document.getElementById('backupBotRemove');
+    if(backupBotRemoveBtn)backupBotRemoveBtn.addEventListener('click',()=>removeBackupBot());
     document.getElementById('kvRestoreFile').addEventListener('change',updateKvRestoreFile);
     document.getElementById('kvRestoreStart').addEventListener('click',()=>{const box=document.getElementById('kvRestoreConfirm');if(box){box.classList.remove('hidden');document.getElementById('kvRestorePhrase').focus();}setKvBackupStatus('با انتخاب دکمهٔ تأیید نهایی، کل KV جایگزین می‌شود.','error');});
     document.getElementById('kvRestoreConfirmBtn').addEventListener('click',()=>submitKvRestore());
@@ -6600,6 +6615,72 @@
       const tab=document.getElementById('managersTab');
       if(tab)tab.classList.toggle('hidden',!ownerRole);
     }
+    function renderBackupBot(bot){
+      const model=bot||{};
+      const verdict=document.getElementById('backupBotVerdict');
+      if(verdict){
+        verdict.textContent=model.configured?(model.username?'@'+model.username:'فعال'):'تنظیم نشده';
+        verdict.className='status '+(model.configured?'paid':'pending');
+      }
+      const grid=document.getElementById('backupBotMeta');
+      if(grid){
+        if(!model.configured){grid.innerHTML='<div class="empty-state">ربات بکاپ تنظیم نشده است؛ بکاپ با ربات اصلی ارسال می‌شود.</div>';}
+        else{
+          grid.innerHTML='<div class="domain-row"><span class="domain-label">ربات</span><span class="domain-value fa">'+esc(model.username?'@'+model.username:'—')+'</span><span class="domain-badge good">آماده</span></div>'
+            +'<div class="domain-row"><span class="domain-label">منبع توکن</span><span class="domain-value fa">'+esc(model.source==='env'?'فایل تنظیمات سرور':'ذخیره‌شده در مینی‌اپ')+'</span></div>'
+            +'<div class="domain-row"><span class="domain-label">آخرین آزمایش</span><span class="domain-value fa">'+esc(model.verified_at?fmtDate(model.verified_at):'آزمایش نشده')+'</span>'+(model.verified_at?'<span class="domain-badge good">موفق</span>':'<span class="domain-badge">آزمایش نشده</span>')+'</div>';
+        }
+      }
+      const saveButton=document.getElementById('backupBotSave');
+      if(saveButton)saveButton.disabled=model.source==='env';
+      const removeButton=document.getElementById('backupBotRemove');
+      if(removeButton)removeButton.disabled=model.source==='env'||!model.configured;
+    }
+    const BACKUP_BOT_ERRORS={
+      invalid_backup_bot_token:'قالب توکن درست نیست؛ توکن را کامل و بدون فاصله از BotFather کپی کنید.',
+      backup_bot_same_as_main:'این توکن خودِ ربات فروشگاه است؛ توکن ربات دوم را وارد کنید.',
+      backup_bot_token_rejected:'تلگرام این توکن را نپذیرفت؛ توکن را از BotFather دوباره بگیرید.',
+      backup_bot_unreachable:'دسترسی به تلگرام برقرار نشد؛ چند لحظه بعد دوباره تلاش کنید.',
+      backup_bot_not_started:'توکن ذخیره شد، اما تلگرام اجازهٔ ارسال پیام به شما را نداد: همان ربات را در تلگرام باز کنید و Start بزنید، بعد دوباره آزمایش کنید.',
+      backup_bot_test_failed:'توکن ذخیره شد اما پیام آزمایشی ارسال نشد؛ وضعیت ربات را بررسی کنید.',
+      backup_bot_from_env:'این توکن در فایل تنظیمات سرور ثبت شده است؛ از مینی‌اپ قابل حذف نیست.'
+    };
+    async function saveBackupBot(){
+      const input=document.getElementById('backupBotToken');
+      const status=document.getElementById('backupBotStatus');
+      const button=document.getElementById('backupBotSave');
+      const token=String(input&&input.value||'').trim();
+      if(!token){if(status)status.textContent='توکن ربات بکاپ را وارد کنید.';return;}
+      if(button){button.disabled=true;button.textContent='در حال آزمایش…';}
+      if(status)status.textContent='در حال بررسی توکن و ارسال پیام آزمایشی…';
+      try{
+        const result=await api('/api/miniapp/admin/backup-bot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save',token:token})});
+        if(input)input.value='';
+        renderBackupBot(result.backup_bot);
+        if(status)status.textContent=result.test_delivered?'✅ ربات بکاپ ثبت شد و پیام آزمایشی رسید.':(BACKUP_BOT_ERRORS[result.warning]||'توکن ذخیره شد.');
+        toast(result.test_delivered?'ربات بکاپ فعال شد.':'توکن ذخیره شد؛ آزمایش ناموفق بود.');
+        loadBackupStatus().catch(()=>{});
+      }catch(e){
+        const message=BACKUP_BOT_ERRORS[e.message]||agentErrorText(e.message,e.data&&e.data.detail);
+        if(status)status.textContent=message;
+        toast(message);
+      }finally{if(button){button.disabled=false;button.textContent='ذخیره و آزمایش ربات بکاپ';}}
+    }
+    async function removeBackupBot(){
+      const status=document.getElementById('backupBotStatus');
+      const button=document.getElementById('backupBotRemove');
+      if(button)button.disabled=true;
+      try{
+        await api('/api/miniapp/admin/backup-bot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'remove'})});
+        renderBackupBot({configured:false});
+        if(status)status.textContent='ربات بکاپ حذف شد؛ بکاپ‌ها با ربات اصلی ارسال می‌شوند.';
+        toast('ربات بکاپ حذف شد.');
+        loadBackupStatus().catch(()=>{});
+      }catch(e){
+        const message=BACKUP_BOT_ERRORS[e.message]||agentErrorText(e.message,e.data&&e.data.detail);
+        if(status)status.textContent=message;toast(message);
+      }finally{if(button)button.disabled=false;}
+    }
     async function loadBackupStatus(){
       const grid=document.getElementById('kvBackupMeta');
       if(!grid)return;
@@ -6607,11 +6688,17 @@
         const model=await api('/api/miniapp/admin/backup-status');
         const last=model.last_at?fmtDate(model.last_at):'هنوز ارسال نشده';
         const next=model.last_at?fmtDate(Number(model.last_at)+Number(model.every_hours||3)*3600000):'—';
+        const bot=model.backup_bot||{};
+        const channel=model.last_channel&&model.last_channel.channel;
+        const channelText=channel==='backup_bot'?'ربات بکاپ':channel==='mixed'?'ربات بکاپ + ربات اصلی':'ربات اصلی';
         grid.innerHTML=
           '<div class="domain-row"><span class="domain-label">بکاپ خودکار</span><span class="domain-value fa">هر '+esc(fmt(model.every_hours||3))+' ساعت → چت مدیر</span><span class="domain-badge good">فعال</span></div>'
           +'<div class="domain-row"><span class="domain-label">آخرین بکاپ</span><span class="domain-value fa">'+esc(last)+'</span></div>'
           +'<div class="domain-row"><span class="domain-label">بکاپ بعدی</span><span class="domain-value fa">'+esc(next)+'</span></div>'
-          +'<div class="domain-row"><span class="domain-label">گیرندگان</span><span class="domain-value fa">'+esc(fmt(model.admins||0))+' مدیر</span></div>';
+          +'<div class="domain-row"><span class="domain-label">گیرندگان</span><span class="domain-value fa">'+esc(fmt(model.admins||0))+' مدیر</span></div>'
+          +'<div class="domain-row"><span class="domain-label">ارسال از طریق</span><span class="domain-value fa">'+esc(channel?channelText:'—')+'</span>'+(channel?'<span class="domain-badge good">آخرین ارسال</span>':'')+'</div>'
+          +'<div class="domain-row"><span class="domain-label">ربات بکاپ</span><span class="domain-value fa">'+esc(bot.configured?(bot.username?'@'+bot.username:'تنظیم‌شده'):'تنظیم نشده')+'</span><span class="domain-badge '+(bot.configured?'good':'')+'">'+esc(bot.configured?(bot.source==='env'?'از فایل تنظیمات':'از مینی‌اپ'):'اختیاری')+'</span></div>';
+        renderBackupBot(bot);
       }catch(_){grid.innerHTML='<div class="empty-state">وضعیت بکاپ خوانده نشد.</div>';}
     }
     const domainCheckBtn=document.getElementById('domainCheck');

@@ -88,6 +88,8 @@ export function createRuntime() {
     MINIAPP_ONLY_MODE: String(source.MINIAPP_ONLY_MODE ?? 'true'),
     MINIAPP_URL: miniAppUrl,
     SHETAB_API_SECRET: String(source.SHETAB_API_SECRET || '').trim(),
+    // اختیاری: توکن ربات دوم برای ارسال بکاپ؛ اگر خالی باشد از توکن ذخیره‌شده در مینی‌اپ استفاده می‌شود.
+    BACKUP_BOT_TOKEN: String(source.BACKUP_BOT_TOKEN || '').trim(),
     DB,
     ASSETS
   };

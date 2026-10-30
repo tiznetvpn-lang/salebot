@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.51-ubuntu26.53';
+const VERSION = '1.8.52-ubuntu26.54';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -2330,6 +2330,7 @@ const KV_BACKUP_CRON = '0 */3 * * *';           // هر ۳ ساعت (هماهن�
 const RETENTION_CRON = '30 5 * * *';            // هماهنگ با systemd/tiznetvpn-reminders.timer (روزانه)
 const KV_BACKUP_MIN_INTERVAL_MS = 2.5 * 60 * 60 * 1000; // فاصلهٔ ایمنی کمتر از بازهٔ ۳ ساعت تا ارسال بعدی رد نشود
 const KV_BACKUP_LAST_KEY = 'system:kv_backup_last_at';
+const KV_BACKUP_CHANNEL_KEY = 'system:kv_backup_last_channel';
 const KV_BACKUP_LOCK_KEY = 'system:kv_backup_lock';
 const KV_RESTORE_LOCK_KEY = 'system:kv_restore_lock';
 const MAX_KV_RESTORE_UPLOAD_BYTES = 45 * 1024 * 1024;
@@ -3975,7 +3976,7 @@ async function deliverSubscriptionWithQr(env, chatId, caption, link, extra) {
   }
 }
 
-async function sendDoc(env, chat_id, filename, content, caption, contentType) {
+async function sendDoc(env, chat_id, filename, content, caption, contentType, botToken) {
   const form = new FormData();
   form.append('chat_id', String(chat_id));
   form.append('caption', caption || '');
@@ -3984,7 +3985,9 @@ async function sendDoc(env, chat_id, filename, content, caption, contentType) {
     ? new Blob([content], { type: contentType || content.type || 'application/octet-stream' })
     : new Blob([String(content)], { type: contentType || 'text/plain' });
   form.append('document', document, filename);
-  const r = await fetch('https://api.telegram.org/bot' + env.BOT_TOKEN + '/sendDocument', {
+  // توکن اختیاری: ارسال بکاپ با ربات دوم (اگر مدیر آن را تنظیم کرده باشد).
+  const token = String(botToken || env.BOT_TOKEN || '').trim();
+  const r = await fetch('https://api.telegram.org/bot' + token + '/sendDocument', {
     method: 'POST', body: form
   });
   let j = {};
@@ -6728,7 +6731,14 @@ async function adminBackupNow(env, chatId, messageId) {
   if (error) text = '❌ بکاپ انجام نشد: <code>' + esc(error) + '</code>' + footer;
   else if (result && result.skipped === 'already_sent') text = '⏳ بکاپ ' + (result.last_at ? fmtDate(result.last_at) : 'چند لحظه پیش') + ' ارسال شده؛ برای جلوگیری از ارسال تکراری یک دقیقه صبر کنید.' + footer;
   else if (result && result.skipped) text = '⏳ بکاپ در حال اجراست؛ چند لحظه بعد دوباره تلاش کنید.' + footer;
-  else if (result) text = '✅ بکاپ KV ساخته و برای ادمین (<b>' + faNum(result.delivered) + '</b> نفر) ارسال شد.\n📦 ' + faNum(result.entries) + ' رکورد · <code>' + esc(result.filename) + '</code>' + footer;
+  else if (result) {
+    const channelText = result.channel === 'backup_bot'
+      ? 'از طریق <b>ربات بکاپ</b>'
+      : result.channel === 'mixed'
+        ? 'بخشی از طریق <b>ربات بکاپ</b> و بقیه با ربات اصلی'
+        : 'از طریق <b>ربات اصلی</b>';
+    text = '✅ بکاپ KV ساخته و ' + channelText + ' برای ادمین (<b>' + faNum(result.delivered) + '</b> نفر) ارسال شد.\n📦 ' + faNum(result.entries) + ' رکورد · <code>' + esc(result.filename) + '</code>' + footer;
+  }
   else text = '❌ بکاپ انجام نشد.' + footer;
   const rows = [[BTN('◀️ تنظیمات', 'a_set')]];
   if (messageId) { try { await editMsg(env, chatId, messageId, text, KB(rows)); return; } catch (e) {} }
@@ -9049,6 +9059,18 @@ async function onMessage(env, m, origin) {
     if (!isAdmin(env, u.tg_id)) { await msg(env, chatId, '⛔ این دستور فقط برای مدیران است.', mainBotReplyMarkup()); return; }
     await clearState(env, u.tg_id);
     await adminBackupNow(env, chatId, null);
+    return;
+  }
+
+  // مدیریت ربات دومِ بکاپ از داخل چت: /backupbot [توکن|off]
+  const backupBotCmd = text.match(/^\/backupbot(?:@\w+)?(?:\s+([\s\S]+))?$/i);
+  if (backupBotCmd) {
+    if (!isAdmin(env, u.tg_id)) { await msg(env, chatId, '⛔ این دستور فقط برای مدیران است.', mainBotReplyMarkup()); return; }
+    await clearState(env, u.tg_id);
+    const arg = String(backupBotCmd[1] || '').trim();
+    // توکن را از تاریخچهٔ چت پاک می‌کنیم تا در پیام‌ها نماند.
+    if (arg && !/^(off|stop|حذف|خاموش)$/i.test(arg)) { try { await tg(env, 'deleteMessage', { chat_id: chatId, message_id: m.message_id }); } catch (e) {} }
+    await adminBackupBotCommand(env, chatId, arg, null);
     return;
   }
 
@@ -11540,7 +11562,7 @@ function miniAppAdminSettingsView(cfg, env, secretReady) {
       retention_paid_delete: cfg.retention_paid_delete !== false,
       retention_paid_grace_days: retentionConfig(cfg).grace_days
     },
-    protected: ['BOT_TOKEN', 'WEBHOOK_SECRET', 'SHETAB_API_SECRET', 'ADMIN_IDS', 'Cloudflare bindings']
+    protected: ['BOT_TOKEN', 'BACKUP_BOT_TOKEN', 'WEBHOOK_SECRET', 'SHETAB_API_SECRET', 'ADMIN_IDS', 'Cloudflare bindings']
   };
 }
 
@@ -12951,6 +12973,7 @@ async function miniAppApi(request, env, url) {
     }
     if (path === '/api/miniapp/admin/backup-status' && request.method === 'GET') {
       const lastAt = Number(await kvGet(env, KV_BACKUP_LAST_KEY, 0) || 0);
+      const lastChannel = await kvGet(env, KV_BACKUP_CHANNEL_KEY, null);
       return miniAppJson({
         ok: true,
         version: VERSION,
@@ -12958,7 +12981,64 @@ async function miniAppApi(request, env, url) {
         every_hours: 3,
         last_at: lastAt,
         admins: adminIds(env).length,
-        manual_cooldown_seconds: 60
+        manual_cooldown_seconds: 60,
+        last_channel: lastChannel || null,
+        backup_bot: backupBotStatus(env, await getCfg(env))
+      }, 200);
+    }
+    // ربات بکاپ: توکن ربات دوم را مدیر از مینی‌اپ ثبت/حذف می‌کند و همان‌جا آزمایش می‌شود.
+    if (path === '/api/miniapp/admin/backup-bot') {
+      const cfgBot = await getCfg(env);
+      if (request.method === 'GET') return miniAppJson({ ok: true, backup_bot: backupBotStatus(env, cfgBot) }, 200);
+      if (request.method !== 'POST') return miniAppJson({ ok: false, error: 'method_not_allowed' }, 405);
+      const body = await readBody() || {};
+      const action = String(body.action || 'save');
+      if (action === 'remove') {
+        if (String(env.BACKUP_BOT_TOKEN || '').trim()) {
+          return miniAppJson({ ok: false, error: 'backup_bot_from_env' }, 409);
+        }
+        cfgBot.backup_bot_token = '';
+        cfgBot.backup_bot_username = '';
+        cfgBot.backup_bot_id = '';
+        cfgBot.backup_bot_verified_at = 0;
+        await saveCfg(env, cfgBot);
+        return miniAppJson({ ok: true, removed: true, backup_bot: backupBotStatus(env, cfgBot) }, 200);
+      }
+      const rawToken = String(body.token == null ? '' : body.token).trim();
+      const token = normalizeBotToken(rawToken);
+      if (!token) return miniAppJson({ ok: false, error: 'invalid_backup_bot_token' }, 400);
+      if (token === String(env.BOT_TOKEN || '').trim()) return miniAppJson({ ok: false, error: 'backup_bot_same_as_main' }, 400);
+      let me = null;
+      try { me = await telegramCallWithToken(token, 'getMe', {}); }
+      catch (error) {
+        const unauthorized = Number(error.status) === 401 || Number(error.status) === 404;
+        return miniAppJson({ ok: false, error: unauthorized ? 'backup_bot_token_rejected' : 'backup_bot_unreachable', detail: String(error.description || error.message || '').slice(0, 160) }, unauthorized ? 400 : 502);
+      }
+      if (!me || !me.username) return miniAppJson({ ok: false, error: 'backup_bot_token_rejected' }, 400);
+      cfgBot.backup_bot_token = token;
+      cfgBot.backup_bot_username = String(me.username || '').slice(0, 64);
+      cfgBot.backup_bot_id = String(me.id || '').slice(0, 32);
+      cfgBot.backup_bot_verified_at = 0;
+      // پیام آزمایشی به همان مدیری که توکن را ثبت کرده؛ اگر ربات را استارت نکرده باشد تلگرام ۴۰۳ می‌دهد.
+      let testOk = false, testError = '';
+      try {
+        await telegramCallWithToken(token, 'sendMessage', {
+          chat_id: String(identity.user.id),
+          text: '✅ ربات بکاپ تیزنت به این حساب وصل شد.\nاز این پس فایل بکاپ هر ۳ ساعت از همین ربات برای شما ارسال می‌شود.',
+          disable_web_page_preview: true
+        });
+        testOk = true;
+        cfgBot.backup_bot_verified_at = Date.now();
+      } catch (error) {
+        const description = String(error.description || error.message || '');
+        testError = /chat not found|can't initiate|blocked|not enough rights|Forbidden/i.test(description) ? 'backup_bot_not_started' : 'backup_bot_test_failed';
+      }
+      await saveCfg(env, cfgBot);
+      return miniAppJson({
+        ok: true,
+        test_delivered: testOk,
+        warning: testOk ? '' : testError,
+        backup_bot: backupBotStatus(env, cfgBot)
       }, 200);
     }
     if (path === '/api/miniapp/admin/backup-send' && request.method === 'POST') {
@@ -12968,7 +13048,7 @@ async function miniAppApi(request, env, url) {
         if (result && result.skipped) {
           return miniAppJson({ ok: false, error: result.skipped, last_at: Number(result.last_at || lastAt) }, 409);
         }
-        return miniAppJson({ ok: true, delivered: result.delivered, entries: result.entries, filename: result.filename, last_at: lastAt }, 200);
+        return miniAppJson({ ok: true, delivered: result.delivered, entries: result.entries, filename: result.filename, channel: result.channel, last_at: lastAt }, 200);
       } catch (error) {
         return miniAppJson({ ok: false, error: String((error && error.message) || 'backup_failed') }, 500);
       }
@@ -14013,6 +14093,131 @@ async function createKvBackupFile(env, generatedAt, maxCompressedBytes, excluded
   return { blob: blob, filename: 'tiznetvpn-kv-backup-' + stamp + '.json.gz', entries: items.length, items: items, createdAt: createdAt };
 }
 
+/* ====== ربات بکاپ: ارسال بکاپ از طریق یک ربات جداگانه به‌جای ربات اصلی ======
+ * مدیر می‌تواند توکن یک ربات دوم را (در تنظیمات مینی‌اپ ← پشتیبان) ثبت کند تا فایل بکاپ از آن
+ * ربات ارسال شود و ربات فروشگاه درگیر ارسال فایل حجیم و حساس نشود. اگر ربات دوم در دسترس نبود
+ * یا مدیر آن را در تلگرام استارت نکرده باشد، ارسال بی‌صدا روی ربات اصلی ادامه پیدا می‌کند تا
+ * بکاپ هیچ‌وقت از دست نرود.
+ */
+const BACKUP_BOT_TOKEN_RE = /^\d{5,20}:[A-Za-z0-9_-]{20,64}$/;
+function normalizeBotToken(value) {
+  const token = String(value == null ? '' : value).trim();
+  if (!token) return '';
+  return BACKUP_BOT_TOKEN_RE.test(token) ? token : '';
+}
+function backupBotTokenOf(env, cfg) {
+  // توکن env اولویت دارد و در فایل بکاپ نمی‌افتد؛ بعد توکن ذخیره‌شده در KV.
+  const fromEnv = normalizeBotToken(env && env.BACKUP_BOT_TOKEN);
+  if (fromEnv) return { token: fromEnv, source: 'env' };
+  const fromCfg = normalizeBotToken(cfg && cfg.backup_bot_token);
+  if (fromCfg) return { token: fromCfg, source: 'settings' };
+  return { token: '', source: '' };
+}
+function backupBotStatus(env, cfg) {
+  const found = backupBotTokenOf(env, cfg);
+  return {
+    configured: !!found.token,
+    source: found.source,
+    username: found.token ? String((cfg && cfg.backup_bot_username) || '') : '',
+    bot_id: found.token ? String((cfg && cfg.backup_bot_id) || '') : '',
+    verified_at: found.token ? Number((cfg && cfg.backup_bot_verified_at) || 0) : 0
+  };
+}
+// فراخوانی مستقیم متد تلگرام با توکن دلخواه (برای getMe و پیام آزمایشیِ ربات بکاپ).
+async function telegramCallWithToken(token, method, payload) {
+  const r = await fetch('https://api.telegram.org/bot' + String(token) + '/' + method, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload || {})
+  });
+  let j = {};
+  try { j = await r.json(); } catch (e) {}
+  if (!j.ok) {
+    const error = new Error(String(j.description || ('HTTP ' + r.status)));
+    error.status = r.status;
+    error.description = String(j.description || '');
+    throw error;
+  }
+  return j.result;
+}
+
+// /backupbot — مدیریت ربات دومِ ارسال بکاپ از داخل چت؛ همان توانایی بخش «ربات بکاپ» در مینی‌اپ.
+async function adminBackupBotCommand(env, chatId, arg, messageId) {
+  const raw = String(arg == null ? '' : arg).trim();
+  const cfg = await getCfg(env);
+  const status = backupBotStatus(env, cfg);
+  const lastChannel = await kvGet(env, KV_BACKUP_CHANNEL_KEY, null);
+  const channelLabel = (record) => {
+    if (!record || !record.channel) return 'هنوز ارسالی ثبت نشده';
+    if (record.channel === 'backup_bot') return 'ربات بکاپ';
+    if (record.channel === 'mixed') return 'ربات بکاپ + ربات اصلی';
+    return 'ربات اصلی';
+  };
+  const stateLine = status.configured
+    ? 'فعال' + (status.username ? ' · @' + status.username : '') + ' · منبع: ' + (status.source === 'env' ? 'فایل تنظیمات سرور' : 'مینی‌اپ')
+    : 'تنظیم نشده (بکاپ با ربات اصلی ارسال می‌شود)';
+  const footer = '\n\n🕒 آخرین ارسال: <b>' + esc(channelLabel(lastChannel)) + '</b>' +
+    '\n🤖 ربات بکاپ: <b>' + esc(stateLine) + '</b>' +
+    '\n\nبرای ثبت توکن: <code>/backupbot 123456:AAF...</code>' +
+    '\nبرای حذف: <code>/backupbot off</code>';
+  let text;
+  if (!raw) {
+    text = '🤖 <b>ربات بکاپ</b>\n\n' + (status.verified_at ? '✅ آخرین آزمایش: ' + esc(fmtDate(status.verified_at)) + '\n' : '') +
+      'توکن ربات دوم را همین‌جا بفرستید تا بکاپ‌ها از آن ربات برسند؛ اگر آن ربات خطا بدهد، ارسال خودکار به ربات اصلی برمی‌گردد و بکاپی از دست نمی‌رود.\n⚠️ قبل از هر چیز، همان ربات را در تلگرام باز کنید و Start بزنید.' + footer;
+  } else if (/^(off|stop|حذف|خاموش)$/i.test(raw)) {
+    if (status.source === 'env') {
+      text = '⚠️ توکن ربات بکاپ از فایل تنظیمات سرور می‌آید و از داخل ربات حذف نمی‌شود.' + footer;
+    } else if (!status.configured) {
+      text = 'ℹ️ ربات بکاپ از قبل تنظیم نشده است.' + footer;
+    } else {
+      cfg.backup_bot_token = ''; cfg.backup_bot_username = ''; cfg.backup_bot_id = ''; cfg.backup_bot_verified_at = 0;
+      await saveCfg(env, cfg);
+      text = '✅ ربات بکاپ حذف شد؛ بکاپ‌ها با ربات اصلی ارسال می‌شوند.' + footer;
+    }
+  } else {
+    const token = normalizeBotToken(raw);
+    if (!token) {
+      text = '❌ قالب توکن درست نیست؛ توکن کامل را از BotFather کپی کنید.' + footer;
+    } else if (String(env.BOT_TOKEN || '').trim() === token) {
+      text = '❌ این توکن خودِ ربات فروشگاه است؛ توکن ربات دوم را بفرستید.' + footer;
+    } else {
+      let me = null, problem = '';
+      try { me = await telegramCallWithToken(token, 'getMe', {}); }
+      catch (e) {
+        const code = Number(e.status);
+        problem = (code === 401 || code === 404) ? 'تلگرام این توکن را نپذیرفت؛ آن را از BotFather دوباره بگیرید.' : 'دسترسی به تلگرام برقرار نشد؛ کمی بعد دوباره تلاش کنید.';
+      }
+      if (!me || !me.username) {
+        text = '❌ ' + (problem || 'توکن ربات معتبر نیست.') + footer;
+      } else {
+        cfg.backup_bot_token = token;
+        cfg.backup_bot_username = String(me.username || '').slice(0, 64);
+        cfg.backup_bot_id = String(me.id || '').slice(0, 32);
+        cfg.backup_bot_verified_at = 0;
+        let tested = false, testProblem = '';
+        try {
+          await telegramCallWithToken(token, 'sendMessage', {
+            chat_id: String(chatId),
+            text: '✅ ربات بکاپ تیزنت به این حساب وصل شد.\nاز این پس فایل بکاپ هر ۳ ساعت از همین ربات ارسال می‌شود.',
+            disable_web_page_preview: true
+          });
+          tested = true;
+          cfg.backup_bot_verified_at = Date.now();
+        } catch (e) {
+          testProblem = 'توکن ذخیره شد، اما تلگرام اجازهٔ پیام دادن به شما را نداد: همین ربات (@' + String(me.username) + ') را باز کنید و Start بزنید.';
+        }
+        await saveCfg(env, cfg);
+        text = (tested
+          ? '✅ ربات بکاپ (@' + esc(String(me.username)) + ') ثبت شد و پیام آزمایشی فرستاده شد.'
+          : '⚠️ ' + testProblem) + footer;
+      }
+    }
+  }
+  // بدون دکمهٔ شیشه‌ای: همان کیبورد پایین چت نمایش داده می‌شود.
+  if (messageId) { try { await editMsg(env, chatId, messageId, text, mainBotReplyMarkup()); return; } catch (e) {} }
+  await msg(env, chatId, text, mainBotReplyMarkup());
+}
+
 async function sendKvBackup(env, scheduledTime, options) {
   const opts = options || {};
   const nowValue = Number(scheduledTime);
@@ -14032,16 +14237,34 @@ async function sendKvBackup(env, scheduledTime, options) {
   try {
     const backup = await createKvBackupFile(env, now);
     const caption = 'بکاپ کامل KV · ' + faNum(backup.entries) + ' رکورد · فایل gzip بدون رمزگذاری. شامل اطلاعات و اعتبارنامه‌های ذخیره‌شده در KV است.';
-    let delivered = 0;
+    const bot = backupBotTokenOf(env, await getCfg(env));
+    let delivered = 0, viaBackup = 0, viaMain = 0;
     for (const id of recipients) {
+      // اول ربات بکاپ (اگر تنظیم شده باشد)، بعد ربات اصلی؛ خطای یکی باعث از دست رفتن بکاپ نمی‌شود.
+      if (bot.token) {
+        try {
+          await sendDoc(env, id, backup.filename, backup.blob, caption, 'application/gzip', bot.token);
+          delivered++; viaBackup++;
+          continue;
+        } catch (e) {}
+      }
       try {
         await sendDoc(env, id, backup.filename, backup.blob, caption, 'application/gzip');
-        delivered++;
+        delivered++; viaMain++;
       } catch (e) {}
     }
     if (!delivered) throw new Error('kv_backup_delivery_failed');
+    const channel = viaBackup && !viaMain ? 'backup_bot' : (!viaBackup ? 'main_bot' : 'mixed');
     await kvPut(env, KV_BACKUP_LAST_KEY, now);
-    return { delivered: delivered, entries: backup.entries, filename: backup.filename };
+    await kvPut(env, KV_BACKUP_CHANNEL_KEY, {
+      channel: channel, via_backup_bot: viaBackup, via_main_bot: viaMain,
+      backup_bot_configured: !!bot.token, at: now
+    }, 60 * 86400);
+    return {
+      delivered: delivered, entries: backup.entries, filename: backup.filename,
+      channel: channel, via_backup_bot: viaBackup, via_main_bot: viaMain,
+      backup_bot_configured: !!bot.token
+    };
   } finally {
     await kvDel(env, KV_BACKUP_LOCK_KEY);
   }
