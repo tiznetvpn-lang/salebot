@@ -1371,7 +1371,7 @@ assert(miniAppSource.includes('<a class="') && miniAppSource.includes('target="_
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.55-ubuntu26.57';"), 'شمارهٔ نسخهٔ سرور 1.8.55-ubuntu26.57 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.56-ubuntu26.58';"), 'شمارهٔ نسخهٔ سرور 1.8.56-ubuntu26.58 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -3359,6 +3359,17 @@ assert(subsInlineMsg && inlineDataOf(subsInlineMsg).includes('menu:buy') && inli
 const inlineHelpAt = TG.length;
 await press(INLINE_USER, 'menu:help');
 assert(TG.slice(inlineHelpAt).some((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(INLINE_USER)), 'دکمهٔ «راهنما» متن راهنمای واقعی را می‌فرستد');
+const helpInlineMsg = inlineMsgsFor(INLINE_USER, inlineHelpAt).at(-1);
+assert(helpInlineMsg && inlineDataOf(helpInlineMsg).includes('menu:home') && inlineDataOf(helpInlineMsg).includes('menu:buy'), 'صفحهٔ راهنما دکمهٔ شیشه‌ای «منو» و «خرید» دارد تا کاربرِ بدون مینی‌اپ گیر نکند');
+const inlineAppsAt = TG.length;
+await press(INLINE_USER, 'menu:apps');
+const appsInlineMsg = inlineMsgsFor(INLINE_USER, inlineAppsAt).at(-1);
+assert(appsInlineMsg && inlineDataOf(appsInlineMsg).includes('menu:home') && String(appsInlineMsg.params.text || '').includes('play.google.com'), '«دانلود اپ‌ها» از دکمهٔ شیشه‌ای، لینک‌های اپ و راه برگشت به منو را با هم می‌دهد');
+const inlineOrdersAt = TG.length;
+await press(INLINE_USER, 'menu:orders');
+const ordersInlineMsg = inlineMsgsFor(INLINE_USER, inlineOrdersAt).at(-1);
+assert(ordersInlineMsg && inlineDataOf(ordersInlineMsg).includes('menu:home'), '«سفارش‌های من» هم دکمهٔ شیشه‌ای برگشت به منو دارد');
+await sendText(INLINE_USER, '/cancel');
 
 // خاموش‌کردن از پنل ادمین → رفتار قبلی برمی‌گردد و هیچ دکمهٔ شیشه‌ای برای مشتری نمی‌رود.
 await press(ADMIN, 's_inline');
