@@ -880,26 +880,40 @@
     .agent-admin-grid { display:grid; grid-template-columns:minmax(280px,.9fr) minmax(320px,1.1fr); gap:14px; align-items:start; }
     .agent-admin-stack { display:grid; gap:14px; min-width:0; }
     .agent-detail-panel,.agent-create-panel,.agent-history-panel { margin-top:14px; }
-    /* نوار تب پایین پنل نماینده: متن بزرگ‌تر و روشن‌تر، همیشه در دسترس */
+    /* نوار تب پایین پنل نماینده: یک ردیف ثابت، هم‌اندازه و همیشه در پایین صفحه.
+       ⚠️ نکتهٔ مهم: هر .page یک transform ماندگار دارد (انیمیشن fadeIn با fill-mode:both) و هر
+       والدِ دارای transform برای فرزندِ position:fixed «والد مرجع» می‌سازد؛ بنابراین نوار تب
+       نباید داخل .page باشد. این نوار کنار #mobileNav و بیرون از صفحه‌ها در <main> است تا
+       مختصاتش همیشه به پنجرهٔ مرورگر بچسبد و با کوتاه/بلندشدن محتوا جابه‌جا نشود. */
     .agent-tabbar { display:none; }
-    body.agent-shell #agentTabbar { display:flex; position:fixed; z-index:32; left:0; right:0; bottom:0; gap:3px;
-      padding:9px 6px calc(9px + var(--safe-bottom)); border-top:1px solid rgba(240, 86, 99, .38);
-      background:linear-gradient(180deg, rgba(74, 9, 17, .98), rgba(38, 4, 9, .99));
-      box-shadow:0 -14px 34px rgba(0, 0, 0, .5);
-      -webkit-backdrop-filter:blur(18px); backdrop-filter:blur(18px); }
-    body.agent-shell #agentPage { padding-bottom:calc(104px + var(--safe-bottom)); }
-    body.agent-shell .sidebar, body.agent-shell #mobileNav { display:none !important; }
+    body.agent-shell #agentTabbar {
+      display:flex; position:fixed; left:0; right:0; bottom:0; top:auto;
+      width:auto; max-width:none; z-index:34;
+      flex-wrap:nowrap; align-items:stretch; justify-content:space-between;
+      gap:4px; margin:0; padding:8px 8px calc(8px + var(--safe-bottom));
+      border-top:1px solid rgba(240, 86, 99, .42); border-radius:0;
+      background:linear-gradient(180deg, rgba(74, 9, 17, .99), rgba(32, 3, 8, 1));
+      box-shadow:0 -16px 36px rgba(0, 0, 0, .55);
+      -webkit-backdrop-filter:blur(18px); backdrop-filter:blur(18px);
+      transform:none;
+    }
+    /* کمربند ایمنی: صفحهٔ نماینده انیمیشن بدون transform بگیرد تا هیچ فرزند fixed داخل آن
+       به والدِ صفحه نچسبد (همان اشتباهی که نوار تب را وسط صفحه می‌آورد). */
+    body.agent-shell #agentPage { animation-name:fadeInNoTransform; padding-bottom:calc(104px + var(--safe-bottom)); }
+    body.agent-role .sidebar, body.agent-role #mobileNav { display:none !important; }
     body.agent-shell .main { padding-left:14px !important; padding-right:14px !important; }
-    .agent-tab { flex:1 1 0; min-width:0; display:grid; gap:4px; justify-items:center; padding:8px 0;
-      border:0; border-radius:13px; background:transparent; color:#ffd8dc; font:inherit;
-      font-size:13.5px; font-weight:800; letter-spacing:-.2px; line-height:1.25; white-space:nowrap;
-      cursor:pointer; transition:color .16s ease, background .16s ease; }
-    .agent-tab .agent-tab-icon { font-size:16px; line-height:1; opacity:.92; }
-    .agent-tab.active { color:#ffffff; background:linear-gradient(165deg, rgba(240, 86, 99, .55), rgba(240, 86, 99, .2));
-      box-shadow:inset 0 0 0 1px rgba(255, 255, 255, .3); }
+    .agent-tab { flex:1 1 0; min-width:0; min-height:54px; display:grid; align-content:center; gap:4px;
+      justify-items:center; padding:7px 0; border:0; border-radius:13px; background:transparent;
+      color:#ffe3e6; font:inherit; font-size:13.5px; font-weight:800; letter-spacing:-.2px;
+      line-height:1.25; white-space:nowrap; cursor:pointer;
+      transition:color .16s ease, background .16s ease; }
+    .agent-tab .agent-tab-icon { width:20px; height:20px; stroke:currentColor; fill:none; stroke-width:1.8;
+      stroke-linecap:round; stroke-linejoin:round; opacity:.92; }
+    .agent-tab.active { color:#ffffff; background:linear-gradient(165deg, rgba(240, 86, 99, .62), rgba(240, 86, 99, .24));
+      box-shadow:inset 0 0 0 1px rgba(255, 255, 255, .34); }
     .agent-tab.active .agent-tab-icon { opacity:1; }
     .agent-tab:active { transform:scale(.97); }
-    @media (max-width:370px) { .agent-tab { font-size:12.5px; } .agent-tab .agent-tab-icon { font-size:15px; } }
+    @media (max-width:390px) { .agent-tab { font-size:12.5px; } .agent-tab .agent-tab-icon { width:18px; height:18px; } }
     .agent-dash-card { display:grid; gap:6px; justify-items:center; text-align:center; padding:22px 16px; }
     .agent-dash-label { color:#f0e2e3; font-size:var(--fs-2xs); font-weight:700; }
     .agent-dash-balance { font-size:30px; font-weight:800; color:#fff; letter-spacing:-.5px; line-height:1.4; }
@@ -3310,14 +3324,6 @@
           <div class="agent-transaction-list" id="agentTransactionsList"><div class="empty-state">تراکنشی ثبت نشده است.</div></div>
         </article>
       </div>
-
-      <div class="agent-tabbar" id="agentTabbar" role="tablist" aria-label="بخش‌های پنل نماینده">
-        <button class="agent-tab active" type="button" role="tab" aria-selected="true" data-atab="dash"><span class="agent-tab-icon" aria-hidden="true">◉</span><span>داشبورد</span></button>
-        <button class="agent-tab" type="button" role="tab" aria-selected="false" data-atab="buy"><span class="agent-tab-icon" aria-hidden="true">＋</span><span>خرید</span></button>
-        <button class="agent-tab" type="button" role="tab" aria-selected="false" data-atab="renew"><span class="agent-tab-icon" aria-hidden="true">↻</span><span>تمدید</span></button>
-        <button class="agent-tab" type="button" role="tab" aria-selected="false" data-atab="subs"><span class="agent-tab-icon" aria-hidden="true">▤</span><span>اشتراک‌ها</span></button>
-        <button class="agent-tab" type="button" role="tab" aria-selected="false" data-atab="wallet"><span class="agent-tab-icon" aria-hidden="true">◍</span><span>کیف پول</span></button>
-      </div>
     </section>
 
     <section class="page hidden" id="agentDeliveryPage">
@@ -3649,6 +3655,13 @@
       <button data-page="plans"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v18H6.5A2.5 2.5 0 0 1 4 18.5zM8 8h8M8 12h8"/></svg><span>پلن‌ها</span></button>
       <button data-page="servers"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01"/></svg><span>سرورها</span></button>
       <button data-page="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 13.5 20 15l-2 3-2-.5-1.5 1-1 2h-3l-1-2-1.5-1-2 .5-2-3 1-1.5v-2L3 10l2-3 2 .5 1.5-1 1-2h3l1 2 1.5 1 2-.5 2 3-1 1.5z"/></svg><span>تنظیمات</span></button>
+    </div>
+    <div class="agent-tabbar" id="agentTabbar" role="tablist" aria-label="بخش‌های پنل نماینده">
+      <button class="agent-tab active" type="button" role="tab" aria-selected="true" data-atab="dash"><svg class="agent-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="8" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="11" width="7" height="10" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/></svg><span>داشبورد</span></button>
+      <button class="agent-tab" type="button" role="tab" aria-selected="false" data-atab="buy"><svg class="agent-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h16l-1.3-5H5.3L4 9.5ZM5 9.5v9A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5v-9M9 21v-6h6v6"/></svg><span>خرید</span></button>
+      <button class="agent-tab" type="button" role="tab" aria-selected="false" data-atab="renew"><svg class="agent-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 4v4.5h-4.5"/></svg><span>تمدید</span></button>
+      <button class="agent-tab" type="button" role="tab" aria-selected="false" data-atab="subs"><svg class="agent-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="1.6"/><rect x="3" y="11" width="18" height="4" rx="1.4"/><path d="M5 21h14"/></svg><span>اشتراک‌ها</span></button>
+      <button class="agent-tab" type="button" role="tab" aria-selected="false" data-atab="wallet"><svg class="agent-tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M16.5 14.5h.01"/></svg><span>کیف پول</span></button>
     </div>
   </main>
 </div>
@@ -6938,6 +6951,8 @@
       try {
         const boot=await api('/api/miniapp/bootstrap');
         liveMode=true;profile=boot.profile||{};adminRole=boot.role==='admin';agentRole=boot.role==='agent';
+        // کلاس نقش فقط برای نماینده؛ ادمین حتی اگر پنل نماینده را ببیند، منوی مدیریتش پنهان نمی‌شود.
+        document.body.classList.toggle('agent-role',agentRole);
         phoneVerified=!!(boot.access&&boot.access.phone_verified)||!!boot.phone;
         myPhone=String(boot.phone||'');
         renderCustomerPhoneCard();
