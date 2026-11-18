@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.59-ubuntu26.61';
+const VERSION = '1.8.60-ubuntu26.62';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -3779,7 +3779,7 @@ function isMainKeyboardMarkup(markup) {
 function isAllowedMiniAppOnlyMarkup(markup) {
   if (!markup || typeof markup !== 'object') return false;
   // مارک‌آپ‌های مجاز دیگر: پیام قفل کانال، دکمهٔ درخواست شماره، کیبورد اصلی و کیبورد «ورود به اپ».
-  if (isJoinGateMarkup(markup) || isPhoneRequestMarkup(markup) || isMainKeyboardMarkup(markup) || isAppEntryMarkup(markup)) return true;
+  if (isJoinGateMarkup(markup) || isPhoneRequestMarkup(markup) || isMainKeyboardMarkup(markup) || isAppEntryMarkup(markup) || isWizardMarkup(markup)) return true;
   if (Array.isArray(markup.inline_keyboard)) {
     const rows = markup.inline_keyboard;
     if (rows.length !== 1 || !Array.isArray(rows[0]) || rows[0].length !== 1) return false;
@@ -3937,7 +3937,7 @@ async function msg(env, chat_id, text, extra) {
 async function editMsg(env, chat_id, message_id, text, extra) {
   try {
     const safeExtra = await telegramExtra(env, extra, chat_id);
-    if (miniAppOnlyMode(env) && !isAdminChat(env, chat_id) && !(await chatInlineEnabled(env)) && !(extra && extra.__main_kb)) safeExtra.reply_markup = { inline_keyboard: [] };
+    if (miniAppOnlyMode(env) && !isAdminChat(env, chat_id) && !(await chatInlineEnabled(env)) && !(extra && (extra.__main_kb || extra.__keep_inline))) safeExtra.reply_markup = { inline_keyboard: [] };
     await tg(env, 'editMessageText', Object.assign({
       chat_id: chat_id, message_id: message_id, text: text,
       parse_mode: 'HTML', disable_web_page_preview: true
@@ -5000,6 +5000,34 @@ function chatWizardCancelText(text) {
 
 function chatCancelLine() { return '0) ❌ انصراف'; }
 
+/* ── انتخاب‌های ویزارد چت با دکمهٔ شیشه‌ای ─────────────────────────────────
+ * لوکیشن، پلن، روش پرداخت و فهرست اشتراک/سفارش با دکمه انتخاب می‌شوند، نه با
+ * فرستادن عدد. فرستادن عدد هم به‌عنوان راه پشتیبان کار می‌کند (کاربران قدیمی و
+ * پیام‌های قبلی)، ولی متن پیام دیگر عدد نمی‌خواهد.
+ */
+const WIZ_PREFIX = 'wz:';
+function wizKB(rows) { return chatMenuKB(rows); }
+function wizLabel(text, max) {
+  const t = String(text == null ? '' : text).replace(/[\r\n\t]+/g, ' ').trim();
+  const limit = Number(max) || 58;
+  return t.length <= limit ? t : t.slice(0, limit - 1) + '…';
+}
+// keyboards ساخته‌شده با جدول‌های این ویزارد: فقط callback_data با پیشوند wz:، بدون web_app/url.
+function isWizardMarkup(markup) {
+  const rows = markup && markup.inline_keyboard;
+  if (!Array.isArray(rows) || !rows.length) return false;
+  for (const row of rows) {
+    if (!Array.isArray(row) || !row.length) return false;
+    for (const button of row) {
+      if (!button || typeof button !== 'object') return false;
+      if (Object.keys(button).some((key) => !['text', 'callback_data', 'style'].includes(key))) return false;
+      if (!String(button.callback_data || '').startsWith(WIZ_PREFIX)) return false;
+      if (!String(button.text || '').trim()) return false;
+    }
+  }
+  return true;
+}
+
 function chatDiscountErrorFa(error) {
   const map = {
     discount_not_found: 'این کد تخفیف وجود ندارد یا حذف شده است.',
@@ -5054,7 +5082,7 @@ function chatTargetSummary(target) {
 
 /* ---------------- خرید / تمدید ---------------- */
 
-async function chatBuyStart(env, chatId, u) {
+async function chatBuyStart(env, chatId, u, messageId) {
   const plans = await getPlans(env);
   const allPanels = enabledPanels(await getPanels(env));
   const sellable = allPanels.filter((p) => plansForPanel(plans, String(p.id)).length > 0);
@@ -5064,19 +5092,22 @@ async function chatBuyStart(env, chatId, u) {
     return true;
   }
   if (sellable.length === 1) {
-    await chatShowChatPlans(env, chatId, u, String(sellable[0].id), null);
+    await chatShowChatPlans(env, chatId, u, String(sellable[0].id), null, messageId);
     return true;
   }
   await setState(env, u.tg_id, 'cw_panel', {});
-  const lines = sellable.map((p, i) => faNum(i + 1) + ') 🖥 ' + esc(p.name)).join('\n');
-  await msg(env, chatId,
-    '🛍 <b>خرید اشتراک از داخل چت</b>\n\nهمهٔ مراحل همین‌جا انجام می‌شود؛ نیازی به بازکردن اپ نیست.\n\n' +
-    '<b>لوکیشن را انتخاب کنید</b> (شماره را بفرستید):\n\n' + lines + '\n\n' + chatCancelLine(),
-    mainBotReplyMarkup());
+  // دکمهٔ شیشه‌ای برای هر لوکیشن؛ عدد فقط راه پشتیبان است و از کاربر خواسته نمی‌شود.
+  const rows = sellable.map((p) => [BTN('🖥 ' + wizLabel(p.name, 52), WIZ_PREFIX + 'p:' + p.id)]);
+  rows.push([BTN('❌ انصراف', WIZ_PREFIX + 'x')]);
+  const lines = sellable.map((p) => '🖥 ' + esc(p.name)).join('\n');
+  const text = '🛍 <b>خرید اشتراک از داخل چت</b>\n\nهمهٔ مراحل با دکمه‌های شیشه‌ای همین‌جا انجام می‌شود؛ نیازی به فرستادن عدد نیست.\n\n' +
+    '<b>لوکیشن را انتخاب کنید:</b>\n\n' + lines;
+  if (messageId) { try { await editMsg(env, chatId, messageId, text, wizKB(rows)); return true; } catch (e) {} }
+  await msg(env, chatId, text, wizKB(rows));
   return true;
 }
 
-async function chatShowChatPlans(env, chatId, u, panelId, subSid) {
+async function chatShowChatPlans(env, chatId, u, panelId, subSid, messageId) {
   const panels = await getPanels(env);
   const panel = panels[panelId];
   if (!isRecordEnabled(panel)) {
@@ -5100,17 +5131,24 @@ async function chatShowChatPlans(env, chatId, u, panelId, subSid) {
     return true;
   }
   await setState(env, u.tg_id, 'cw_plan', { panel_id: String(panelId), sub_sid: subSid ? String(subSid) : '' });
-  const lines = list.map((p, i) => faNum(i + 1) + ') ' + (Number(p.gb) === 0 ? '♾' : '📦') + ' ' +
+  // هر پلن یک دکمهٔ شیشه‌ای با همان مشخصات؛ انتخاب پلن دیگر شماره نمی‌خواهد.
+  const rows = list.map((p) => [BTN(
+    (Number(p.gb) === 0 ? '♾ ' : '📦 ') + wizLabel(p.title, 30) + ' · ' +
+      (Number(p.gb) === 0 ? 'نامحدود' : fmtGB(p.gb)) + ' · ' + faNum(p.days) + ' روز · ' + fmtToman(p.price),
+    WIZ_PREFIX + 'pl:' + p.id
+  )]);
+  const backBtn = subSid ? BTN('◀️ بازگشت به اشتراک', WIZ_PREFIX + 's:' + subSid) : BTN('◀️ لوکیشن‌ها', WIZ_PREFIX + 'b');
+  rows.push([backBtn, BTN('❌ انصراف', WIZ_PREFIX + 'x')]);
+  const lines = list.map((p) => (Number(p.gb) === 0 ? '♾' : '📦') + ' ' +
     esc(p.title) + ' · ' + (Number(p.gb) === 0 ? 'نامحدود' : fmtGB(p.gb)) + ' · ' + faNum(p.days) + ' روز · ' + fmtToman(p.price)).join('\n');
-  await msg(env, chatId,
-    (sub ? '🔄 <b>تمدید / ارتقای اشتراک</b>\n\n' : '🛍 <b>خرید اشتراک</b>\n\n') +
-    '🖥 سرور: <b>' + esc(panel.name) + '</b>\n\n<b>پلن را انتخاب کنید</b> (شماره را بفرستید):\n\n' +
-    lines + '\n\n' + chatCancelLine(),
-    mainBotReplyMarkup());
+  const text = (sub ? '🔄 <b>تمدید / ارتقای اشتراک</b>\n\n' : '🛍 <b>خرید اشتراک</b>\n\n') +
+    '🖥 سرور: <b>' + esc(panel.name) + '</b>\n\n<b>پلن را انتخاب کنید:</b>\n\n' + lines;
+  if (messageId) { try { await editMsg(env, chatId, messageId, text, wizKB(rows)); return true; } catch (e) {} }
+  await msg(env, chatId, text, wizKB(rows));
   return true;
 }
 
-async function chatAskDiscount(env, chatId, u, ctx) {
+async function chatAskDiscount(env, chatId, u, ctx, messageId) {
   const target = await chatResolveTarget(env, u, ctx);
   if (!target.ok) {
     await clearState(env, u.tg_id);
@@ -5118,14 +5156,16 @@ async function chatAskDiscount(env, chatId, u, ctx) {
     return true;
   }
   await setState(env, u.tg_id, 'cw_discount', { panel_id: target.panelId, plan_id: String(target.plan.id), sub_sid: ctx.sub_sid || '' });
-  await msg(env, chatId,
-    (target.type === 'renew' ? '🔄 <b>تمدید / ارتقای اشتراک</b>\n\n' : '🛍 <b>تأیید خرید</b>\n\n') +
+  const rows = [
+    [BTN('🛒 ادامهٔ خرید بدون تخفیف', WIZ_PREFIX + 'nodisc')],
+    [BTN('❌ انصراف', WIZ_PREFIX + 'x')]
+  ];
+  const text = (target.type === 'renew' ? '🔄 <b>تمدید / ارتقای اشتراک</b>\n\n' : '🛍 <b>تأیید خرید</b>\n\n') +
     chatTargetSummary(target) +
     '\n💵 مبلغ پلن: <b>' + fmtToman(target.price) + '</b>' +
-    '\n\n🎟 اگر <b>کد تخفیف</b> دارید همین‌جا بفرستید؛ وگرنه عدد <b>0</b> را بفرستید تا مبلغ کامل ادامه پیدا کند.' +
-    '\n0) ادامهٔ خرید بدون تخفیف' +
-    '\nبرای انصراف، «لغو» را بفرستید.',
-    mainBotReplyMarkup());
+    '\n\n🎟 اگر <b>کد تخفیف</b> دارید، همین‌جا بفرستید. اگر ندارید، دکمهٔ زیر را بزنید:';
+  if (messageId) { try { await editMsg(env, chatId, messageId, text, wizKB(rows)); return true; } catch (e) {} }
+  await msg(env, chatId, text, wizKB(rows));
   return true;
 }
 
@@ -5142,7 +5182,7 @@ async function chatPayOptions(env, cfgIn) {
   return options;
 }
 
-async function chatPayMenu(env, chatId, u, ctx) {
+async function chatPayMenu(env, chatId, u, ctx, messageId) {
   const data = ctx || {};
   const target = await chatResolveTarget(env, u, data);
   if (!target.ok) {
@@ -5159,13 +5199,15 @@ async function chatPayMenu(env, chatId, u, ctx) {
   const fresh = await getUser(env, u.tg_id) || u;
   const balance = Number(fresh.balance || 0);
   const options = await chatPayOptions(env);
-  const lines = options.map((o, i) => faNum(i + 1) + ') ' + o.label).join('\n');
   await setState(env, u.tg_id, 'cw_pay', {
     panel_id: target.panelId, plan_id: String(target.plan.id), sub_sid: data.sub_sid || '',
     discount_code: priced.code || ''
   });
-  await msg(env, chatId,
-    (target.type === 'renew' ? '🔄 ' : '🛍 ') + '<b>' + (target.type === 'renew' ? 'تمدید / ارتقا' : 'خرید') + '</b>\n\n' +
+  // روش پرداخت هم دکمه دارد؛ عدد فقط راه پشتیبان است.
+  const rows = options.map((o) => [BTN(o.label, WIZ_PREFIX + 'pay:' + o.method)]);
+  rows.push([BTN('◀️ بازگشت به پلن‌ها', WIZ_PREFIX + 'bp'), BTN('❌ انصراف', WIZ_PREFIX + 'x')]);
+  const lines = options.map((o) => o.label).join('\n');
+  const text = (target.type === 'renew' ? '🔄 ' : '🛍 ') + '<b>' + (target.type === 'renew' ? 'تمدید / ارتقا' : 'خرید') + '</b>\n\n' +
     chatTargetSummary(target) +
     '\n💵 مبلغ پلن: <b>' + fmtToman(target.price) + '</b>' +
     (priced.discount ? '\n🎟 تخفیف <code>' + esc(priced.code) + '</code>: <b>−' + fmtToman(priced.discount.discount) + '</b>' : '') +
@@ -5173,8 +5215,9 @@ async function chatPayMenu(env, chatId, u, ctx) {
     '\n💰 موجودی کیف پول: <b>' + fmtToman(balance) + '</b>' +
     (options.some((o) => o.method === 'wallet') && balance < priced.payable ? '\n<i>برای پرداخت با کیف پول، موجودی کافی نیست؛ روش بانکی را انتخاب کنید یا کیف پول را شارژ کنید.</i>' : '') +
     (options.length === 1 && balance < priced.payable ? '\n\n⚠️ پرداخت بانکی برای این فروشگاه فعال نیست. با پشتیبانی تماس بگیرید.' : '') +
-    '\n\n<b>روش پرداخت را انتخاب کنید</b> (شماره را بفرستید):\n\n' + lines + '\n\n' + chatCancelLine(),
-    mainBotReplyMarkup());
+    '\n\n<b>روش پرداخت را انتخاب کنید:</b>\n\n' + lines;
+  if (messageId) { try { await editMsg(env, chatId, messageId, text, wizKB(rows)); return true; } catch (e) {} }
+  await msg(env, chatId, text, wizKB(rows));
   return true;
 }
 
@@ -5462,15 +5505,20 @@ async function chatTopupStart(env, chatId, u) {
     return true;
   }
   await setState(env, u.tg_id, 'cw_topup', {});
+  // مبلغ‌های رایج دکمه دارند؛ مبلغ دلخواه را همان‌جا می‌شود نوشت.
+  const presets = [50000, 100000, 200000, 500000];
+  const rows = [];
+  for (let i = 0; i < presets.length; i += 2) rows.push(presets.slice(i, i + 2).map((a) => BTN('➕ ' + fmtToman(a), WIZ_PREFIX + 'amt:' + a)));
+  rows.push([BTN('❌ انصراف', WIZ_PREFIX + 'x')]);
   await msg(env, chatId,
     '💰 <b>شارژ کیف پول از داخل چت</b>\n\nموجودی فعلی: <b>' + fmtToman(fresh.balance) + '</b>' +
-    '\n\nمبلغ شارژ را به <b>تومان</b> بفرستید (عدد؛ حداقل ' + fmtToman(CHAT_TOPUP_MIN) + ' و حداکثر ' + fmtToman(CHAT_TOPUP_MAX) + ').' +
-    '\nمثال: <code>150000</code>\n\n' + chatCancelLine(),
-    mainBotReplyMarkup());
+    '\n\nمبلغ را از دکمه‌های زیر انتخاب کنید، یا مبلغ دلخواه را به <b>تومان</b> بنویسید و بفرستید.' +
+    '\n(حداقل ' + fmtToman(CHAT_TOPUP_MIN) + ' و حداکثر ' + fmtToman(CHAT_TOPUP_MAX) + ')',
+    wizKB(rows));
   return true;
 }
 
-async function chatTopupAmount(env, chatId, u, text) {
+async function chatTopupAmount(env, chatId, u, text, messageId) {
   const amount = parseMoney(text);
   if (!amount || amount < CHAT_TOPUP_MIN || amount > CHAT_TOPUP_MAX) {
     await msg(env, chatId, '❌ مبلغ باید عددی بین ' + fmtToman(CHAT_TOPUP_MIN) + ' و ' + fmtToman(CHAT_TOPUP_MAX) + ' تومان باشد. دوباره بفرستید یا 0 برای انصراف.', mainBotReplyMarkup());
@@ -5479,8 +5527,12 @@ async function chatTopupAmount(env, chatId, u, text) {
   const options = (await chatPayOptions(env)).filter((o) => o.method !== 'wallet');
   if (!options.length) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ پرداخت بانکی فعال نیست.', mainBotReplyMarkup()); return true; }
   await setState(env, u.tg_id, 'cw_tpay', { amount: amount });
-  const lines = options.map((o, i) => faNum(i + 1) + ') ' + o.label).join('\n');
-  await msg(env, chatId, '💵 مبلغ شارژ: <b>' + fmtToman(amount) + '</b>\n\n<b>روش پرداخت را انتخاب کنید:</b>\n\n' + lines + '\n\n' + chatCancelLine(), mainBotReplyMarkup());
+  const rows = options.map((o) => [BTN(o.label, WIZ_PREFIX + 'tpay:' + o.method)]);
+  rows.push([BTN('❌ انصراف', WIZ_PREFIX + 'x')]);
+  const lines = options.map((o) => o.label).join('\n');
+  const body = '💵 مبلغ شارژ: <b>' + fmtToman(amount) + '</b>\n\n<b>روش پرداخت را انتخاب کنید:</b>\n\n' + lines;
+  if (messageId) { try { await editMsg(env, chatId, messageId, body, wizKB(rows)); return true; } catch (e) {} }
+  await msg(env, chatId, body, wizKB(rows));
   return true;
 }
 
@@ -5568,28 +5620,38 @@ async function chatFreeSubsMenu(env, chatId, u, extra) {
   return true;
 }
 
-async function chatSubsMenu(env, chatId, u, extra) {
-  const kb = extra || mainBotReplyMarkup();
+async function chatSubsMenu(env, chatId, u, extra, messageId) {
   const subs = await chatUserSubs(env, u);
   if (!subs.length) {
     await clearState(env, u.tg_id);
+    const kb = extra || wizKB([[BTN('🛍 خرید اشتراک', 'menu:buy'), BTN('◀️ منو', 'menu:home')]]);
     await msg(env, chatId, '📦 <b>اشتراک‌های من</b>\n\nهنوز اشتراکی ندارید. برای شروع، «🛍 خرید اشتراک» را بزنید.', kb);
     return true;
   }
   const panels = await getPanels(env);
   const plans = await getPlans(env);
   const list = subs.slice(0, 8);
-  const lines = list.map((s, i) => {
+  const lines = list.map((s) => {
     const panel = panels[s.panel_id] || {};
     const plan = plans[s.plan_id] || {};
-    return faNum(i + 1) + ') 🖥 ' + esc(panel.name || '—') + (plan.title ? ' · ' + esc(plan.title) : '');
+    return '🖥 ' + esc(panel.name || '—') + (plan.title ? ' · ' + esc(plan.title) : '');
   }).join('\n');
   await setState(env, u.tg_id, 'cw_subs', { sids: list.map((s) => String(s.sid)) });
-  await msg(env, chatId, '📦 <b>اشتراک‌های من</b>\n\n<b>شمارهٔ اشتراک</b> را بفرستید تا لینک، QR و تمدید را ببینید:\n\n' + lines + '\n\n' + chatCancelLine(), kb);
+  // هر اشتراک یک دکمه؛ انتخاب اشتراک دیگر شماره نمی‌خواهد.
+  const rows = list.map((s) => {
+    const panel = panels[s.panel_id] || {};
+    const plan = plans[s.plan_id] || {};
+    const label = '📦 ' + wizLabel(panel.name || 'اشتراک', 24) + (plan.title ? ' · ' + wizLabel(plan.title, 22) : '');
+    return [BTN(label, WIZ_PREFIX + 's:' + s.sid)];
+  });
+  rows.push([BTN('🛍 خرید اشتراک', 'menu:buy'), BTN('◀️ منو', 'menu:home')]);
+  const text = '📦 <b>اشتراک‌های من</b>\n\nبرای دیدن لینک، QR و تمدید، یکی از دکمه‌های زیر را بزنید:\n\n' + lines;
+  if (messageId) { try { await editMsg(env, chatId, messageId, text, wizKB(rows)); return true; } catch (e) {} }
+  await msg(env, chatId, text, wizKB(rows));
   return true;
 }
 
-async function chatSubOpen(env, chatId, u, sid) {
+async function chatSubOpen(env, chatId, u, sid, messageId) {
   const sub = await getSub(env, String(sid));
   if (!sub || String(sub.tg_id) !== String(u.tg_id)) {
     await msg(env, chatId, '❌ این اشتراک پیدا نشد.', mainBotReplyMarkup());
@@ -5607,12 +5669,18 @@ async function chatSubOpen(env, chatId, u, sid) {
   const gbText = gbLimit === 0 ? 'نامحدود' : (gbUsed == null ? fmtGB(gbLimit) : fmtGB(Math.max(0, gbLimit - gbUsed)) + ' باقی‌مانده از ' + fmtGB(gbLimit));
   const expire = live && live.expiry_time ? faDate(Date.parse(live.expiry_time) || 0) : '—';
   await setState(env, u.tg_id, 'cw_sub', { sid: String(sid) });
-  await msg(env, chatId, '📦 <b>اشتراک شما</b>\n\n🖥 سرور: <b>' + esc(panel.name || '—') + '</b>' +
+  const rows = [
+    [BTN('🔄 تمدید یا ارتقا', WIZ_PREFIX + 'sa:1'), BTN('📷 QR و لینک دوباره', WIZ_PREFIX + 'sa:2')],
+    [BTN('🧾 اشتراک‌های من', WIZ_PREFIX + 'sa:3'), BTN('🗑 حذف اشتراک', WIZ_PREFIX + 'sa:4')],
+    [BTN('❌ بستن', WIZ_PREFIX + 'x')]
+  ];
+  const text = '📦 <b>اشتراک شما</b>\n\n🖥 سرور: <b>' + esc(panel.name || '—') + '</b>' +
     (plan.title ? '\n🧩 پلن: <b>' + esc(plan.title) + '</b>' : '') +
     '\n📊 ' + gbText + '\n⏳ انقضا: <b>' + expire + '</b>' +
     (link ? '\n\n🔗 لینک اشتراک:\n<code>' + esc(link) + '</code>' : '') +
-    '\n\n1) 🔄 تمدید یا ارتقا\n2) 📷 دریافت QR و لینک دوباره\n3) 🧾 اشتراک‌های من\n4) 🗑 حذف اشتراک\n\n' + chatCancelLine(),
-    mainBotReplyMarkup());
+    '\n\n<b>چه کاری انجام شود؟</b>';
+  if (messageId) { try { await editMsg(env, chatId, messageId, text, wizKB(rows)); return true; } catch (e) {} }
+  await msg(env, chatId, text, wizKB(rows));
   return true;
 }
 
@@ -5635,24 +5703,30 @@ async function chatSubAction(env, chatId, u, sid, n) {
   if (n === 3) return await chatSubsMenu(env, chatId, u);
   if (n === 4) {
     await setState(env, u.tg_id, 'cw_sub_del', { sid: String(sid) });
-    await msg(env, chatId, '🗑 <b>حذف اشتراک</b>\n\nاین کار سرویس را از پنل حذف می‌کند و قابل بازگشت نیست.\nبرای حذف قطعی عبارت <b>حذف</b> را بفرستید؛ برای انصراف 0.', mainBotReplyMarkup());
+    await msg(env, chatId, '🗑 <b>حذف اشتراک</b>\n\nاین کار سرویس را از پنل حذف می‌کند و قابل بازگشت نیست.\nبرای حذف قطعی یکی از دکمه‌های زیر را بزنید (یا واژهٔ «حذف» را بفرستید):',
+      wizKB([[BTN('🗑 بله، حذف کن', WIZ_PREFIX + 'delok')], [BTN('❌ انصراف', WIZ_PREFIX + 'x')]]));
     return true;
   }
   await msg(env, chatId, '❌ گزینهٔ نامعتبر. 1، 2، 3 یا 4 را بفرستید (0 برای انصراف).', mainBotReplyMarkup());
   return true;
 }
 
-async function chatOrdersMenu(env, chatId, u, extra) {
-  const kb = extra || mainBotReplyMarkup();
+async function chatOrdersMenu(env, chatId, u, extra, messageId) {
   const rows = await chatRecentOrders(env, u, 8);
   if (!rows.length) {
     await clearState(env, u.tg_id);
+    const kb = extra || wizKB([[BTN('🛍 خرید اشتراک', 'menu:buy'), BTN('◀️ منو', 'menu:home')]]);
     await msg(env, chatId, '🧾 <b>سفارش‌های من</b>\n\nهنوز سفارشی ثبت نکرده‌اید.', kb);
     return true;
   }
   await setState(env, u.tg_id, 'cw_orders', { ids: rows.map((r) => String(r.id)) });
-  const lines = rows.map((r, i) => faNum(i + 1) + ') <code>' + esc(r.id) + '</code> · ' + orderTypeFa(r.type) + ' · ' + fmtToman(r.amount) + ' · ' + miniAppStatusLabel(r.status)).join('\n');
-  await msg(env, chatId, '🧾 <b>سفارش‌های من</b>\n\n<b>شمارهٔ سفارش</b> را بفرستید تا وضعیت، راهنمای پرداخت و امکان لغو را ببینید:\n\n' + lines + '\n\n' + chatCancelLine(), kb);
+  const lines = rows.map((r) => '<code>' + esc(r.id) + '</code> · ' + orderTypeFa(r.type) + ' · ' + fmtToman(r.amount) + ' · ' + miniAppStatusLabel(r.status)).join('\n');
+  // هر سفارش یک دکمه؛ دیدن وضعیت/راهنمای پرداخت دیگر شماره نمی‌خواهد.
+  const kbRows = rows.map((r) => [BTN('🧾 ' + wizLabel(r.id, 16) + ' · ' + orderTypeFa(r.type) + ' · ' + miniAppStatusLabel(r.status), WIZ_PREFIX + 'o:' + r.id)]);
+  kbRows.push([BTN('🛍 خرید اشتراک', 'menu:buy'), BTN('◀️ منو', 'menu:home')]);
+  const text = '🧾 <b>سفارش‌های من</b>\n\nبرای دیدن وضعیت، راهنمای پرداخت و امکان لغو، یکی از دکمه‌های زیر را بزنید:\n\n' + lines;
+  if (messageId) { try { await editMsg(env, chatId, messageId, text, wizKB(kbRows)); return true; } catch (e) {} }
+  await msg(env, chatId, text, wizKB(kbRows));
   return true;
 }
 
@@ -5692,6 +5766,101 @@ async function chatOrderOpen(env, chatId, u, orderId) {
   }
   await msg(env, chatId, text, mainBotReplyMarkup());
   return true;
+}
+
+/* ── روتر دکمه‌های شیشه‌ای ویزارد چت ─────────────────────────────────────
+ * لوکیشن، پلن، روش پرداخت، مبلغ شارژ و فهرست اشتراک/سفارش همه با callback_data
+ * با پیشوند wz: انتخاب می‌شوند؛ همان state ای که مسیر متنی دارد، این‌جا هم می‌ماند
+ * تا فرستادن عدد به‌عنوان راه پشتیبان کار کند.
+ */
+async function chatWizardCallback(env, u, chatId, messageId, data, origin) {
+  const state = await getState(env, u.tg_id) || {};
+  const d = state.data || {};
+  const parts = String(data || '').slice(WIZ_PREFIX.length).split(':');
+  const op = parts[0] || '';
+  const arg = parts.slice(1).join(':');
+
+  if (op === 'x') {
+    await clearState(env, u.tg_id);
+    if (messageId) { try { await editMsg(env, chatId, messageId, '❌ بسته شد. برای شروع دوباره «🛍 خرید اشتراک» را بزنید.', mainBotReplyMarkup()); return true; } catch (e) {} }
+    await msg(env, chatId, '❌ بسته شد. برای شروع دوباره «🛍 خرید اشتراک» را بزنید.', mainBotReplyMarkup());
+    return true;
+  }
+  // بازگشت به مرحلهٔ قبل: در تمدید به همان اشتراک، در خرید به فهرست لوکیشن‌ها.
+  if (op === 'b') {
+    if (d.sub_sid) return await chatSubOpen(env, chatId, u, String(d.sub_sid), messageId);
+    return await chatBuyStart(env, chatId, u, messageId);
+  }
+  if (op === 'p') return await chatShowChatPlans(env, chatId, u, String(arg), null, messageId);
+  // «بازگشت به پلن‌ها» از مرحلهٔ پرداخت: همان سرور، بدون پاک‌شدن انتخاب.
+  if (op === 'bp') {
+    if (!d.panel_id) return await chatBuyStart(env, chatId, u, messageId);
+    return await chatShowChatPlans(env, chatId, u, String(d.panel_id), d.sub_sid || null, messageId);
+  }
+  if (op === 'pl') {
+    let panelId = String(d.panel_id || '');
+    if (!panelId) {
+      const plans = await getPlans(env);
+      const plan = plans[String(arg)];
+      const panels = enabledPanels(await getPanels(env));
+      const owner = plan ? panels.find((p) => planAssignedToPanel(plan, String(p.id))) : null;
+      panelId = owner ? String(owner.id) : '';
+    }
+    if (!panelId) {
+      await clearState(env, u.tg_id);
+      await msg(env, chatId, '❌ این پلن دیگر برای فروش فعال نیست؛ یک‌بار دیگر از «🛍 خرید اشتراک» شروع کنید.', mainBotReplyMarkup());
+      return true;
+    }
+    return await chatAskDiscount(env, chatId, u, { panel_id: panelId, plan_id: String(arg), sub_sid: d.sub_sid || '' }, messageId);
+  }
+  if (op === 'nodisc') {
+    return await chatPayMenu(env, chatId, u, { panel_id: d.panel_id, plan_id: d.plan_id, sub_sid: d.sub_sid || '', discount_code: '' }, messageId);
+  }
+  if (op === 'pay') {
+    if (!d.panel_id || !d.plan_id) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ این خرید منقضی شده؛ دوباره شروع کنید.', mainBotReplyMarkup()); return true; }
+    return await chatPlaceOrder(env, chatId, u, { panel_id: d.panel_id, plan_id: d.plan_id, sub_sid: d.sub_sid || '', discount_code: d.discount_code || '' }, String(arg));
+  }
+  if (op === 'amt') return await chatTopupAmount(env, chatId, u, String(arg), messageId);
+  if (op === 'tpay') {
+    if (!d.amount) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ این شارژ منقضی شده؛ دوباره شروع کنید.', mainBotReplyMarkup()); return true; }
+    return await chatTopupPlace(env, chatId, u, d.amount, String(arg));
+  }
+  if (op === 's') return await chatSubOpen(env, chatId, u, String(arg), messageId);
+  if (op === 'sa') {
+    if (!d.sid) {
+      await clearState(env, u.tg_id);
+      await msg(env, chatId, '❌ این صفحه منقضی شده؛ دوباره از «📦 اشتراک‌های من» شروع کنید.', mainBotReplyMarkup());
+      return true;
+    }
+    return await chatSubAction(env, chatId, u, String(d.sid), Number(arg));
+  }
+  if (op === 'delok') {
+    const sid = String(d.sid || '');
+    if (!sid) { await clearState(env, u.tg_id); await msg(env, chatId, '❌ این اشتراک پیدا نشد.', mainBotReplyMarkup()); return true; }
+    const result = await deleteCustomerSubscription(env, u.tg_id, sid);
+    await clearState(env, u.tg_id);
+    if (result.ok) {
+      if (messageId) { try { await editMsg(env, chatId, messageId, '✅ اشتراک حذف شد. برای خرید مجدد «🛍 خرید اشتراک» را بزنید.', mainBotReplyMarkup()); return true; } catch (e) {} }
+      await msg(env, chatId, '✅ اشتراک حذف شد. برای خرید مجدد «🛍 خرید اشتراک» را بزنید.', mainBotReplyMarkup());
+      return true;
+    }
+    const map = {
+      subscription_not_found: 'این اشتراک پیدا نشد.',
+      subscription_has_pending_order: 'برای این اشتراک یک سفارش باز وجود دارد؛ اول همان سفارش را تعیین تکلیف کنید.',
+      subscription_delete_processing: 'حذف قبلی در حال انجام است؛ چند لحظه بعد دوباره تلاش کنید.',
+      subscription_panel_unavailable: 'پنل این اشتراک در دسترس نیست؛ با پشتیبانی تماس بگیرید.',
+      subscription_delete_failed: 'حذف از پنل انجام نشد و دسترسی دست‌نخورده ماند؛ دوباره تلاش کنید.'
+    };
+    await msg(env, chatId, '❌ ' + (map[result.error] || 'حذف انجام نشد.'), mainBotReplyMarkup());
+    return true;
+  }
+  if (op === 'o') return await chatOrderOpen(env, chatId, u, String(arg));
+  // پنل نمایندگی داخل چت: همان مسیر متنی با انتخاب دکمه‌ای.
+  if (op === 'ag') return await chatAgentStep(env, u, chatId, 'cw_agent', {}, String(arg));
+  if (op === 'agp') return await chatAgentStep(env, u, chatId, 'cw_agent_plan', d, String(arg));
+  if (op === 'ags') return await chatAgentStep(env, u, chatId, 'cw_agent_sub', d, String(arg));
+  if (op === 'agr') return await chatAgentStep(env, u, chatId, 'cw_agent_rplan', d, String(arg));
+  return false;
 }
 
 /* ---------------- مسیریاب متن‌های ویزارد ---------------- */
@@ -5882,16 +6051,16 @@ function chatAgentErrorFa(error) {
 }
 
 function chatAgentProductText(products) {
-  return products.map((p, i) =>
-    (i + 1) + ') ' + esc(p.title || '') + ' · ' + faNum(p.gb) + ' گیگ / ' + faNum(p.days) + ' روز · ' + fmtToman(p.agent_price) +
+  return products.map((p) =>
+    (Number(p.gb) === 0 ? '♾ ' : '📦 ') + esc(p.title || '') + ' · ' + faNum(p.gb) + ' گیگ / ' + faNum(p.days) + ' روز · ' + fmtToman(p.agent_price) +
     '\n    🖥 ' + esc(p.panel_name || '')
   ).join('\n');
 }
 
 function chatAgentSubText(items) {
-  return items.map((s, i) => {
+  return items.map((s) => {
     const status = s.status === 'active' ? '🟢 فعال' : s.status === 'expired' ? '🔴 منقضی' : '⚪ نامشخص';
-    return (i + 1) + ') ' + esc(s.customer_name || 'مشتری') + ' · ' + esc(s.plan_name || '') + ' · ' + status +
+    return '👤 ' + esc(s.customer_name || 'مشتری') + ' · ' + esc(s.plan_name || '') + ' · ' + status +
       '\n    کد: <code>' + esc(s.sid) + '</code>';
   }).join('\n');
 }
@@ -5912,16 +6081,16 @@ async function chatAgentStart(env, chatId, u, cfgIn) {
     '📈 فروش کل: <b>' + fmtToman(view.total_revenue) + '</b>'
   ];
   if (!view.enabled) lines.push('', '⛔ حساب نمایندگی شما غیرفعال است؛ ساخت و تمدید انجام نمی‌شود.');
-  lines.push(
-    '',
-    '1) 🆕 ساخت اشتراک برای مشتری',
-    '2) 🔄 تمدید اشتراک مشتری',
-    '3) 📷 لینک و QR اشتراک مشتری',
-    '4) ⭐ تبدیل امتیاز دعوت به کیف پول',
-    chatCancelLine()
-  );
+  lines.push('', '<b>چه کاری انجام شود؟</b>');
   await setState(env, u.tg_id, 'cw_agent', {});
-  await msg(env, chatId, lines.join('\n'), mainBotReplyMarkup());
+  // کارهای نماینده هم با دکمهٔ شیشه‌ای انتخاب می‌شوند؛ عدد راه پشتیبان است.
+  const rows = [
+    [BTN('🆕 ساخت اشتراک برای مشتری', WIZ_PREFIX + 'ag:1')],
+    [BTN('🔄 تمدید اشتراک مشتری', WIZ_PREFIX + 'ag:2'), BTN('📷 لینک و QR مشتری', WIZ_PREFIX + 'ag:3')],
+    [BTN('⭐ تبدیل امتیاز به کیف پول', WIZ_PREFIX + 'ag:4')],
+    [BTN('❌ بستن', WIZ_PREFIX + 'x')]
+  ];
+  await msg(env, chatId, lines.join('\n'), wizKB(rows));
   return true;
 }
 
@@ -5962,7 +6131,12 @@ async function chatAgentStep(env, u, chatId, step, d, text) {
         return true;
       }
       await setState(env, u.tg_id, 'cw_agent_plan', { products: products });
-      await msg(env, chatId, '🆕 <b>ساخت اشتراک برای مشتری</b>\n\nپلن را انتخاب کنید (شماره را بفرستید):\n\n' + chatAgentProductText(products) + '\n\n' + chatCancelLine(), mainBotReplyMarkup());
+      const rows = products.map((pr, i) => [BTN(
+        '📦 ' + wizLabel(pr.title, 24) + ' · ' + faNum(pr.gb) + ' گیگ / ' + faNum(pr.days) + ' روز · ' + fmtToman(pr.agent_price),
+        WIZ_PREFIX + 'agp:' + (i + 1)
+      )]);
+      rows.push([BTN('❌ بستن', WIZ_PREFIX + 'x')]);
+      await msg(env, chatId, '🆕 <b>ساخت اشتراک برای مشتری</b>\n\nپلن را از دکمه‌های زیر انتخاب کنید:\n\n' + chatAgentProductText(products), wizKB(rows));
       return true;
     }
     if (n === 2 || n === 3) {
@@ -5975,9 +6149,14 @@ async function chatAgentStep(env, u, chatId, step, d, text) {
       }
       const mode = n === 2 ? 'renew' : 'deliver';
       await setState(env, u.tg_id, 'cw_agent_sub', { mode: mode, sids: items.map((s) => String(s.sid)), panels: items.map((s) => String(s.panel_id || '')) });
+      const rows = items.map((it, i) => [BTN(
+        '📦 ' + wizLabel(it.customer_name || 'مشتری', 20) + ' · ' + wizLabel(it.plan_name || '', 16),
+        WIZ_PREFIX + 'ags:' + (i + 1)
+      )]);
+      rows.push([BTN('❌ بستن', WIZ_PREFIX + 'x')]);
       await msg(env, chatId,
         (mode === 'renew' ? '🔄 <b>تمدید اشتراک مشتری</b>' : '📷 <b>لینک و QR اشتراک مشتری</b>') +
-        '\n\nاشتراک را انتخاب کنید (شماره را بفرستید):\n\n' + chatAgentSubText(items) + '\n\n' + chatCancelLine(), mainBotReplyMarkup());
+        '\n\nاشتراک را از دکمه‌های زیر انتخاب کنید:\n\n' + chatAgentSubText(items), wizKB(rows));
       return true;
     }
     await msg(env, chatId, '❌ گزینهٔ معتبر نیست. 1، 2، 3 یا 4 را بفرستید (0 برای انصراف).', mainBotReplyMarkup());
@@ -6015,7 +6194,12 @@ async function chatAgentStep(env, u, chatId, step, d, text) {
       return true;
     }
     await setState(env, u.tg_id, 'cw_agent_rplan', { sid: sid, products: products });
-    await msg(env, chatId, '🔄 <b>تمدید اشتراک</b>\n\nپلن تازه را انتخاب کنید (شماره را بفرستید):\n\n' + chatAgentProductText(products) + '\n\n' + chatCancelLine(), mainBotReplyMarkup());
+    const rows = products.map((pr, i) => [BTN(
+      '📦 ' + wizLabel(pr.title, 24) + ' · ' + faNum(pr.gb) + ' گیگ / ' + faNum(pr.days) + ' روز · ' + fmtToman(pr.agent_price),
+      WIZ_PREFIX + 'agr:' + (i + 1)
+    )]);
+    rows.push([BTN('❌ بستن', WIZ_PREFIX + 'x')]);
+    await msg(env, chatId, '🔄 <b>تمدید اشتراک</b>\n\nپلن تازه را از دکمه‌های زیر انتخاب کنید:\n\n' + chatAgentProductText(products), wizKB(rows));
     return true;
   }
 
@@ -7797,7 +7981,7 @@ async function onCallback(env, q, origin) {
 
   // دکمه‌های inline قدیمی ممکن است در پیام‌های قبلی هنوز دیده شوند؛ در حالت Mini App فقط پاسخ خنثی می‌دهیم.
   // استثنا: ادمین همیشه باید به پنل تلگرام دسترسی داشته باشد.
-  if (miniAppOnlyMode(env) && !admEarly && !(await chatInlineEnabled(env))) {
+  if (miniAppOnlyMode(env) && !admEarly && !data.startsWith(WIZ_PREFIX) && !(await chatInlineEnabled(env))) {
     await ansCb(env, q.id, 'جهت خرید وارد اپ فروش شوید.');
     if (q.message && q.message.chat && q.message.message_id != null) {
       try { await tg(env, 'editMessageReplyMarkup', { chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: [] } }); } catch (e) {}
@@ -7817,6 +8001,13 @@ async function onCallback(env, q, origin) {
 
   // --- دکمه خنثی ---
   if (data === 'noop') { await ansCb(env, q.id, 'موجودی کافی نیست؛ از کارت‌به‌کارت استفاده کنید.'); return; }
+
+  // --- انتخاب‌های ویزارد چت با دکمهٔ شیشه‌ای (لوکیشن، پلن، پرداخت، اشتراک/سفارش) ---
+  if (data.startsWith(WIZ_PREFIX)) {
+    await ansCb(env, q.id);
+    await chatWizardCallback(env, u, chatId, messageId, data, origin);
+    return;
+  }
 
   // --- کاربر ---
   // دکمه‌های منوی شیشه‌ای چت: هر بخش به همان مسیر واقعی خودش می‌رود.
