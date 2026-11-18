@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.58-ubuntu26.60';
+const VERSION = '1.8.59-ubuntu26.61';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -3282,10 +3282,15 @@ function resetChatInlineCache() { CHAT_INLINE_CACHE = { at: 0, enabled: true }; 
 
 async function telegramExtra(env, extra, chatId) {
   const safe = Object.assign({}, extra || {});
-  const markup = extra && extra.reply_markup;
+  // کیبورد اصلی (نشانهٔ __main_kb) با فهرست واقعی بخش‌ها باز می‌شود؛ همان فهرست منوی چت.
+  if (extra && extra.__main_kb) {
+    safe.__main_kb = true;
+    safe.reply_markup = await mainBotKeyboard(env);
+  }
+  const markup = safe.reply_markup;
   // مارک‌آپ منوی چت خودمان با این نشانه از فیلتر حالت کلاسیک رد می‌شود.
   const keepInline = !!(extra && extra.__keep_inline);
-  if (extra && '__keep_inline' in extra) delete safe.__keep_inline;
+  if (extra && '__keep_inline' in safe) delete safe.__keep_inline;
   if (chatId != null && !isAdminChat(env, chatId)) {
     const inlineOn = await chatInlineEnabled(env);
     // در حالت اپ‌محور و با دکمه‌های روشن، مارک‌آپ همان‌طور که ساخته شده می‌رود (رفتار قبلی).
@@ -3296,6 +3301,8 @@ async function telegramExtra(env, extra, chatId) {
       if (!inlineOn && miniAppOnlyMode(env) && !isAllowedMiniAppOnlyMarkup(safe.reply_markup)) delete safe.reply_markup;
     }
   }
+  // نشانه داخلی است و نباید در درخواست تلگرام برود.
+  delete safe.__main_kb;
   return safe;
 }
 
@@ -3752,10 +3759,27 @@ async function resolveChatButton(env, text) {
   return '';
 }
 
+// کیبورد پایین چت در شکل کاملش: ردیف اول دکمهٔ اپ و بقیه فقط دکمهٔ متنی (بدون web_app/url).
+// در حالت فقط‌اپ همین شکل مجاز است تا بخش‌ها از پایین چت هم باز شوند.
+function isMainKeyboardMarkup(markup) {
+  const rows = markup && markup.keyboard;
+  if (!Array.isArray(rows) || !rows.length) return false;
+  const first = Array.isArray(rows[0]) ? rows[0] : [];
+  if (first.length !== 1 || !first[0] || first[0].text !== APP_ENTRY_TEXT) return false;
+  for (const row of rows) {
+    if (!Array.isArray(row)) return false;
+    for (const button of row) {
+      if (!button || typeof button !== 'object') return false;
+      if (Object.keys(button).some((key) => !['text', 'style'].includes(key))) return false;
+      if (!String(button.text || '').trim()) return false;
+    }
+  }
+  return true;
+}
 function isAllowedMiniAppOnlyMarkup(markup) {
   if (!markup || typeof markup !== 'object') return false;
-  // مارک‌آپ‌های مجاز دیگر: پیام قفل کانال، دکمهٔ درخواست شماره و تنها کیبورد «ورود به اپ».
-  if (isJoinGateMarkup(markup) || isPhoneRequestMarkup(markup) || isAppEntryMarkup(markup)) return true;
+  // مارک‌آپ‌های مجاز دیگر: پیام قفل کانال، دکمهٔ درخواست شماره، کیبورد اصلی و کیبورد «ورود به اپ».
+  if (isJoinGateMarkup(markup) || isPhoneRequestMarkup(markup) || isMainKeyboardMarkup(markup) || isAppEntryMarkup(markup)) return true;
   if (Array.isArray(markup.inline_keyboard)) {
     const rows = markup.inline_keyboard;
     if (rows.length !== 1 || !Array.isArray(rows[0]) || rows[0].length !== 1) return false;
@@ -3804,12 +3828,36 @@ function isAppEntryMarkup(markup) {
  * پس دکمهٔ پایین چت متن است؛ با زدنش همین ربات یک پیام با دکمهٔ شیشه‌ای web_app می‌فرستد
  * (دکمهٔ شیشه‌ای initData را می‌فرستد) و دکمهٔ ☰ کنار کادر پیام هم همان کار را می‌کند.
  */
+const HOME_BTN_TEXT = '🏠 منوی اصلی';
+// کیبورد پایین چت: دکمهٔ اپ در ردیف اول + همان بخش‌های منوی داخل چت + بازگشت به خانه.
+// مارک‌آپ این‌جا فقط «نشانه» است؛ telegramExtra آن را با env به کیبورد کامل باز می‌کند
+// چون فهرست بخش‌ها در KV است و این تابع هم‌زمان (sync) صدا زده می‌شود.
+function mainBotKeyboardRows(sectionTexts) {
+  const rows = [[{ text: APP_ENTRY_TEXT }]];
+  const list = Array.isArray(sectionTexts) ? sectionTexts : [];
+  for (let i = 0; i < list.length; i += 2) rows.push(list.slice(i, i + 2).map((t) => ({ text: t })));
+  rows.push([{ text: HOME_BTN_TEXT }]);
+  return rows;
+}
+async function mainBotKeyboard(env) {
+  let texts = [];
+  try { const cache = await chatButtons(env); texts = (cache.enabled || []).map((b) => b.text); } catch (e) { texts = []; }
+  if (!texts.length) {
+    texts = defaultChatBtnOrder().map((id) => { const d = chatBtnDef(id); return d.icon + ' ' + d.label; });
+  }
+  return {
+    keyboard: mainBotKeyboardRows(texts),
+    resize_keyboard: true,
+    is_persistent: true,
+    input_field_placeholder: 'بخشی را از پایین انتخاب کنید'
+  };
+}
 function mainBotReplyMarkup() {
-  return { reply_markup: {
+  return { __main_kb: true, reply_markup: {
     keyboard: [[{ text: APP_ENTRY_TEXT }]],
     resize_keyboard: true,
     is_persistent: true,
-    input_field_placeholder: 'دکمهٔ ☰ کنار کادر پیام'
+    input_field_placeholder: 'بخشی را از پایین انتخاب کنید'
   } };
 }
 // دکمهٔ شیشه‌ای ورود به اپ: تنها راهی که تلگرام initData را همراه مینی‌اپ می‌فرستد.
@@ -3889,7 +3937,7 @@ async function msg(env, chat_id, text, extra) {
 async function editMsg(env, chat_id, message_id, text, extra) {
   try {
     const safeExtra = await telegramExtra(env, extra, chat_id);
-    if (miniAppOnlyMode(env) && !isAdminChat(env, chat_id) && !(await chatInlineEnabled(env))) safeExtra.reply_markup = { inline_keyboard: [] };
+    if (miniAppOnlyMode(env) && !isAdminChat(env, chat_id) && !(await chatInlineEnabled(env)) && !(extra && extra.__main_kb)) safeExtra.reply_markup = { inline_keyboard: [] };
     await tg(env, 'editMessageText', Object.assign({
       chat_id: chat_id, message_id: message_id, text: text,
       parse_mode: 'HTML', disable_web_page_preview: true
@@ -4689,8 +4737,15 @@ async function sendMiniAppEntry(env, chatId, origin, caption) {
       ? '\n\n👇 دکمهٔ «🚀 ورود به اپ» را بزنید؛ همین دکمه با حساب تلگرام خودتان وارد اپ می‌شود.' +
         '\nدکمهٔ ☰ کنار کادر پیام هم همان اپ را باز می‌کند.'
       : '\n\n⚠️ آدرس اپ روی سرور تنظیم نشده است؛ با پشتیبانی تماس بگیرید.');
-  // یک پیام فقط یا کیبورد پایین را می‌پذیرد یا دکمهٔ شیشه‌ای؛ اینجا دکمهٔ شیشه‌ای لازم است
-  // چون فقط آن initData می‌گیرد. کیبورد قبلی چت هم دست‌نخورده می‌ماند.
+  // ۱) زدن آیکن اپ، کیبورد پایین چت را با همان بخش‌های منوی داخل چت فعال می‌کند.
+  //    (یک پیام یا کیبورد پایین را می‌پذیرد یا دکمهٔ شیشه‌ای؛ پس در دو پیام می‌آید.)
+  try {
+    await msg(env, chatId,
+      '⌨️ <b>دکمه‌های بخش‌ها زیر کادر پیام فعال شد</b>\n' +
+      'همان فهرست منوی داخل چت: خرید، اشتراک‌ها، کیف پول، سفارش‌ها، رایگان‌ها، نمایندگی، پشتیبانی، راهنما، دانلود، حساب و دعوت دوستان.',
+      mainBotReplyMarkup());
+  } catch (e) {}
+  // ۲) دکمهٔ شیشه‌ای ورود به اپ؛ فقط این نوع دکمه initData می‌گیرد.
   await msg(env, chatId, text, appEntryMarkup(appUrl));
 }
 
@@ -9227,6 +9282,12 @@ async function onMessage(env, m, origin) {
       if (!handledPhoto) await msg(env, chatId, 'ℹ️ برای ثبت رسید، اول خرید یا شارژ را از همین چت شروع کنید.', mainBotReplyMarkup());
       return;
     }
+    // «🏠 منوی اصلی» پایین چت در حالت فقط‌اپ هم مرحله را می‌بندد و خانه را با همان کیبورد می‌فرستد.
+    if (text && botButtonKey(text) === botButtonKey(HOME_BTN_TEXT)) {
+      await clearState(env, u.tg_id);
+      await showHome(env, chatId, u, null, origin);
+      return;
+    }
     if (text && await handleMiniAppOnlyButton(env, u, chatId, text, origin)) return;
     // شماره/متن مرحلهٔ جاری ویزارد خرید داخل چت.
     if (text && await onStateText(env, u, chatId, text)) return;
@@ -9385,6 +9446,12 @@ async function onMessage(env, m, origin) {
   // وگرنه تلگرام متنش را به همان مرحله می‌داد و کاربر گیر می‌کرد.
   if (text && botButtonKey(text) === botButtonKey(APP_ENTRY_TEXT)) {
     await sendMiniAppEntry(env, chatId, origin);
+    return;
+  }
+  // «🏠 منوی اصلی» پایین چت: هر مرحله‌ای را می‌بندد و خانه را با همان دکمه‌های بخش‌ها می‌فرستد.
+  if (text && botButtonKey(text) === botButtonKey(HOME_BTN_TEXT)) {
+    await clearState(env, u.tg_id);
+    await showHome(env, chatId, u, null, origin, !m.chat || !m.chat.type || m.chat.type === 'private');
     return;
   }
 
