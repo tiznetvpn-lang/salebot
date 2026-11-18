@@ -25,7 +25,7 @@ if (!backupCronMatch || backupCronMatch[1] !== '0 */3 * * *') throw new Error('K
 if (!cronScriptSource.includes("'0 */3 * * *'")) throw new Error('زمان‌بندی scripts/run-cron.mjs با KV_BACKUP_CRON یکی نیست');
 if (!backupTimerUnit.includes('OnCalendar=*-*-* 00/3:00:00 UTC')) throw new Error('systemd timer بکاپ باید هر ۳ ساعت اجرا شود');
 if (!workerSource.includes('KV_BACKUP_MIN_INTERVAL_MS') || workerSource.includes('11 * 60 * 60 * 1000')) throw new Error('فاصلهٔ ایمنی بکاپ با بازهٔ ۳ ساعته هماهنگ نیست');
-src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser; globalThis.__normalizePhone = normalizePhone; globalThis.__isJoinGateMarkup = isJoinGateMarkup; globalThis.__isPhoneRequestMarkup = isPhoneRequestMarkup; globalThis.__isAppEntryMarkup = isAppEntryMarkup; globalThis.__withoutWebAppButtons = withoutWebAppButtons; globalThis.__mainBotReplyMarkup = mainBotReplyMarkup; globalThis.__accessGate = accessGate; globalThis.__DEFAULT_SETTINGS = DEFAULT_SETTINGS; globalThis.__btnSlotFor = btnSlotFor; globalThis.__decorateMarkup = decorateMarkup; globalThis.__btnStyleFor = btnStyleFor; globalThis.__resetBtnUI = () => { BTN_UI_CACHE = { at: 0, colors: true, icons: {} }; }; globalThis.__btnUI = btnUI; globalThis.__resetChatButtons = () => { resetChatButtonCache(); }; globalThis.__chatButtons = chatButtons; globalThis.__retentionSweep = retentionSweep; globalThis.__shetabMakeTestOrder = shetabMakeTestOrder; globalThis.__shetabDropTestOrder = shetabDropTestOrder; globalThis.__retentionConfig = retentionConfig; globalThis.__saveSub = saveSub; globalThis.__saveCfg = saveCfg; globalThis.__getCfg = getCfg; globalThis.__getAgent = getAgent;');
+src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser; globalThis.__normalizePhone = normalizePhone; globalThis.__isJoinGateMarkup = isJoinGateMarkup; globalThis.__isPhoneRequestMarkup = isPhoneRequestMarkup; globalThis.__isAppEntryMarkup = isAppEntryMarkup; globalThis.__stripReplyKeyboardWebApps = stripReplyKeyboardWebApps; globalThis.__appEntryMarkup = appEntryMarkup; globalThis.__withoutWebAppButtons = withoutWebAppButtons; globalThis.__mainBotReplyMarkup = mainBotReplyMarkup; globalThis.__accessGate = accessGate; globalThis.__DEFAULT_SETTINGS = DEFAULT_SETTINGS; globalThis.__btnSlotFor = btnSlotFor; globalThis.__decorateMarkup = decorateMarkup; globalThis.__btnStyleFor = btnStyleFor; globalThis.__resetBtnUI = () => { BTN_UI_CACHE = { at: 0, colors: true, icons: {} }; }; globalThis.__btnUI = btnUI; globalThis.__resetChatButtons = () => { resetChatButtonCache(); }; globalThis.__chatButtons = chatButtons; globalThis.__retentionSweep = retentionSweep; globalThis.__shetabMakeTestOrder = shetabMakeTestOrder; globalThis.__shetabDropTestOrder = shetabDropTestOrder; globalThis.__retentionConfig = retentionConfig; globalThis.__saveSub = saveSub; globalThis.__saveCfg = saveCfg; globalThis.__getCfg = getCfg; globalThis.__getAgent = getAgent;');
 // eslint-disable-next-line no-eval
 eval(src);
 const APP = globalThis.APP;
@@ -391,9 +391,33 @@ await sendText(U1, '/start');
 const homeMsg = lastKeyboardMsg(U1);
 assert(homeMsg && String(homeMsg.params.text || '').includes('تیزنت VPN | TiznetVPN'), '/start صفحهٔ اصلی برند تیزنت را نشان می‌دهد');
 const homeKb = (homeMsg.params.reply_markup.keyboard || []).flat();
-assert(homeKb.length === 1 && homeKb[0].text === '📱 ورود به اپ' && homeKb[0].web_app && homeKb[0].web_app.url === 'https://t.test/miniapp' && !homeMsg.params.reply_markup.inline_keyboard,
-  'کیبورد پایین چت فقط یک دکمهٔ «ورود به اپ» با آدرس مینی‌اپ دارد؛ منوی چنددکمه‌ای قبلی حذف شده است');
-const homeMenuData = (lastInlineMsg(U1)?.params.reply_markup?.inline_keyboard || []).flat().map(b => String(b.callback_data || ''));
+assert(homeKb.length === 1 && homeKb[0].text === '📱 ورود به اپ' && !homeKb[0].web_app && !homeMsg.params.reply_markup.inline_keyboard,
+  'کیبورد پایین چت فقط یک دکمهٔ متنی «ورود به اپ» دارد و web_app روی کیبورد پایین نیست (تلگرام برای آن initData نمی‌فرستد)');
+// دکمهٔ متنی پایین چت → ربات پیامی با دکمهٔ شیشه‌ای web_app می‌فرستد (تنها راهی که initData می‌گیرد).
+const entryTapAt = TG.length;
+await sendText(U1, '📱 ورود به اپ');
+const entryMsg = TG.slice(entryTapAt).filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(U1)).at(-1);
+const entryButtons = lookupButtons(entryMsg);
+assert(entryMsg && String(entryMsg.params.text || '').includes('ورود به اپ')
+  && entryButtons.length === 1 && entryButtons[0].text === '🚀 ورود به اپ'
+  && entryButtons[0].web_app && entryButtons[0].web_app.url === 'https://t.test/miniapp',
+  'لمس «📱 ورود به اپ» یک پیام با دکمهٔ شیشه‌ای «🚀 ورود به اپ» و آدرس درست مینی‌اپ می‌فرستد');
+// وسط یک مرحله (ورود مبلغ شارژ) هم دکمهٔ ورود به اپ باید اپ را باز کند، نه اینکه متنش مبلغ حساب شود.
+await press(U6, 'chgc');
+const u6StateBefore = await kvJson('st:' + U6);
+const midStateAt = TG.length;
+await sendText(U6, '📱 ورود به اپ');
+const midStateMsg = TG.slice(midStateAt).filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(U6)).at(-1);
+const u6StateAfter = await kvJson('st:' + U6);
+assert(u6StateBefore && u6StateBefore.step === 'chg_amt' && midStateMsg
+  && lookupButtons(midStateMsg).some((b) => b.web_app && b.web_app.url === 'https://t.test/miniapp')
+  && u6StateAfter && u6StateAfter.step === 'chg_amt',
+  'دکمهٔ «ورود به اپ» وسط مرحلهٔ ورود مبلغ هم اپ را باز می‌کند و آن مرحله را خراب نمی‌کند');
+await sendText(U6, '0');
+await sendText(U6, '/start');
+const homeMenuMsg = TG.filter((x) => ['sendMessage', 'editMessageText'].includes(x.method) && String(x.params.chat_id) === String(U1)
+  && ((x.params.reply_markup && x.params.reply_markup.inline_keyboard) || []).flat().some((b) => String(b.callback_data || '').startsWith('menu:'))).at(-1);
+const homeMenuData = ((homeMenuMsg?.params.reply_markup?.inline_keyboard) || []).flat().map(b => String(b.callback_data || ''));
 assert(homeMenuData.includes('menu:buy') && homeMenuData.includes('menu:wallet') && homeMenuData.includes('menu:apps') && homeMenuData.includes('menu:ref') && homeMenuData.includes('menu:home'),
   'منوی دکمه‌ای داخل چت همان فهرست کامل بخش‌ها را با یک منبع (کاتالوگ) نشان می‌دهد');
 const privateMenuButton = TG.find(x => x.method === 'setChatMenuButton' && String(x.params.chat_id) === String(U1));
@@ -1372,7 +1396,7 @@ assert(miniAppSource.includes('<a class="') && miniAppSource.includes('target="_
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.57-ubuntu26.59';"), 'شمارهٔ نسخهٔ سرور 1.8.57-ubuntu26.59 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.58-ubuntu26.60';"), 'شمارهٔ نسخهٔ سرور 1.8.58-ubuntu26.60 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -1539,9 +1563,10 @@ env.MINIAPP_ONLY_MODE = 'true';
 const walletStartMark = TG.length;
 await sendText(U4, '/start miniapp_wallet');
 const walletStartMsgs = TG.slice(walletStartMark).filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(U4));
+const walletStartButtons = walletStartMsgs.flatMap((m) => ((m.params.reply_markup && m.params.reply_markup.inline_keyboard) || []).flat());
 assert(walletStartMsgs.some((m) => String(m.params.text || '').includes('شارژ کیف پول از داخل خودِ اپ'))
-  && !walletStartMsgs.some((m) => ((m.params.reply_markup && m.params.reply_markup.inline_keyboard) || []).flat().some((b) => b.web_app)),
-  'در حالت Mini App-only پیوند قدیمی «شارژ کیف پول» به صفحهٔ استارت نمی‌افتد، مسیر درست را نشان می‌دهد و دکمهٔ شیشه‌ای نمی‌سازد');
+  && walletStartButtons.every((b) => b.text === '🚀 ورود به اپ' && b.web_app && b.web_app.url === 'https://t.test/miniapp'),
+  'در حالت Mini App-only پیوند قدیمی «شارژ کیف پول» به صفحهٔ استارت نمی‌افتد، مسیر درست را نشان می‌دهد و فقط دکمهٔ «ورود به اپ» را می‌دهد');
 env.MINIAPP_ONLY_MODE = 'false';
 const adminOrderDetail = await miniApi('/api/miniapp/admin/orders/' + manualMiniOrder.id, adminInit);
 const customerCannotReadAdminOrder = await miniApi('/api/miniapp/admin/orders/' + manualMiniOrder.id, user4Init);
@@ -2391,6 +2416,18 @@ assert(globalThis.__isAppEntryMarkup({ keyboard: [[{ text: '📱 ورود به �
   && !globalThis.__isAppEntryMarkup({ keyboard: [[{ text: '📱 ورود به اپ', web_app: { url: 'http://t.test/miniapp' } }]] })
   && !globalThis.__isAppEntryMarkup({ keyboard: [[{ text: '🛍 خرید اشتراک' }]] }),
   'در حالت فقط‌اپ تنها کیبورد مجاز، همان تک‌دکمهٔ «ورود به اپ» است و آدرس غیر https رد می‌شود');
+// نگهبان اصلی ریشهٔ باگ: هیچ web_app روی کیبورد پایین چت نرود.
+const guardedKb = globalThis.__stripReplyKeyboardWebApps({ keyboard: [[{ text: '📱 ورود به اپ', web_app: { url: 'https://t.test/miniapp' }, style: 'primary' }]], resize_keyboard: true, is_persistent: true });
+assert(guardedKb && guardedKb.keyboard[0][0].text === '📱 ورود به اپ' && !guardedKb.keyboard[0][0].web_app
+  && guardedKb.keyboard[0][0].style === 'primary' && guardedKb.is_persistent === true && guardedKb.resize_keyboard === true,
+  'نگهبان، web_app را از دکمهٔ کیبورد پایین چت برمی‌دارد و بقیهٔ تنظیمات دکمه را نگه می‌دارد');
+assert(globalThis.__stripReplyKeyboardWebApps({ keyboard: [[{ text: '📱 ورود به اپ' }]] }) === null
+  && globalThis.__stripReplyKeyboardWebApps({ inline_keyboard: [[{ text: 'x', web_app: { url: 'https://t.test/miniapp' } }]] }) === null,
+  'نگهبان به کیبورد سالم و دکمهٔ شیشه‌ای دست نمی‌زند');
+const entryMarkup = globalThis.__appEntryMarkup('https://t.test/miniapp');
+assert(entryMarkup.__keep_inline === true && entryMarkup.reply_markup.inline_keyboard[0][0].web_app.url === 'https://t.test/miniapp'
+  && entryMarkup.reply_markup.inline_keyboard[0][0].text === '🚀 ورود به اپ',
+  'دکمهٔ شیشه‌ای ورود به اپ با آدرس https ساخته می‌شود و از فیلتر دکمه‌های چت رد می‌شود');
 const strippedKb = globalThis.__withoutWebAppButtons({ keyboard: [[{ text: '📱 ورود به اپ', web_app: { url: 'https://t.test/miniapp' } }]], resize_keyboard: true });
 assert(strippedKb && strippedKb.keyboard[0][0].text === '📱 ورود به اپ' && !strippedKb.keyboard[0][0].web_app && strippedKb.resize_keyboard === true,
   'در گروه‌ها دکمهٔ وب‌اپ به دکمهٔ متنی تبدیل می‌شود تا تلگرام پیام را رد نکند');
@@ -3383,6 +3420,13 @@ await press(INLINE_USER2, 'buy');
 const offCustomerInline = TG.slice(inlineOffPressAt).filter((x) => String(x.params.chat_id) === String(INLINE_USER2)
   && x.params.reply_markup && Array.isArray(x.params.reply_markup.inline_keyboard) && x.params.reply_markup.inline_keyboard.length);
 assert(offCustomerInline.length === 0 && lastAnyTextTo(INLINE_USER2).includes('وارد اپ'), 'با خاموش‌بودن کلید، callback قدیمی مثل قبل خنثی می‌ماند و کیبورد شیشه‌ای فرستاده نمی‌شود');
+// ورود به اپ مستقل از کلید «دکمه‌های شیشه‌ای» است؛ وگرنه کاربرِ بدون مینی‌اپ اصلاً راهی ندارد.
+const entryWhenOffAt = TG.length;
+await sendText(INLINE_USER2, '📱 ورود به اپ');
+const entryWhenOff = TG.slice(entryWhenOffAt).filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(INLINE_USER2)).at(-1);
+const entryWhenOffButtons = lookupButtons(entryWhenOff);
+assert(entryWhenOffButtons.length === 1 && entryWhenOffButtons[0].web_app && entryWhenOffButtons[0].web_app.url === 'https://t.test/miniapp',
+  'حتی با خاموش‌بودن دکمه‌های شیشه‌ای، دکمهٔ «📱 ورود به اپ» یک دکمهٔ شیشه‌ای web_app با initData می‌فرستد');
 await press(ADMIN, 's_inline');
 env.MINIAPP_ONLY_MODE = inlineModeBefore;
 assert((await kvJson('cfg')).chat_inline_enabled === true, 'روشن‌کردن دوبارهٔ دکمه‌های شیشه‌ای ذخیره می‌شود');
@@ -3423,6 +3467,14 @@ const freeCustomerApi = await miniApi('/api/miniapp/customer', await signedInitD
 const freeRowsFromApi = (freeCustomerApi.json.subscriptions || []).filter((s) => s.is_free);
 assert(freeRowsFromApi.length === 2 && freeRowsFromApi.some((s) => String(s.plan_name || '').includes('هدیهٔ دعوت')),
   'دادهٔ مینی‌اپ هم اشتراک‌های رایگان را با پرچم is_free برمی‌گرداند');
+// ریشهٔ باگ «وصل نشد»: تلگرام برای دکمهٔ کیبورد پایین چت initData نمی‌فرستد.
+assert(miniAppSource.includes('NO_INIT_DATA_HINT') && miniAppSource.includes('بدون دادهٔ امضاشده')
+  && /const NO_INIT_DATA_HINT='[^']*🚀 ورود به اپ[^']*'/.test(miniAppSource)
+  && (miniAppSource.match(/NO_INIT_DATA_HINT(?:[,)])/g) || []).length >= 2
+  && miniAppSource.includes("'دادهٔ ورود به اپ نرسید'"),
+  'مینی‌اپ وقتی initData خالی است (باز شدن از دکمهٔ کیبورد) راهنمای دقیق «از دکمهٔ 🚀 ورود به اپ یا ☰ باز کن» را در هر دو مسیر خطا نشان می‌دهد');
+assert(!/keyboard[\s\S]{0,400}?web_app/.test(workerSource.slice(workerSource.indexOf('function mainBotReplyMarkup'), workerSource.indexOf('function appEntryMarkup')))
+  , 'تابع کیبورد پایین چت هیچ web_app ای نمی‌سازد (تنها منبع باگ initData خالی)');
 assert(miniAppSource.includes('id="customerFreeHistory"') && miniAppSource.includes('renderCustomerFreeHistory(data.subscriptions)')
   && /function renderCustomerFreeHistory[\s\S]{0,400}is_free/.test(miniAppSource),
   'مینی‌اپ بخش «اشتراک‌های رایگان دریافت‌شده» دارد و آن را از همان فهرست اشتراک‌ها با فیلتر is_free می‌سازد');

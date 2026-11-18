@@ -3832,6 +3832,9 @@
     const tgPlatform = String((tg && tg.platform) || 'unknown').toLowerCase();
     const hasInitData = !!(tg && tg.initData);
     const isTelegram = !!(hasInitData || (tgPlatform && tgPlatform !== 'unknown') || /tgWebApp/i.test(location.hash) || typeof window.TelegramWebviewProxy !== 'undefined');
+    // تلگرام فقط برای دکمهٔ شیشه‌ای web_app و دکمهٔ ☰ دادهٔ امضاشده می‌فرستد؛ دکمهٔ کیبورد پایین چت
+    // initData ندارد (مستند رسمی) و همین باعث خطای «وصل نشد» می‌شد.
+    const NO_INIT_DATA_HINT='در ربات، دکمهٔ «📱 ورود به اپ» پایین چت را بزنید و بعد دکمهٔ «🚀 ورود به اپ» داخل همان پیام را لمس کنید؛ یا از دکمهٔ ☰ کنار کادر پیام استفاده کنید. تلگرام برای دکمهٔ کیبورد پایین چت، دادهٔ ورود نمی‌فرستد.';
     let liveMode = false;
     let adminRole = false;
     let agentRole = false;
@@ -4127,13 +4130,13 @@
       gate.innerHTML='<div style="max-width:420px;padding:24px;border:1px solid rgba(240, 86, 99, .38);border-radius:20px;background:#740710"><div style="font-size:24px;margin-bottom:12px">🛡️</div><strong style="display:block;margin-bottom:8px">در حال ورود به تیزنت VPN</strong><span style="color:#e8d4d6;font-size:14px;line-height:2">در حال بررسی هویت تلگرام و دریافت اطلاعات واقعی فروشگاه...</span></div>';
       document.body.appendChild(gate);return gate;
     }
-    function showGateError(gate,message) {
+    function showGateError(gate,message,hintText,titleText) {
       gate.innerHTML='';
       const card=document.createElement('div');
       card.style.cssText='max-width:430px;padding:26px;border:1px solid rgba(240, 86, 99, .42);border-radius:20px;background:#740710;color:#fbf7f7;font-family:"Yekan",Vazirmatn,system-ui,Tahoma,sans-serif';
-      const title=document.createElement('strong');title.textContent='مینی‌اپ به Worker وصل نشد';title.style.cssText='display:block;margin-bottom:10px;font-size:16px';
+      const title=document.createElement('strong');title.textContent=titleText||'مینی‌اپ به Worker وصل نشد';title.style.cssText='display:block;margin-bottom:10px;font-size:16px';
       const body=document.createElement('p');body.textContent=message;body.style.cssText='color:#e8d4d6;font-size:14px;line-height:2';
-      const hint=document.createElement('p');hint.textContent='مینی‌اپ را از دکمهٔ داخل ربات باز کنید و تنظیمات Telegram Web App / دامنهٔ BotFather را بررسی کنید.';hint.style.cssText='color:#e1c6c9;font-size:13px;line-height:2';
+      const hint=document.createElement('p');hint.textContent=hintText||'مینی‌اپ را از دکمهٔ داخل ربات باز کنید و تنظیمات Telegram Web App / دامنهٔ BotFather را بررسی کنید.';hint.style.cssText='color:#e1c6c9;font-size:13px;line-height:2';
       const retry=document.createElement('button');retry.textContent='تلاش دوباره';retry.className='btn-primary';retry.onclick=()=>location.reload();
       card.append(title,body,hint,retry);gate.appendChild(card);
     }
@@ -7274,7 +7277,8 @@
         }
         addWebLogout();
       } catch(e) {
-        showGateError(gate,e.message==='unauthorized'?(hasInitData?'Telegram initData معتبر نیست یا منقضی شده است.':'نشست وب منقضی شده است؛ صفحه را تازه کنید و دوباره وارد شوید.'):'دریافت دادهٔ زنده از Worker ناموفق بود. ('+e.message+')');
+        if(!hasInitData&&isTelegram){showGateError(gate,'تلگرام این صفحه را بدون دادهٔ امضاشده باز کرد، پس Worker نمی‌تواند حساب شما را بشناسد.',NO_INIT_DATA_HINT,'دادهٔ ورود به اپ نرسید');}
+        else showGateError(gate,e.message==='unauthorized'?(hasInitData?'Telegram initData معتبر نیست یا منقضی شده است.':'نشست وب منقضی شده است؛ صفحه را تازه کنید و دوباره وارد شوید.'):'دریافت دادهٔ زنده از Worker ناموفق بود. ('+e.message+')');
       }
     }
     async function loadCustomer() {
@@ -7304,7 +7308,7 @@
 
     if(hasInitData) startTelegramApp();
     else if(isTelegram) {
-      const gate=createGate();showGateError(gate,'Telegram دادهٔ امضاشدهٔ initData نفرستاد.');
+      const gate=createGate();showGateError(gate,'تلگرام این صفحه را بدون دادهٔ امضاشده باز کرد، پس Worker نمی‌تواند حساب شما را بشناسد.',NO_INIT_DATA_HINT,'دادهٔ ورود به اپ نرسید');
     } else {
       // مرورگر: اگر نشست وب معتبر باشد، همان اپ کامل اجرا می‌شود؛ وگرنه صفحهٔ ورود.
       fetch('/api/web/session',{headers:{'Accept':'application/json'},cache:'no-store'})

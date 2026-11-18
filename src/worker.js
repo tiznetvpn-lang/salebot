@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.57-ubuntu26.59';
+const VERSION = '1.8.58-ubuntu26.60';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -3591,7 +3591,12 @@ function withoutWebAppButtons(markup) {
 }
 
 async function tg(env, method, params) {
-  const original = params && typeof params === 'object' ? params : {};
+  let original = params && typeof params === 'object' ? params : {};
+  // نگهبان: دکمهٔ web_app روی کیبورد پایین چت initData نمی‌گیرد؛ پس هیچ‌وقت فرستاده نمی‌شود.
+  if (original.reply_markup) {
+    const fixed = stripReplyKeyboardWebApps(original.reply_markup);
+    if (fixed) original = Object.assign({}, original, { reply_markup: fixed });
+  }
   let payload = original;
   let decorated = false;
   if (original.reply_markup) {
@@ -3791,15 +3796,43 @@ function isAppEntryMarkup(markup) {
   if (!button.web_app) return true;
   try { return new URL(String(button.web_app.url || '')).protocol === 'https:'; } catch (e) { return false; }
 }
-function mainBotReplyMarkup(url) {
-  const appUrl = url || MINIAPP_ENTRY_URL;
-  const button = appUrl ? { text: APP_ENTRY_TEXT, web_app: { url: appUrl } } : { text: APP_ENTRY_TEXT };
+/* ── چرا این دکمه «متن» است و web_app نیست؟ ─────────────────────────────
+ * تلگرام برای مینی‌اپی که از دکمهٔ کیبورد پایین چت (KeyboardButton.web_app) باز شود،
+ * دادهٔ امضاشدهٔ initData را **خالی** می‌گذارد (مستند رسمی: WebAppInitData «is empty if
+ * the Mini App was launched from a keyboard button»). بدون initData، Worker هویت کاربر را
+ * نمی‌شناسد و اپ با خطای «مینی‌اپ به Worker وصل نشد» بالا می‌آید.
+ * پس دکمهٔ پایین چت متن است؛ با زدنش همین ربات یک پیام با دکمهٔ شیشه‌ای web_app می‌فرستد
+ * (دکمهٔ شیشه‌ای initData را می‌فرستد) و دکمهٔ ☰ کنار کادر پیام هم همان کار را می‌کند.
+ */
+function mainBotReplyMarkup() {
   return { reply_markup: {
-    keyboard: [[button]],
+    keyboard: [[{ text: APP_ENTRY_TEXT }]],
     resize_keyboard: true,
     is_persistent: true,
     input_field_placeholder: 'دکمهٔ ☰ کنار کادر پیام'
   } };
+}
+// دکمهٔ شیشه‌ای ورود به اپ: تنها راهی که تلگرام initData را همراه مینی‌اپ می‌فرستد.
+function appEntryMarkup(url) {
+  const appUrl = String(url || MINIAPP_ENTRY_URL || '');
+  if (!appUrl) return {};
+  return { reply_markup: { inline_keyboard: [[WEBAPPBTN('🚀 ورود به اپ', appUrl)]] }, __keep_inline: true };
+}
+// نگهبان: هیچ‌وقت web_app روی کیبورد پایین چت نرود (وگرنه initData خالی می‌رسد).
+function stripReplyKeyboardWebApps(markup) {
+  if (!markup || typeof markup !== 'object' || !Array.isArray(markup.keyboard)) return null;
+  let changed = false;
+  const rows = markup.keyboard.map((row) => (Array.isArray(row) ? row : []).map((btn) => {
+    if (btn && typeof btn === 'object' && btn.web_app) {
+      changed = true;
+      const rest = Object.assign({}, btn);
+      delete rest.web_app;
+      return rest;
+    }
+    return btn;
+  }));
+  if (!changed) return null;
+  return Object.assign({}, markup, { keyboard: rows });
 }
 function miniAppUrl(env, origin) {
   const configured = String(env.MINIAPP_URL || '').trim();
@@ -4600,7 +4633,7 @@ async function showHome(env, chatId, u, messageId, origin, allowWebApp) {
   const cfg = await getCfg(env);
   const text = '✨ <b>تیزنت VPN | TiznetVPN</b>\n' + esc(cfg.welcome) +
     '\n\n💰 موجودی کیف پول: <b>' + fmtToman(u.balance) + '</b>' +
-    '\n\n📱 برای دیدن همهٔ بخش‌ها دکمهٔ ☰ کنار کادر پیام یا دکمهٔ «📱 ورود به اپ» را بزنید.';
+    '\n\n📱 برای دیدن همهٔ بخش‌ها دکمهٔ ☰ کنار کادر پیام را بزنید؛ «📱 ورود به اپ» پایین چت هم اپ را باز می‌کند.';
   const kb = mainBotReplyMarkup();
   if (messageId) { await editMsg(env, chatId, messageId, text, kb); return; }
   await msg(env, chatId, text, kb);
@@ -4644,16 +4677,21 @@ async function showMiniAppOnlyStart(env, chatId, origin) {
     '👋 خوش آمدید.\n' +
     '🛍 خرید کامل (پلن، کد تخفیف، کیف پول و کارت‌به‌کارت) داخل همین چت هم انجام می‌شود.\n' +
     '🧩 همهٔ بخش‌ها در «منوی دکمه‌ای» پیام بعدی است؛ با یک لمس باز می‌شوند.\n' +
-    '📱 برای ورود به اپ فروشگاه، دکمهٔ «ورود به اپ» پایین چت یا دکمهٔ ☰ کنار کادر پیام را بزنید.', mainBotReplyMarkup());
+    '📱 برای ورود به اپ: دکمهٔ «ورود به اپ» پایین چت را بزنید و بعد «🚀 ورود به اپ» را لمس کنید؛ یا دکمهٔ ☰ کنار کادر پیام.', mainBotReplyMarkup());
   // منوی دکمه‌ای در پیام جدا می‌آید چون تلگرام در یک پیام یا کیبورد پایین را می‌پذیرد یا دکمهٔ شیشه‌ای.
   if (await chatInlineEnabled(env)) { try { await sendChatInlineMenu(env, chatId, null); } catch (e) {} }
 }
 
 async function sendMiniAppEntry(env, chatId, origin, caption) {
   const appUrl = miniAppUrl(env, origin);
-  const text = (caption || 'برای ادامه وارد اپ فروش تیزنت شوید.') +
-    (appUrl ? '\n\n📱 اپ را از دکمهٔ «📱 ورود به اپ» پایین چت یا دکمهٔ ☰ کنار کادر پیام باز کنید.' : '');
-  await msg(env, chatId, text, mainBotReplyMarkup());
+  const text = (caption || 'ورود به اپ فروش تیزنت') +
+    (appUrl
+      ? '\n\n👇 دکمهٔ «🚀 ورود به اپ» را بزنید؛ همین دکمه با حساب تلگرام خودتان وارد اپ می‌شود.' +
+        '\nدکمهٔ ☰ کنار کادر پیام هم همان اپ را باز می‌کند.'
+      : '\n\n⚠️ آدرس اپ روی سرور تنظیم نشده است؛ با پشتیبانی تماس بگیرید.');
+  // یک پیام فقط یا کیبورد پایین را می‌پذیرد یا دکمهٔ شیشه‌ای؛ اینجا دکمهٔ شیشه‌ای لازم است
+  // چون فقط آن initData می‌گیرد. کیبورد قبلی چت هم دست‌نخورده می‌ماند.
+  await msg(env, chatId, text, appEntryMarkup(appUrl));
 }
 
 function miniOnlyFreeError(error) {
@@ -9340,6 +9378,13 @@ async function onMessage(env, m, origin) {
     const fileId = m.photo[m.photo.length - 1].file_id;
     const handled = await onStatePhoto(env, u, chatId, fileId);
     if (!handled) await msg(env, chatId, 'ℹ️ برای ثبت رسید، اول از منو خرید/شارژ را شروع کنید.', KB([[BTN('🏠 منوی اصلی', 'home')]]));
+    return;
+  }
+
+  // دکمهٔ «📱 ورود به اپ» پایین چت همیشه کار می‌کند، حتی وسط یک مرحله (مثلاً ورود مبلغ)؛
+  // وگرنه تلگرام متنش را به همان مرحله می‌داد و کاربر گیر می‌کرد.
+  if (text && botButtonKey(text) === botButtonKey(APP_ENTRY_TEXT)) {
+    await sendMiniAppEntry(env, chatId, origin);
     return;
   }
 
