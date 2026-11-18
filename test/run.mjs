@@ -10,7 +10,7 @@ const srcPath = path.join(here, '..', 'src', 'worker.js');
 let src = fs.readFileSync(srcPath, 'utf8');
 if (!src.includes('export default APP;')) throw new Error('export default APP not found');
 const webhookScript = fs.readFileSync(path.join(here, '..', 'scripts', 'setup-webhook.mjs'), 'utf8');
-if (!webhookScript.includes('drop_pending_updates: false') || src.includes('bot_token_head') || !src.includes('tiznetvpn-menu-button-ubuntu-v2')) throw new Error('Self-hosting safety changes are missing from src/worker.js or scripts/setup-webhook.mjs');
+if (!webhookScript.includes('drop_pending_updates: false') || src.includes('bot_token_head') || !src.includes('tiznetvpn-menu-button-ubuntu-v3')) throw new Error('Self-hosting safety changes are missing from src/worker.js or scripts/setup-webhook.mjs');
 if (src.includes("'/setup'") || src.includes("'/diag'")) throw new Error('Legacy /setup and /diag routes must stay removed from src/worker.js');
 const pkgVersion = JSON.parse(fs.readFileSync(path.join(here, '..', 'package.json'), 'utf8')).version;
 if (!src.includes("const VERSION = '" + pkgVersion + "';")) throw new Error('VERSION در src/worker.js با package.json یکی نیست');
@@ -397,8 +397,9 @@ const homeMenuData = (lastInlineMsg(U1)?.params.reply_markup?.inline_keyboard ||
 assert(homeMenuData.includes('menu:buy') && homeMenuData.includes('menu:wallet') && homeMenuData.includes('menu:apps') && homeMenuData.includes('menu:ref') && homeMenuData.includes('menu:home'),
   'منوی دکمه‌ای داخل چت همان فهرست کامل بخش‌ها را با یک منبع (کاتالوگ) نشان می‌دهد');
 const privateMenuButton = TG.find(x => x.method === 'setChatMenuButton' && String(x.params.chat_id) === String(U1));
-assert(privateMenuButton && privateMenuButton.params.menu_button.type === 'web_app' && privateMenuButton.params.menu_button.text === 'منوی' && privateMenuButton.params.menu_button.web_app.url === 'https://t.test/miniapp' && (await kvJson('u:' + U1)).miniapp_menu_set_version === 'tiznetvpn-menu-button-ubuntu-v2', 'دکمهٔ «منوی» کنار کادر پیام با برچسب فارسی و آدرس مینی‌اپ تنظیم می‌شود و نسخهٔ برچسب به‌روزرسانی می‌شود');
-assert(String(homeMsg.params.text || '').includes('دکمهٔ «منوی» کنار کادر پیام'), 'پیام خانه کاربر را به دکمهٔ «منوی» کنار کادر پیام راهنمایی می‌کند');
+assert(privateMenuButton && privateMenuButton.params.menu_button.type === 'web_app' && privateMenuButton.params.menu_button.text === '☰' && privateMenuButton.params.menu_button.web_app.url === 'https://t.test/miniapp' && (await kvJson('u:' + U1)).miniapp_menu_set_version === 'tiznetvpn-menu-button-ubuntu-v3', 'دکمهٔ منو کنار کادر پیام دیگر واژهٔ «منوی» ندارد و فقط آیکن ☰ با آدرس مینی‌اپ تنظیم می‌شود');
+assert(!JSON.stringify(privateMenuButton.params.menu_button.text).match(/[\u0600-\u06FF]/), 'روی دکمهٔ منو هیچ حرف فارسی/واژه‌ای نوشته نمی‌شود');
+assert(String(homeMsg.params.text || '').includes('دکمهٔ ☰ کنار کادر پیام'), 'پیام خانه کاربر را به دکمهٔ ☰ کنار کادر پیام راهنمایی می‌کند');
 await upd({ callback_query: { id: 'q' + (qSeq++), from: { id: U7, first_name: 'GroupUser' }, message: { message_id: 77, chat: { id: -10001, type: 'group' } }, data: 'home' } });
 const groupHome = TG.filter(x => x.method === 'editMessageText' && String(x.params.chat_id) === '-10001').at(-1);
 const groupMarkup = groupHome && groupHome.params.reply_markup && groupHome.params.reply_markup.inline_keyboard || [];
@@ -437,8 +438,8 @@ assert((emojiBuyText.includes('خرید اشتراک از داخل چت') || emo
   'دکمه‌های ایموجی‌دار ربات کار می‌کنند و متن بدون ایموجی هم پشتیبانی می‌شود؛ خرید به‌جای «وارد اپ» داخل چت شروع می‌شود');
 const exactRobotButtons = ['📱 ورود به اپ'];
 const replyTexts = miniOnlyKeyboardMessage?.params.reply_markup?.keyboard?.flat().map(x => x.text) || [];
-assert(miniOnlyEntry && miniOnlyEntry.params.text.includes('دکمهٔ «منوی»') && !miniOnlyEntry.params.reply_markup?.inline_keyboard && miniOnlyKeyboardMessage?.params.reply_markup?.keyboard && JSON.stringify(replyTexts) === JSON.stringify(exactRobotButtons), '/start در Mini App-only یک کیبورد با تنها دکمهٔ «ورود به اپ» می‌فرستد و دکمهٔ شیشه‌ای داخل همان پیام ندارد');
-assert(miniOnlyMenu && miniOnlyMenu.params.menu_button.text === 'منوی' && miniOnlyCommands && miniOnlyCommands.params.commands.length === 1 && miniOnlyCommands.params.commands[0].command === 'start', 'در حالت Mini App-only دکمهٔ کنار کادر پیام «منوی» است و فهرست دستورها به /start محدود می‌شود');
+assert(miniOnlyEntry && miniOnlyEntry.params.text.includes('دکمهٔ ☰') && !miniOnlyEntry.params.reply_markup?.inline_keyboard && miniOnlyKeyboardMessage?.params.reply_markup?.keyboard && JSON.stringify(replyTexts) === JSON.stringify(exactRobotButtons), '/start در Mini App-only یک کیبورد با تنها دکمهٔ «ورود به اپ» می‌فرستد و دکمهٔ شیشه‌ای داخل همان پیام ندارد');
+assert(miniOnlyMenu && miniOnlyMenu.params.menu_button.text === '☰' && miniOnlyCommands && miniOnlyCommands.params.commands.length === 1 && miniOnlyCommands.params.commands[0].command === 'start', 'در حالت Mini App-only دکمهٔ کنار کادر پیام «منوی» است و فهرست دستورها به /start محدود می‌شود');
 assert((await kvJson('u:' + U5)).referred_by === U1, 'خاموش‌بودن منوی legacy انتساب لینک معرف را حفظ می‌کند');
 await sendText(U4, '/start ref_' + u1a.ref_code);
 const u1AfterThirdInvite = await kvJson('u:' + U1);
@@ -1371,7 +1372,7 @@ assert(miniAppSource.includes('<a class="') && miniAppSource.includes('target="_
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.56-ubuntu26.58';"), 'شمارهٔ نسخهٔ سرور 1.8.56-ubuntu26.58 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.57-ubuntu26.59';"), 'شمارهٔ نسخهٔ سرور 1.8.57-ubuntu26.59 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -2784,10 +2785,10 @@ function kbTexts(msg) {
   const kb = msg && msg.params && msg.params.reply_markup && msg.params.reply_markup.keyboard;
   return Array.isArray(kb) ? kb.flat().map(x => x.text) : [];
 }
-const DEFAULT_KB = ['🛍 خرید اشتراک', '📦 اشتراک‌های من', '💰 کیف پول و شارژ', '🧾 سفارش‌های من', '🎁 اشتراک رایگان', '🤝 دریافت نمایندگی', '🎧 پشتیبانی', '📘 راهنما', '📥 دانلود اپ‌ها', '🪪 اطلاعات حساب', '🎉 دعوت دوستان'];
+const DEFAULT_KB = ['🛍 خرید اشتراک', '📦 اشتراک‌های من', '💰 کیف پول و شارژ', '🧾 سفارش‌های من', '🎁 اشتراک رایگان', '🎫 اشتراک‌های رایگان من', '🤝 دریافت نمایندگی', '🎧 پشتیبانی', '📘 راهنما', '📥 دانلود اپ‌ها', '🪪 اطلاعات حساب', '🎉 دعوت دوستان'];
 
 await press(ADMIN, 's_kb');
-assert(panelMsg(ADMIN).params.text.includes('دکمه‌های منوی چت') && lookupButtons(panelMsg(ADMIN)).filter(b => String(b.callback_data).startsWith('s_kb_it:')).length === 11, 'پنل «دکمه‌های منوی چت» در تنظیمات ادمین باز می‌شود و یازده دکمهٔ فعلی را نشان می‌دهد');
+assert(panelMsg(ADMIN).params.text.includes('دکمه‌های منوی چت') && lookupButtons(panelMsg(ADMIN)).filter(b => String(b.callback_data).startsWith('s_kb_it:')).length === 12, 'پنل «دکمه‌های منوی چت» در تنظیمات ادمین باز می‌شود و دوازده دکمهٔ فعلی را نشان می‌دهد');
 await press(ADMIN, 's_kb_it:buy');
 assert(panelMsg(ADMIN).params.text.includes('خرید اشتراک') && lookupButtons(panelMsg(ADMIN)).some(b => b.callback_data === 's_kb_tog:buy') && lookupButtons(panelMsg(ADMIN)).some(b => b.callback_data === 's_kb_ren:buy'), 'هر دکمه صفحهٔ اختصاصی با روشن/خاموش و تغییر نام دارد');
 
@@ -2805,14 +2806,14 @@ assert(String(lastMsgTo(U12).params.text || '').includes('خرید اشتراک 
 
 await press(ADMIN, 's_kb_tog:support');
 await sendText(U12, '/start');
-assert(menuTexts(U12).length === 11 && !menuTexts(U12).includes('🎧 پشتیبانی'), 'خاموش‌کردن دکمه آن را از منوی چت برمی‌دارد');
+assert(menuTexts(U12).length === 12 && !menuTexts(U12).includes('🎧 پشتیبانی'), 'خاموش‌کردن دکمه آن را از منوی چت برمی‌دارد');
 await sendText(U12, 'پشتیبانی');
 assert(lastMsgTo(U12).params.text.includes('منوی دکمه‌ای'), 'دکمهٔ خاموش دیگر مسیری را اجرا نمی‌کند');
 
 await press(ADMIN, 's_kb_up:help');
 await sendText(U12, '/start');
 const helpPos = menuTexts(U12).indexOf('📘 راهنما');
-assert(helpPos === 6 && menuTexts(U12).indexOf('🛍 اشتراک بخرم') === 0 && !menuTexts(U12).includes('🎧 پشتیبانی'), 'جابه‌جایی دکمه ترتیب منوی چت را عوض می‌کند');
+assert(helpPos === menuTexts(U12).indexOf('🤝 دریافت نمایندگی') + 1 && menuTexts(U12).indexOf('🛍 اشتراک بخرم') === 0 && !menuTexts(U12).includes('🎧 پشتیبانی'), 'جابه‌جایی دکمه ترتیب منوی چت را عوض می‌کند');
 
 await press(ADMIN, 's_kb_del:apps');
 await press(ADMIN, 's_kb_put:apps');
@@ -2822,20 +2823,20 @@ assert(afterAdd.order[afterAdd.order.length - 1] === 'apps', 'دکمهٔ حذف�
 await press(ADMIN, 's_kb_reset');
 const resetCfg = await kvJson('ui:chat_buttons');
 await sendText(U12, '/start');
-assert(JSON.stringify(menuTexts(U12).slice(0, 11)) === JSON.stringify(DEFAULT_KB) && resetCfg.order.length === 11 && !Object.keys(resetCfg.labels || {}).length, 'بازگردانی پیش‌فرض، نام و ترتیب و وضعیت یازده دکمهٔ اصلی را برمی‌گرداند');
+assert(JSON.stringify(menuTexts(U12).slice(0, 12)) === JSON.stringify(DEFAULT_KB) && resetCfg.order.length === 12 && !Object.keys(resetCfg.labels || {}).length, 'بازگردانی پیش‌فرض، نام و ترتیب و وضعیت دوازده دکمهٔ اصلی را برمی‌گرداند');
 
 // همان تنظیمات از مینی‌اپ
 const chatAdmin = await signedInitData(ADMIN);
 const lookWithChat = await miniApi('/api/miniapp/admin/settings', chatAdmin);
-assert(lookWithChat.json.buttons && lookWithChat.json.buttons.chat && lookWithChat.json.buttons.chat.items.length === 11 && lookWithChat.json.buttons.chat.catalog.length >= 11, 'تنظیمات مینی‌اپ فهرست دکمه‌های منوی چت و کاتالوگ کامل را برمی‌گرداند');
+assert(lookWithChat.json.buttons && lookWithChat.json.buttons.chat && lookWithChat.json.buttons.chat.items.length === 12 && lookWithChat.json.buttons.chat.catalog.length >= 12, 'تنظیمات مینی‌اپ فهرست دکمه‌های منوی چت و کاتالوگ کامل را برمی‌گرداند');
 const appChatSave = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['buy', 'subs', 'wallet'], off: ['wallet'], labels: { subs: 'بسته‌های من' } } }) });
 assert(appChatSave.status === 200 && appChatSave.json.chat.items.length === 3 && appChatSave.json.chat.items.find(i => i.id === 'subs').custom === 'بسته‌های من', 'مدیر از مینی‌اپ ترتیب، نام و خاموش‌بودن دکمه‌ها را ذخیره می‌کند');
 await sendText(U12, '/start');
 assert(JSON.stringify(menuTexts(U12)) === JSON.stringify(['🛍 خرید اشتراک', '📦 بسته‌های من', '🔄 تازه‌سازی منو']), 'تغییر مینی‌اپ همان لحظه روی منوی چت اعمال می‌شود');
 const allOff = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['buy'], off: ['buy'] } }) });
 assert(allOff.status === 400 && allOff.json.error === 'all_buttons_off', 'خاموش‌کردن همهٔ دکمه‌ها از مینی‌اپ رد می‌شود');
-const allButtons = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['buy','subs','wallet','orders','free','agent','support','help','apps','account','ref'] } }) });
-assert(allButtons.status === 200 && allButtons.json.chat.items.length === 11, 'کل کاتالوگ (یازده دکمه) در منوی چت جا می‌شود');
+const allButtons = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['buy','subs','wallet','orders','free','freesubs','agent','support','help','apps','account','ref'] } }) });
+assert(allButtons.status === 200 && allButtons.json.chat.items.length === 12, 'کل کاتالوگ (دوازده دکمه) در منوی چت جا می‌شود');
 const badBtn = await miniApi('/api/miniapp/admin/buttons', chatAdmin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat: { order: ['nope'] } }) });
 assert(badBtn.status === 400 && badBtn.json.error === 'invalid_button', 'شناسهٔ ناشناختهٔ دکمه رد می‌شود');
 
@@ -3385,6 +3386,46 @@ assert(offCustomerInline.length === 0 && lastAnyTextTo(INLINE_USER2).includes('�
 await press(ADMIN, 's_inline');
 env.MINIAPP_ONLY_MODE = inlineModeBefore;
 assert((await kvJson('cfg')).chat_inline_enabled === true, 'روشن‌کردن دوبارهٔ دکمه‌های شیشه‌ای ذخیره می‌شود');
+
+// ---------- بخش «اشتراک‌های رایگان دریافت‌شده» (چت + مینی‌اپ) ----------
+const FREE_SECTION_USER = 132;
+await sendText(FREE_SECTION_USER, '/start');
+const freeEmptyAt = TG.length;
+await press(FREE_SECTION_USER, 'menu:freesubs');
+const freeEmptyMsg = TG.slice(freeEmptyAt).filter((x) => x.method === 'sendMessage' && String(x.params.chat_id) === String(FREE_SECTION_USER)).at(-1);
+assert(freeEmptyMsg && String(freeEmptyMsg.params.text || '').includes('هنوز اشتراک رایگانی دریافت نکرده‌اید')
+  && lookupButtons(freeEmptyMsg).some((b) => b.callback_data === 'menu:free') && lookupButtons(freeEmptyMsg).some((b) => b.callback_data === 'menu:home'),
+  'بخش «اشتراک‌های رایگان من» برای کاربر بدون رایگان، پیام روشن با دکمهٔ دریافت رایگان و بازگشت به منو می‌فرستد');
+
+const freeSectionUser = await kvJson('u:' + FREE_SECTION_USER);
+const freeSubRows = [
+  { sid: 'freebasic1', uuid: 'freeuuid1', plan_name: 'اشتراک رایگان', created_at: Date.now() - 86400000 },
+  { sid: 'freeref1', uuid: 'freeuuid2', plan_name: 'هدیهٔ دعوت · ۳ گیگ · ۳ روز', kind: 'referral_free_subscription', referral_reward: true, created_at: Date.now() - 600000 }
+];
+for (const row of freeSubRows) {
+  await kv.put('s:' + row.sid, JSON.stringify(Object.assign({
+    sid: row.sid, uuid: row.uuid, panel_id: pid, plan_id: '', free_subscription: true,
+    free_gb: 3, free_days: 3, tg_id: FREE_SECTION_USER, order_id: null, reminded: '', expire_noticed: false
+  }, row)));
+}
+freeSectionUser.subs = (Array.isArray(freeSectionUser.subs) ? freeSectionUser.subs : []).concat(freeSubRows.map((r) => r.sid));
+await kv.put('u:' + FREE_SECTION_USER, JSON.stringify(freeSectionUser));
+await press(FREE_SECTION_USER, 'menu:freesubs');
+const freeListMsg = lastMsgTo(FREE_SECTION_USER);
+const freeListText = String(freeListMsg.params.text || '');
+assert(freeListText.includes('🎫 <b>اشتراک‌های رایگان من</b>') && freeListText.includes('مجموع دریافت‌شده: <b>۲</b>')
+  && freeListText.includes('🎁 هدیهٔ دعوت دوستان') && freeListText.includes('🎁 اشتراک رایگان')
+  && freeListText.includes('<a href="https://panel.test/USERPATH/freeuuid1/">') && !freeListText.includes('<code>https://panel.test/USERPATH'),
+  'بخش رایگان‌ها هر دو نوع (رایگان عمومی و هدیهٔ دعوت) را با لینک قابل لمس و بدون <code> نشان می‌دهد');
+assert(/روز باقی‌مانده/.test(freeListText) && lookupButtons(freeListMsg).some((b) => b.callback_data === 'menu:free'),
+  'هر ردیف روزهای باقی‌مانده دارد و دکمهٔ دریافت رایگان تازه همان‌جاست');
+const freeCustomerApi = await miniApi('/api/miniapp/customer', await signedInitData(FREE_SECTION_USER));
+const freeRowsFromApi = (freeCustomerApi.json.subscriptions || []).filter((s) => s.is_free);
+assert(freeRowsFromApi.length === 2 && freeRowsFromApi.some((s) => String(s.plan_name || '').includes('هدیهٔ دعوت')),
+  'دادهٔ مینی‌اپ هم اشتراک‌های رایگان را با پرچم is_free برمی‌گرداند');
+assert(miniAppSource.includes('id="customerFreeHistory"') && miniAppSource.includes('renderCustomerFreeHistory(data.subscriptions)')
+  && /function renderCustomerFreeHistory[\s\S]{0,400}is_free/.test(miniAppSource),
+  'مینی‌اپ بخش «اشتراک‌های رایگان دریافت‌شده» دارد و آن را از همان فهرست اشتراک‌ها با فیلتر is_free می‌سازد');
 
 // همان کلید از مینی‌اپ هم خوانده و ذخیره می‌شود.
 const inlineAdminInit = await signedInitData(ADMIN);
