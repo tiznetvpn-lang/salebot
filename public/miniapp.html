@@ -1229,6 +1229,15 @@
     .cv-free-foot .mini-note { margin:0; flex:1 1 140px; min-width:0; font-size:9.5px; line-height:1.7; color:var(--cv-muted); }
     .cv-free-foot button { flex:0 0 auto; min-height:34px; padding:0 12px; border-radius:10px; font-size:10.5px; }
 
+    /* ── اشتراک‌های رایگان دریافت‌شده ────────────────────────────────────── */
+    .cv-free-history { display:grid; gap:8px; }
+    .cv-free-item { display:grid; gap:7px; padding:9px 11px; border-radius:12px;
+      border:1px solid rgba(240, 86, 99, .22); background:rgba(240, 86, 99, .07); }
+    .cv-free-item strong { display:block; font-size:11.5px; font-weight:800; color:var(--cv-ink); line-height:1.6; }
+    .cv-free-item small { display:block; font-size:9.5px; color:var(--cv-muted); line-height:1.7; }
+    .cv-free-item-actions { display:flex; gap:7px; flex-wrap:wrap; }
+    .cv-free-item-actions button { min-height:32px; padding:0 11px; border-radius:10px; font-size:10px; }
+
     /* ── کارت پلن (فشرده) ─────────────────────────────────────────────── */
     .cv-plans { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr)); gap:9px; align-items:start; }
     .cv-plan { display:grid; gap:8px; padding:12px; align-content:start; }
@@ -3688,6 +3697,14 @@
             </div>
           </article>
 
+          <article class="cv-card cv-free" id="customerFreeHistoryCard" aria-labelledby="customerFreeHistoryTitle">
+            <div class="cv-card-head">
+              <div><h3 id="customerFreeHistoryTitle">اشتراک‌های رایگان دریافت‌شده</h3><p>هر اشتراک رایگانی که گرفتید (رایگان عمومی و هدیهٔ دعوت) با لینک و وضعیت همین‌جا می‌ماند.</p></div>
+              <span class="status paid" id="customerFreeHistoryCount">۰ اشتراک</span>
+            </div>
+            <div class="cv-free-history" id="customerFreeHistory"><div class="empty-state">در حال بارگذاری…</div></div>
+          </article>
+
           <div class="cv-sec-title" id="storePlans">
             <h2>پلن مناسب خودت را انتخاب کن</h2>
             <p id="customerPlansCaption">قیمت نهایی به تومان</p>
@@ -4337,7 +4354,8 @@
     }
     const CHAT_BTNS_FALLBACK=[
       {id:'buy',icon:'🛍',label:'خرید اشتراک'},{id:'subs',icon:'📦',label:'اشتراک‌های من'},{id:'wallet',icon:'💰',label:'کیف پول و شارژ'},
-      {id:'orders',icon:'🧾',label:'سفارش‌های من'},{id:'free',icon:'🎁',label:'اشتراک رایگان'},{id:'agent',icon:'🤝',label:'دریافت نمایندگی'},
+      {id:'orders',icon:'🧾',label:'سفارش‌های من'},{id:'free',icon:'🎁',label:'اشتراک رایگان'},{id:'freesubs',icon:'🎫',label:'اشتراک‌های رایگان من'},
+      {id:'agent',icon:'🤝',label:'دریافت نمایندگی'},
       {id:'support',icon:'🎧',label:'پشتیبانی'},{id:'help',icon:'📘',label:'راهنما'},{id:'apps',icon:'📥',label:'دانلود اپ‌ها'},
       {id:'account',icon:'🪪',label:'اطلاعات حساب'},{id:'ref',icon:'🎉',label:'دعوت دوستان'}
     ];
@@ -5291,6 +5309,20 @@
       button.disabled=!!isPreview||!state.enabled||!state.can_claim;
       button.textContent='دریافت اشتراک رایگان';
     }
+    function renderCustomerFreeHistory(subs) {
+      const box=document.getElementById('customerFreeHistory');
+      if(!box)return;
+      const list=(Array.isArray(subs)?subs:[]).filter(s=>s&&s.is_free);
+      const count=document.getElementById('customerFreeHistoryCount');
+      if(count)count.textContent=fmt(list.length)+' اشتراک';
+      box.innerHTML=list.map(s=>{
+        const remain=s.days_remaining==null?'':` · ${fmt(s.days_remaining)} روز باقی‌مانده`;
+        const expiry=s.expires_at?' · انقضا '+esc(fmtDate(s.expires_at)):'';
+        const link=s.link?`<button class="outline-btn" data-web-url="${esc(s.link)}">بازکردن لینک</button>`:'';
+        const detail=s.sid?`<button class="outline-btn" data-subscription-detail="${esc(s.sid)}">جزئیات و QR</button>`:'';
+        return `<article class="cv-free-item"><div><strong>${esc(s.plan_name||'اشتراک رایگان')} · ${esc(s.panel_name||'سرور')}</strong><small>${esc(s.status_label||'وضعیت نامشخص')}${esc(remain)}${expiry}</small></div><div class="cv-free-item-actions">${link}${detail}</div></article>`;
+      }).join('')||'<div class="empty-state">هنوز اشتراک رایگانی دریافت نکرده‌اید. اگر دریافت رایگان فعال باشد، از دکمهٔ بالا می‌گیرید.</div>';
+    }
     async function claimFreeSubscription() {
       const button=document.getElementById('customerFreeClaim'),status=document.getElementById('customerFreeStatus');
       if(!button||button.disabled||!liveMode)return;
@@ -5400,6 +5432,7 @@
       refreshPhoneCard();
       renderCustomerReferral(data.referral,isPreview);
       renderCustomerFreeSubscription(data.free_subscription,isPreview);
+      renderCustomerFreeHistory(data.subscriptions);
       renderCustomerOrders(data.orders||[],!!data.orders_partial);
       renderCustomerTransactions(data.transactions||[],!!data.transactions_partial);
       renderPendingOrders(data.pending_orders||[]);
