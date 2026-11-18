@@ -25,7 +25,7 @@ if (!backupCronMatch || backupCronMatch[1] !== '0 */3 * * *') throw new Error('K
 if (!cronScriptSource.includes("'0 */3 * * *'")) throw new Error('زمان‌بندی scripts/run-cron.mjs با KV_BACKUP_CRON یکی نیست');
 if (!backupTimerUnit.includes('OnCalendar=*-*-* 00/3:00:00 UTC')) throw new Error('systemd timer بکاپ باید هر ۳ ساعت اجرا شود');
 if (!workerSource.includes('KV_BACKUP_MIN_INTERVAL_MS') || workerSource.includes('11 * 60 * 60 * 1000')) throw new Error('فاصلهٔ ایمنی بکاپ با بازهٔ ۳ ساعته هماهنگ نیست');
-src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser; globalThis.__normalizePhone = normalizePhone; globalThis.__isJoinGateMarkup = isJoinGateMarkup; globalThis.__isPhoneRequestMarkup = isPhoneRequestMarkup; globalThis.__isAppEntryMarkup = isAppEntryMarkup; globalThis.__stripReplyKeyboardWebApps = stripReplyKeyboardWebApps; globalThis.__appEntryMarkup = appEntryMarkup; globalThis.__isMainKeyboardMarkup = isMainKeyboardMarkup; globalThis.__mainBotKeyboard = mainBotKeyboard; globalThis.__withoutWebAppButtons = withoutWebAppButtons; globalThis.__mainBotReplyMarkup = mainBotReplyMarkup; globalThis.__accessGate = accessGate; globalThis.__DEFAULT_SETTINGS = DEFAULT_SETTINGS; globalThis.__btnSlotFor = btnSlotFor; globalThis.__decorateMarkup = decorateMarkup; globalThis.__btnStyleFor = btnStyleFor; globalThis.__resetBtnUI = () => { BTN_UI_CACHE = { at: 0, colors: true, icons: {} }; }; globalThis.__btnUI = btnUI; globalThis.__resetChatButtons = () => { resetChatButtonCache(); }; globalThis.__chatButtons = chatButtons; globalThis.__retentionSweep = retentionSweep; globalThis.__shetabMakeTestOrder = shetabMakeTestOrder; globalThis.__shetabDropTestOrder = shetabDropTestOrder; globalThis.__retentionConfig = retentionConfig; globalThis.__saveSub = saveSub; globalThis.__saveCfg = saveCfg; globalThis.__getCfg = getCfg; globalThis.__getAgent = getAgent;');
+src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser; globalThis.__normalizePhone = normalizePhone; globalThis.__isJoinGateMarkup = isJoinGateMarkup; globalThis.__isPhoneRequestMarkup = isPhoneRequestMarkup; globalThis.__isAppEntryMarkup = isAppEntryMarkup; globalThis.__stripReplyKeyboardWebApps = stripReplyKeyboardWebApps; globalThis.__appEntryMarkup = appEntryMarkup; globalThis.__isWizardMarkup = isWizardMarkup; globalThis.__chatWizardCallback = chatWizardCallback; globalThis.__resetChatInlineCache = resetChatInlineCache; globalThis.__isMainKeyboardMarkup = isMainKeyboardMarkup; globalThis.__mainBotKeyboard = mainBotKeyboard; globalThis.__withoutWebAppButtons = withoutWebAppButtons; globalThis.__mainBotReplyMarkup = mainBotReplyMarkup; globalThis.__accessGate = accessGate; globalThis.__DEFAULT_SETTINGS = DEFAULT_SETTINGS; globalThis.__btnSlotFor = btnSlotFor; globalThis.__decorateMarkup = decorateMarkup; globalThis.__btnStyleFor = btnStyleFor; globalThis.__resetBtnUI = () => { BTN_UI_CACHE = { at: 0, colors: true, icons: {} }; }; globalThis.__btnUI = btnUI; globalThis.__resetChatButtons = () => { resetChatButtonCache(); }; globalThis.__chatButtons = chatButtons; globalThis.__retentionSweep = retentionSweep; globalThis.__shetabMakeTestOrder = shetabMakeTestOrder; globalThis.__shetabDropTestOrder = shetabDropTestOrder; globalThis.__retentionConfig = retentionConfig; globalThis.__saveSub = saveSub; globalThis.__saveCfg = saveCfg; globalThis.__getCfg = getCfg; globalThis.__getAgent = getAgent;');
 // eslint-disable-next-line no-eval
 eval(src);
 const APP = globalThis.APP;
@@ -1406,7 +1406,7 @@ assert(miniAppSource.includes('<a class="') && miniAppSource.includes('target="_
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.59-ubuntu26.61';"), 'شمارهٔ نسخهٔ سرور 1.8.59-ubuntu26.61 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.60-ubuntu26.62';"), 'شمارهٔ نسخهٔ سرور 1.8.60-ubuntu26.62 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -2031,8 +2031,9 @@ assert(String(lastMsgTo(CHATU).params.text || '').includes('لغو شد') && cha
   'چت: مشتری می‌تواند سفارش باز را لغو کند و استفادهٔ کد تخفیف آزاد می‌شود');
 // شارژ کیف پول داخل چت
 await sendText(CHATU, '💰 کیف پول و شارژ');
-assert(String(lastMsgTo(CHATU).params.text || '').includes('مبلغ شارژ') && String(lastMsgTo(CHATU).params.text || '').includes('موجودی'),
-  'چت: دکمهٔ کیف پول موجودی را می‌گوید و مبلغ شارژ را می‌پرسد');
+assert(String(lastMsgTo(CHATU).params.text || '').includes('مبلغ را از دکمه‌های زیر انتخاب کنید') && String(lastMsgTo(CHATU).params.text || '').includes('موجودی')
+  && lookupButtons(lastMsgTo(CHATU)).some((b) => String(b.callback_data || '') === 'wz:amt:100000'),
+  'چت: دکمهٔ کیف پول موجودی را می‌گوید و مبلغ شارژ را با دکمه‌های شیشه‌ای پیشنهادی می‌پرسد');
 await sendText(CHATU, '150000');
 assert(String(lastMsgTo(CHATU).params.text || '').includes('روش پرداخت'),
   'چت: پس از مبلغ، روش پرداخت شارژ انتخاب می‌شود');
@@ -2060,8 +2061,9 @@ const chatUserAfterWallet = await kvJson('u:' + CHATU2);
 assert(Array.isArray(chatUserAfterWallet.subs) && chatUserAfterWallet.subs.length === 1,
   'چت: خرید کیف‌پولی اشتراک را همان‌جا می‌سازد و در حساب ثبت می‌کند');
 await sendText(CHATU2, '🧾 سفارش‌های من');
-assert(String(lastMsgTo(CHATU2).params.text || '').includes('سفارش‌های من') && String(lastMsgTo(CHATU2).params.text || '').includes('شمارهٔ سفارش'),
-  'چت: فهرست سفارش‌ها با شماره و وضعیت نمایش داده می‌شود');
+assert(String(lastMsgTo(CHATU2).params.text || '').includes('سفارش‌های من') && String(lastMsgTo(CHATU2).params.text || '').includes('یکی از دکمه‌های زیر را بزنید')
+  && lookupButtons(lastMsgTo(CHATU2)).some((b) => String(b.callback_data || '').startsWith('wz:o:')),
+  'چت: فهرست سفارش‌ها با وضعیت و دکمهٔ شیشه‌ای برای دیدن جزئیات نمایش داده می‌شود');
 await sendText(CHATU2, '1');
 assert(String(lastMsgTo(CHATU2).params.text || '').includes('وضعیت:') && String(lastMsgTo(CHATU2).params.text || '').includes('لینک اشتراک'),
   'چت: با شمارهٔ سفارش، جزئیات و لینک اشتراک همان سفارش دیده می‌شود');
@@ -2069,11 +2071,124 @@ await sendText(CHATU2, '📦 اشتراک‌های من');
 assert(String(lastMsgTo(CHATU2).params.text || '').includes('اشتراک‌های من'), 'چت: فهرست اشتراک‌ها با شماره نمایش داده می‌شود');
 await sendText(CHATU2, '1');
 const chatSubScreen = String(lastMsgTo(CHATU2).params.text || '');
-assert(chatSubScreen.includes('تمدید یا ارتقا') && chatSubScreen.includes('لینک اشتراک'),
-  'چت: جزئیات اشتراک با لینک و گزینهٔ تمدید/ارتقا باز می‌شود');
+const chatSubButtons = lookupButtons(lastMsgTo(CHATU2)).map((b) => String(b.callback_data || ''));
+assert(chatSubScreen.includes('چه کاری انجام شود') && chatSubScreen.includes('لینک اشتراک')
+  && chatSubButtons.includes('wz:sa:1') && chatSubButtons.includes('wz:sa:2') && chatSubButtons.includes('wz:sa:4'),
+  'چت: جزئیات اشتراک با لینک و کارت‌های شیشه‌ای تمدید/QR/حذف باز می‌شود');
 await sendText(CHATU2, '1');
 assert(String(lastMsgTo(CHATU2).params.text || '').includes('پلن را انتخاب کنید'),
   'چت: تمدید اشتراک از داخل چت فهرست پلن‌های همان سرور را می‌آورد');
+
+// ---------- انتخاب با دکمهٔ شیشه‌ای، نه فرستادن عدد ----------
+console.log('\n— انتخاب پلن و اشتراک با دکمه‌های شیشه‌ای —');
+function lastUiMsg(tgid) {
+  const f = TG.filter((x) => ['sendMessage', 'editMessageText'].includes(x.method) && String(x.params.chat_id) === String(tgid));
+  return f[f.length - 1];
+}
+const WIZU = 140;
+await sendText(WIZU, '/start');
+await sendText(WIZU, '🛍 خرید اشتراک');
+const wizLocs = lastUiMsg(WIZU);
+const wizLocData = lookupButtons(wizLocs).map((b) => String(b.callback_data || ''));
+assert(String(wizLocs.params.text || '').includes('لوکیشن را انتخاب کنید')
+  && wizLocData.length > 0 && wizLocData.every((d) => d.startsWith('wz:p:') || d === 'wz:x')
+  && lookupButtons(wizLocs).every((b) => !b.web_app && String(b.text || '').trim()),
+  'چت: مرحلهٔ لوکیشن با دکمه‌های شیشه‌ای می‌آید و هیچ web_app ای ندارد');
+assert(!String(wizLocs.params.text || '').includes('شماره را بفرستید'),
+  'چت: مرحلهٔ لوکیشن دیگر از کاربر نمی‌خواهد شماره بفرستد');
+
+await press(WIZU, 'wz:p:' + String(purchasable.panel_id));
+const wizPlanMsg = lastUiMsg(WIZU);
+const wizPlanData = lookupButtons(wizPlanMsg).map((b) => String(b.callback_data || ''));
+assert(String(wizPlanMsg.params.text || '').includes('پلن را انتخاب کنید') && wizPlanMsg.method === 'editMessageText'
+  && wizPlanData.includes('wz:pl:' + String(purchasable.plan_id)) && wizPlanData.includes('wz:b') && wizPlanData.includes('wz:x'),
+  'چت: با زدن لوکیشن، پلن‌ها همان‌جا با دکمهٔ شیشه‌ای و راه بازگشت نشان داده می‌شوند (بدون پیام تازه)');
+assert(lookupButtons(wizPlanMsg).some((b) => String(b.text || '').includes(purchasable.title)),
+  'چت: هر دکمهٔ پلن نام و مشخصات همان پلن را نشان می‌دهد');
+
+await press(WIZU, 'wz:pl:' + String(purchasable.plan_id));
+const wizDiscMsg = lastUiMsg(WIZU);
+const wizDiscData = lookupButtons(wizDiscMsg).map((b) => String(b.callback_data || ''));
+assert(String(wizDiscMsg.params.text || '').includes('کد تخفیف') && wizDiscData.includes('wz:nodisc') && wizDiscData.includes('wz:x'),
+  'چت: بعد از انتخاب پلن با دکمه، مرحلهٔ تخفیف دکمهٔ «ادامهٔ خرید بدون تخفیف» دارد');
+
+await press(WIZU, 'wz:nodisc');
+const wizPayMsg = lastUiMsg(WIZU);
+const wizPayData = lookupButtons(wizPayMsg).map((b) => String(b.callback_data || ''));
+assert(String(wizPayMsg.params.text || '').includes('روش پرداخت را انتخاب کنید') && wizPayData.includes('wz:pay:manual'),
+  'چت: روش پرداخت هم با دکمهٔ شیشه‌ای انتخاب می‌شود');
+
+await press(WIZU, 'wz:pay:manual');
+const wizOrderState = await kvJson('st:' + WIZU);
+const wizOrderId = wizOrderState && wizOrderState.data && wizOrderState.data.order_id;
+const wizOrder = wizOrderId ? await kvJson('o:' + wizOrderId) : null;
+assert(wizOrder && wizOrder.status === 'pending' && wizOrder.payment_method === 'manual'
+  && String(wizOrder.plan_id) === String(purchasable.plan_id) && String(lastMsgTo(WIZU).params.text || '').includes('شماره کارت'),
+  'چت: کل خرید فقط با دکمه‌های شیشه‌ای انجام شد و سفارش کارت‌به‌کارت ساخته شد (هیچ عددی فرستاده نشد)');
+
+// انصراف با دکمه، و برگشت از پلن‌ها به لوکیشن‌ها
+await sendText(WIZU, '🛍 خرید اشتراک');
+// «بازگشت به پلن‌ها» از مرحلهٔ پرداخت، همان سرور را نگه می‌دارد.
+await sendText(WIZU, '🛍 خرید اشتراک');
+await press(WIZU, 'wz:p:' + String(purchasable.panel_id));
+await press(WIZU, 'wz:pl:' + String(purchasable.plan_id));
+await press(WIZU, 'wz:nodisc');
+const payScreen = lastUiMsg(WIZU);
+assert(lookupButtons(payScreen).some((b) => String(b.callback_data || '') === 'wz:bp'), 'چت: مرحلهٔ پرداخت دکمهٔ «بازگشت به پلن‌ها» دارد');
+await press(WIZU, 'wz:bp');
+assert(String(lastUiMsg(WIZU).params.text || '').includes('پلن را انتخاب کنید')
+  && lookupButtons(lastUiMsg(WIZU)).some((b) => String(b.callback_data || '') === 'wz:pl:' + String(purchasable.plan_id)),
+  'چت: «بازگشت به پلن‌ها» فهرست پلن‌های همان سرور را دوباره نشان می‌دهد');
+await press(WIZU, 'wz:x');
+assert(String(lastUiMsg(WIZU).params.text || '').includes('بسته شد') && !(await kvJson('st:' + WIZU)),
+  'چت: دکمهٔ «انصراف» مرحله را می‌بندد و state را پاک می‌کند');
+await sendText(WIZU, '🛍 خرید اشتراک');
+await press(WIZU, 'wz:p:' + String(purchasable.panel_id));
+await press(WIZU, 'wz:b');
+assert(String(lastUiMsg(WIZU).params.text || '').includes('لوکیشن را انتخاب کنید'),
+  'چت: «◀️ لوکیشن‌ها» از فهرست پلن‌ها به مرحلهٔ قبل برمی‌گردد');
+
+// فهرست اشتراک‌ها و سفارش‌ها هم دکمه دارند
+await sendText(CHATU2, '📦 اشتراک‌های من');
+const subsMsg = lastUiMsg(CHATU2);
+const subsData = lookupButtons(subsMsg).map((b) => String(b.callback_data || ''));
+const chatSubSid = String((await kvJson('u:' + CHATU2)).subs[0]);
+assert(subsData.includes('wz:s:' + chatSubSid) && String(subsMsg.params.text || '').includes('یکی از دکمه‌های زیر را بزنید'),
+  'چت: فهرست اشتراک‌ها هر اشتراک را با دکمهٔ شیشه‌ای نشان می‌دهد');
+await press(CHATU2, 'wz:s:' + chatSubSid);
+const subOpenMsg = lastUiMsg(CHATU2);
+const subOpenData = lookupButtons(subOpenMsg).map((b) => String(b.callback_data || ''));
+assert(String(subOpenMsg.params.text || '').includes('چه کاری انجام شود') && subOpenData.includes('wz:sa:1') && subOpenData.includes('wz:sa:2'),
+  'چت: جزئیات اشتراک با دکمه‌های تمدید/QR باز می‌شود');
+await press(CHATU2, 'wz:sa:1');
+const renewMsg = lastUiMsg(CHATU2);
+const renewData = lookupButtons(renewMsg).map((b) => String(b.callback_data || ''));
+assert(String(renewMsg.params.text || '').includes('تمدید / ارتقای اشتراک') && renewData.some((d) => d.startsWith('wz:pl:'))
+  && renewData.includes('wz:s:' + chatSubSid),
+  'چت: تمدید از دکمه، پلن‌های همان سرور را با دکمه می‌آورد و راه بازگشت به اشتراک دارد');
+await press(CHATU2, 'wz:x');
+
+// حالت فقط‌اپ با «دکمه‌های شیشه‌ای» خاموش هم باید خرید داخل چت را ممکن کند.
+const cfgBeforeWiz = await kvJson('cfg') || {};
+const inlineBeforeWiz = cfgBeforeWiz.chat_inline_enabled;
+await kv.put('cfg', Object.assign({}, cfgBeforeWiz, { chat_inline_enabled: false }));
+globalThis.__resetChatInlineCache();
+assert(globalThis.__isWizardMarkup({ inline_keyboard: [[{ text: '📦 پلن', callback_data: 'wz:pl:1' }]] })
+  && !globalThis.__isWizardMarkup({ inline_keyboard: [[{ text: 'x', url: 'https://t.test' }]] })
+  && !globalThis.__isWizardMarkup({ inline_keyboard: [[{ text: 'x', callback_data: 'menu:buy' }]] }),
+  'نگهبان کیبورد ویزارد فقط دکمه‌های callback_data با پیشوند wz: و بدون لینک را مجاز می‌داند');
+await sendText(WIZU, '🛍 خرید اشتراک');
+const offWizMsg = lastUiMsg(WIZU);
+assert(String(offWizMsg.params.text || '').includes('لوکیشن را انتخاب کنید')
+  && lookupButtons(offWizMsg).some((b) => String(b.callback_data || '').startsWith('wz:p:')),
+  'چت: با خاموش‌بودن دکمه‌های شیشه‌ای و در حالت فقط‌اپ، دکمه‌های انتخاب پلن هنوز فرستاده می‌شوند');
+const beforeOffPress = String(lastUiMsg(WIZU).params.text || '');
+await press(WIZU, 'wz:p:' + String(purchasable.panel_id));
+assert(String(lastUiMsg(WIZU).params.text || '').includes('پلن را انتخاب کنید') && beforeOffPress !== String(lastUiMsg(WIZU).params.text || ''),
+  'چت: با خاموش‌بودن دکمه‌های شیشه‌ای، زدن دکمهٔ لوکیشن هم پاسخ می‌گیرد (خرید داخل چت قطع نمی‌شود)');
+await press(WIZU, 'wz:x');
+await kv.put('cfg', Object.assign({}, cfgBeforeWiz, { chat_inline_enabled: inlineBeforeWiz === undefined ? true : inlineBeforeWiz }));
+globalThis.__resetChatInlineCache();
 // کارت‌به‌کارت خودکار از داخل چت + تأیید با پیامک بانک
 const cfgAutoChat = await kvJson('cfg') || {};
 await kv.put('cfg', Object.assign({}, cfgAutoChat, { card_auto_enabled: true, card_manual_enabled: true, card_number: '6037991122334455' }));
@@ -2118,13 +2233,16 @@ await kv.put('agent:' + AGENTU, {
 await sendText(AGENTU, '/start');
 await sendText(AGENTU, '🤝 دریافت نمایندگی');
 const agentMenuText = String(lastMsgTo(AGENTU).params.text || '');
-assert(agentMenuText.includes('پنل نمایندگی') && agentMenuText.includes('ساخت اشتراک برای مشتری') && agentMenuText.includes('تبدیل امتیاز دعوت به کیف پول')
-  && String(lastMsgTo(AGENTU).params.text || '').includes('موجودی نمایندگی'),
-  'چت: نماینده با دکمهٔ «دریافت نمایندگی» پنل خودش (موجودی + همهٔ کارها) را داخل چت می‌بیند');
-await sendText(AGENTU, '1');
-assert(String(lastMsgTo(AGENTU).params.text || '').includes('پلن را انتخاب کنید'),
-  'چت: ساخت اشتراک برای مشتری فهرست پلن‌های نمایندگی را نشان می‌دهد');
-await sendText(AGENTU, '1');
+const agentMenuBtns = lookupButtons(lastMsgTo(AGENTU)).map((b) => String(b.callback_data || ''));
+assert(agentMenuText.includes('پنل نمایندگی') && agentMenuText.includes('موجودی نمایندگی')
+  && agentMenuBtns.includes('wz:ag:1') && agentMenuBtns.includes('wz:ag:2') && agentMenuBtns.includes('wz:ag:4'),
+  'چت: نماینده با دکمهٔ «دریافت نمایندگی» پنل خودش (موجودی + همهٔ کارها) را با دکمه‌های شیشه‌ای داخل چت می‌بیند');
+await press(AGENTU, 'wz:ag:1');
+const agentPlansMsg = lastMsgTo(AGENTU);
+assert(String(agentPlansMsg.params.text || '').includes('پلن را از دکمه‌های زیر انتخاب کنید')
+  && lookupButtons(agentPlansMsg).some((b) => String(b.callback_data || '').startsWith('wz:agp:')),
+  'چت: ساخت اشتراک برای مشتری فهرست پلن‌های نمایندگی را با دکمه می‌آورد');
+await press(AGENTU, 'wz:agp:1');
 assert(String(lastMsgTo(AGENTU).params.text || '').includes('نام مشتری'),
   'چت: پس از انتخاب پلن، نام مشتری پرسیده می‌شود');
 await sendText(AGENTU, 'مشتری چت');
@@ -2135,14 +2253,16 @@ assert(agentCreatedText.includes('اشتراک مشتری ساخته شد') && a
   && Number(agentAfterCreateChat.balance) < 9000000,
   'چت: اشتراک مشتری با کسر موجودی نمایندگی ساخته و لینک/QR تحویل داده می‌شود');
 await sendText(AGENTU, '🤝 دریافت نمایندگی');
-await sendText(AGENTU, '2');
+await press(AGENTU, 'wz:ag:2');
 const agentRenewListText = String(lastMsgTo(AGENTU).params.text || '');
-assert(agentRenewListText.includes('مشتری چت') && agentRenewListText.includes('تمدید اشتراک مشتری'),
-  'چت: فهرست اشتراک‌های ساخته‌شدهٔ نماینده با نام مشتری و کد نمایش داده می‌شود');
-await sendText(AGENTU, '1');
-assert(String(lastMsgTo(AGENTU).params.text || '').includes('پلن تازه'),
-  'چت: تمدید اشتراک مشتری پلن‌های همان سرور را می‌آورد');
-await sendText(AGENTU, '1');
+assert(lookupButtons(lastMsgTo(AGENTU)).some((b) => String(b.callback_data || '').startsWith('wz:ags:'))
+  && agentRenewListText.includes('مشتری چت') && agentRenewListText.includes('تمدید اشتراک مشتری'),
+  'چت: فهرست اشتراک‌های ساخته‌شدهٔ نماینده با نام مشتری و دکمهٔ انتخاب نمایش داده می‌شود');
+await press(AGENTU, 'wz:ags:1');
+assert(String(lastMsgTo(AGENTU).params.text || '').includes('پلن تازه')
+  && lookupButtons(lastMsgTo(AGENTU)).some((b) => String(b.callback_data || '').startsWith('wz:agr:')),
+  'چت: تمدید اشتراک مشتری پلن‌های همان سرور را با دکمه می‌آورد');
+await press(AGENTU, 'wz:agr:1');
 const agentRenewedText = lastAnyTextTo(AGENTU);
 const agentAfterRenewChat = await kvJson('agent:' + AGENTU);
 assert(agentRenewedText.includes('تمدید شد') && agentAfterRenewChat && Number(agentAfterRenewChat.total_renewed) === 1,
