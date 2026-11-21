@@ -2312,7 +2312,7 @@ var qrcode = function() {
 }));
 
 
-const VERSION = '1.8.60-ubuntu26.62';
+const VERSION = '1.8.61-ubuntu26.63';
 const STATE_TTL = 1800; // ثانیه — انقضای وضعیت انتظار ورودی کاربر
 const SHETAB_AMOUNT_TTL = 30 * 86400; // رزرو مبلغ یکتا پس از سفارش/پرداخت
 const SHETAB_ORDER_TTL_MS = 45 * 60 * 1000;    // سفارش خودکار پرداخت‌نشده پس از این مدت آزاد می‌شود
@@ -5462,6 +5462,7 @@ async function chatSubmitReceipt(env, u, chatId, orderId, receipt) {
   const text = '🧾 <b>رسید سفارش داخل چت #' + esc(order.id) + '</b>\n' +
     '👤 خریدار: ' + buyer +
     '\n📋 نوع: ' + orderTypeFa(order.type) +
+    orderPaymentLine(order) +
     (plan.title ? '\n📦 پلن: ' + esc(plan.title) : '') +
     (panel.name ? '\n🖥 سرور: ' + esc(panel.name) : '') +
     '\n💵 مبلغ: <b>' + fmtToman(order.amount) + '</b>' +
@@ -5745,6 +5746,7 @@ async function chatOrderOpen(env, chatId, u, orderId) {
     (plan.title ? '\n📦 پلن: ' + esc(plan.title) : '') +
     (panel.name ? '\n🖥 سرور: ' + esc(panel.name) : '') +
     '\n💵 مبلغ: <b>' + fmtToman(order.amount) + '</b>' +
+    '\n💳 روش پرداخت: <b>' + esc(paymentMethodFa(order.payment_method, order)) + '</b>' +
     (Number(order.discount_amount || 0) > 0 ? '\n🎟 تخفیف <code>' + esc(order.discount_code) + '</code>: −' + fmtToman(order.discount_amount) : '') +
     '\n📌 وضعیت: <b>' + miniAppStatusLabel(order.status) + '</b>';
   if (order.status === 'pending' && (order.payment_method === 'manual' || order.payment_method === 'shetab')) {
@@ -6593,6 +6595,7 @@ async function adminNotifyOrder(env, o) {
   let t = '🧾 <b>سفارش جدید #' + o.id + '</b>\n' +
     '👤 خریدار: ' + buyer +
     '\n📋 نوع: ' + orderTypeFa(o.type) +
+    orderPaymentLine(o) +
     (plan ? '\n📦 پلن: ' + esc(plan.title) : '') +
     (panel ? '\n🖥 سرور: ' + esc(panel.name) : '') +
     '\n💵 مبلغ پلن: <b>' + fmtToman(o.amount) + '</b>' +
@@ -7225,7 +7228,7 @@ async function adminOrders(env, chatId, messageId) {
   for (const oid of rev) {
     const o = await getOrder(env, oid);
     if (!o) continue;
-    rows.push([BTN('#' + o.id + ' | ' + orderTypeFa(o.type) + ' | ' + Number(o.amount).toLocaleString('en-US'), 'a_ord:' + o.id)]);
+    rows.push([BTN('#' + o.id + ' | ' + orderTypeFa(o.type) + ' | ' + miniAppPaymentLabel(o.payment_method) + ' | ' + Number(o.amount).toLocaleString('en-US'), 'a_ord:' + o.id)]);
   }
   rows.push([BTN('◀️ پنل مدیریت', 'admin')]);
   const t = '🧾 <b>سفارش‌های باز (' + faNum(pend.length) + '):</b>' + (pend.length > 15 ? '\n<i>۱۵ مورد آخر نمایش داده شد.</i>' : '');
@@ -7244,6 +7247,7 @@ async function adminOrderDetail(env, chatId, messageId, oid) {
   let t = '🧾 <b>سفارش #' + o.id + '</b> — ' + (o.status === 'pending' ? '⏳ در انتظار' : esc(o.status)) +
     '\n👤 خریدار: ' + buyer +
     '\n📋 نوع: ' + orderTypeFa(o.type) +
+    orderPaymentLine(o) +
     (plan ? '\n📦 پلن: ' + esc(plan.title) + ' (' + fmtToman(plan.price) + ')' : '') +
     (panel ? '\n🖥 سرور: ' + esc(panel.name) : '') +
     (o.sub_sid ? '\n🔗 اشتراک: <code>' + o.sub_sid + '</code>' : '') +
@@ -7287,14 +7291,18 @@ async function doApprove(env, adminId, oid, sourceMessage) {
   }
   await kvPut(env, lockKey, { admin_id: String(adminId), created_at: Date.now() }, 60);
   try {
-    const processing = '⏳ <b>در حال تأیید و پردازش سفارش…</b>\n🧾 شماره: <code>' + esc(oid) + '</code>\nاتصال به پنل برقرار است؛ صفحه را نبندید.';
+    const processing = '⏳ <b>در حال تأیید و پردازش سفارش…</b>\n🧾 شماره: <code>' + esc(oid) + '</code>' +
+      orderPaymentLine(o) +
+      '\nاتصال به پنل برقرار است؛ صفحه را نبندید.';
     if (sourceMessage) await updateAdminOrderMessage(env, sourceMessage, processing, { reply_markup: { inline_keyboard: [] } });
     else await msg(env, adminId, processing);
     try {
       await approveOrder(env, o);
       const latest = await getOrder(env, oid) || o;
       if (latest.status === 'approved') {
-        const done = '✅ <b>سفارش تأیید و پردازش شد.</b>\n🧾 شماره: <code>' + esc(oid) + '</code>\nوضعیت تحویل در Mini App قابل مشاهده است.';
+        const done = '✅ <b>سفارش تأیید و پردازش شد.</b>\n🧾 شماره: <code>' + esc(oid) + '</code>' +
+          orderPaymentLine(latest) +
+          '\nوضعیت تحویل در Mini App قابل مشاهده است.';
         if (sourceMessage) await updateAdminOrderMessage(env, sourceMessage, done, { reply_markup: { inline_keyboard: [] } });
         else await msg(env, adminId, done);
       } else {
@@ -7303,7 +7311,9 @@ async function doApprove(env, adminId, oid, sourceMessage) {
     } catch (e) {
       const latest = await getOrder(env, oid) || o;
       if (latest.status === 'approved') {
-        const doneWithWarning = '✅ <b>سفارش تأیید و سرویس پردازش شد.</b>\n🧾 شماره: <code>' + esc(oid) + '</code>\n⚠️ یک مرحلهٔ اطلاع‌رسانی جانبی با خطا روبه‌رو شد؛ تأیید/تحویل دوباره نزنید.';
+        const doneWithWarning = '✅ <b>سفارش تأیید و سرویس پردازش شد.</b>\n🧾 شماره: <code>' + esc(oid) + '</code>' +
+          orderPaymentLine(latest) +
+          '\n⚠️ یک مرحلهٔ اطلاع‌رسانی جانبی با خطا روبه‌رو شد؛ تأیید/تحویل دوباره نزنید.';
         if (sourceMessage) await updateAdminOrderMessage(env, sourceMessage, doneWithWarning, { reply_markup: { inline_keyboard: [] } });
         else await msg(env, adminId, doneWithWarning);
         try { await notifyAdmins(env, '⚠️ سفارش <code>' + esc(oid) + '</code> تأیید شده است؛ خطای پس از تأیید: <code>' + esc(String(e.message || e).slice(0, 350)) + '</code>'); } catch (e2) {}
@@ -10864,6 +10874,26 @@ function miniAppStatusLabel(status) {
   if (status === 'cancelled') return 'لغوشده';
   return 'نامشخص';
 }
+// نام روش پرداخت برای پیام‌های چت (مدیر و مشتری): باید همیشه مشخص باشد که
+// مشتری کیف پول را انتخاب کرده یا کارت‌به‌کارت خودکار/دستی.
+function paymentMethodFa(method, order) {
+  const m = String(method || '');
+  const o = order || {};
+  const receiptDone = !!(o.receipt_submitted_at || o.receipt_file_id || o.receipt_text);
+  if (m === 'wallet') return '💰 کیف پول (تحویل فوری)';
+  if (m === 'shetab' || m === 'auto') return '⚡ کارت‌به‌کارت خودکار (تأیید با پیامک بانک)';
+  if (m === 'manual') return '💳 کارت‌به‌کارت دستی (رسید + تأیید ادمین)' + (receiptDone ? ' · رسید ارسال شد' : ' · در انتظار رسید');
+  return '❓ نامشخص (ثبت‌نشده)';
+}
+function orderPaymentLine(order) {
+  const o = order || {};
+  let line = '\n💳 روش پرداخت مشتری: <b>' + esc(paymentMethodFa(o.payment_method, o)) + '</b>';
+  if (o.payment_method === 'shetab' && o.payment_status) {
+    line += '\n⚡ وضعیت خودکار: ' + (o.payment_status === 'paid' ? 'تأیید شد' : o.payment_status === 'waiting' ? 'در انتظار پیامک' : esc(String(o.payment_status)));
+  }
+  return line;
+}
+
 function miniAppPaymentLabel(method) {
   if (method === 'wallet') return 'کیف پول';
   if (method === 'shetab' || method === 'auto') return 'خودکار';
