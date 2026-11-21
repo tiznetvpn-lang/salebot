@@ -25,7 +25,7 @@ if (!backupCronMatch || backupCronMatch[1] !== '0 */3 * * *') throw new Error('K
 if (!cronScriptSource.includes("'0 */3 * * *'")) throw new Error('زمان‌بندی scripts/run-cron.mjs با KV_BACKUP_CRON یکی نیست');
 if (!backupTimerUnit.includes('OnCalendar=*-*-* 00/3:00:00 UTC')) throw new Error('systemd timer بکاپ باید هر ۳ ساعت اجرا شود');
 if (!workerSource.includes('KV_BACKUP_MIN_INTERVAL_MS') || workerSource.includes('11 * 60 * 60 * 1000')) throw new Error('فاصلهٔ ایمنی بکاپ با بازهٔ ۳ ساعته هماهنگ نیست');
-src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser; globalThis.__normalizePhone = normalizePhone; globalThis.__isJoinGateMarkup = isJoinGateMarkup; globalThis.__isPhoneRequestMarkup = isPhoneRequestMarkup; globalThis.__isAppEntryMarkup = isAppEntryMarkup; globalThis.__stripReplyKeyboardWebApps = stripReplyKeyboardWebApps; globalThis.__appEntryMarkup = appEntryMarkup; globalThis.__isWizardMarkup = isWizardMarkup; globalThis.__chatWizardCallback = chatWizardCallback; globalThis.__resetChatInlineCache = resetChatInlineCache; globalThis.__isMainKeyboardMarkup = isMainKeyboardMarkup; globalThis.__mainBotKeyboard = mainBotKeyboard; globalThis.__withoutWebAppButtons = withoutWebAppButtons; globalThis.__mainBotReplyMarkup = mainBotReplyMarkup; globalThis.__accessGate = accessGate; globalThis.__DEFAULT_SETTINGS = DEFAULT_SETTINGS; globalThis.__btnSlotFor = btnSlotFor; globalThis.__decorateMarkup = decorateMarkup; globalThis.__btnStyleFor = btnStyleFor; globalThis.__resetBtnUI = () => { BTN_UI_CACHE = { at: 0, colors: true, icons: {} }; }; globalThis.__btnUI = btnUI; globalThis.__resetChatButtons = () => { resetChatButtonCache(); }; globalThis.__chatButtons = chatButtons; globalThis.__retentionSweep = retentionSweep; globalThis.__shetabMakeTestOrder = shetabMakeTestOrder; globalThis.__shetabDropTestOrder = shetabDropTestOrder; globalThis.__retentionConfig = retentionConfig; globalThis.__saveSub = saveSub; globalThis.__saveCfg = saveCfg; globalThis.__getCfg = getCfg; globalThis.__getAgent = getAgent;');
+src = src.replace('export default APP;', 'globalThis.APP = APP; globalThis.__subscriptionQrPng = subscriptionQrPng; globalThis.__createKvBackupFile = createKvBackupFile; globalThis.__adminNotifyOrder = adminNotifyOrder; globalThis.__applyCommission = applyCommission; globalThis.__hCreateUser = hCreateUser; globalThis.__normalizePhone = normalizePhone; globalThis.__isJoinGateMarkup = isJoinGateMarkup; globalThis.__isPhoneRequestMarkup = isPhoneRequestMarkup; globalThis.__isAppEntryMarkup = isAppEntryMarkup; globalThis.__stripReplyKeyboardWebApps = stripReplyKeyboardWebApps; globalThis.__appEntryMarkup = appEntryMarkup; globalThis.__isWizardMarkup = isWizardMarkup; globalThis.__paymentMethodFa = paymentMethodFa; globalThis.__orderPaymentLine = orderPaymentLine; globalThis.__chatWizardCallback = chatWizardCallback; globalThis.__resetChatInlineCache = resetChatInlineCache; globalThis.__isMainKeyboardMarkup = isMainKeyboardMarkup; globalThis.__mainBotKeyboard = mainBotKeyboard; globalThis.__withoutWebAppButtons = withoutWebAppButtons; globalThis.__mainBotReplyMarkup = mainBotReplyMarkup; globalThis.__accessGate = accessGate; globalThis.__DEFAULT_SETTINGS = DEFAULT_SETTINGS; globalThis.__btnSlotFor = btnSlotFor; globalThis.__decorateMarkup = decorateMarkup; globalThis.__btnStyleFor = btnStyleFor; globalThis.__resetBtnUI = () => { BTN_UI_CACHE = { at: 0, colors: true, icons: {} }; }; globalThis.__btnUI = btnUI; globalThis.__resetChatButtons = () => { resetChatButtonCache(); }; globalThis.__chatButtons = chatButtons; globalThis.__retentionSweep = retentionSweep; globalThis.__shetabMakeTestOrder = shetabMakeTestOrder; globalThis.__shetabDropTestOrder = shetabDropTestOrder; globalThis.__retentionConfig = retentionConfig; globalThis.__saveSub = saveSub; globalThis.__saveCfg = saveCfg; globalThis.__getCfg = getCfg; globalThis.__getAgent = getAgent;');
 // eslint-disable-next-line no-eval
 eval(src);
 const APP = globalThis.APP;
@@ -1406,7 +1406,7 @@ assert(miniAppSource.includes('<a class="') && miniAppSource.includes('target="_
 assert(src.includes('function qrZlibStored') && src.includes('function qrDeflate') && src.includes("qrcode(0, 'L')") && src.includes('function safeQrDataUrl') && src.includes("qr_data_url: await safeQrDataUrl(link)"), 'تولید QR در Worker بدون وابستگی به CompressionStream هم کار می‌کند و برای لینک‌های بلند تلاش دوباره دارد');
 assert(miniAppSource.includes('function legacyCopy') && miniAppSource.includes('execCommand') && miniAppSource.includes('height:auto; margin:0 auto; object-fit:contain'), 'کپی لینک در وب‌ویو تلگرام جایگزین دارد و تصویر QR بدون وابستگی به aspect-ratio اندازه می‌گیرد');
 assert(miniAppSource.includes('--bg: #4a0911') && miniAppSource.includes('--brand-blue:#a60b18') && miniAppSource.includes('.cv-wallet') && !miniAppSource.includes('#6d4aff') && !miniAppSource.includes('#1b1626'), 'پالت قرمز پررنگ براق در نمای مشتری اعمال شده و رنگ بنفش مرجع کپی نشده است');
-assert(workerSource.includes("const VERSION = '1.8.60-ubuntu26.62';"), 'شمارهٔ نسخهٔ سرور 1.8.60-ubuntu26.62 است و در «بررسی اتصال» همین دیده می‌شود');
+assert(workerSource.includes("const VERSION = '1.8.61-ubuntu26.63';"), 'شمارهٔ نسخهٔ سرور 1.8.61-ubuntu26.63 است و در «بررسی اتصال» همین دیده می‌شود');
 assert(miniAppSource.includes('تم زندهٔ قرمز') && miniAppSource.includes('.cv-wallet {\n      position: relative; overflow: hidden; padding: 16px 16px 14px;') && miniAppSource.includes('--accent-grad: linear-gradient(115deg, #f05663, #ec2132 52%, #8e0914)'), 'تم زندهٔ قرمز براق روی کارت‌ها و کیف پول اعمال شده است (شیشه، گرادیان عمیق، درخشش لبه)');
 assert(miniAppSource.includes('body::before {') && miniAppSource.includes('.shell { position: relative; z-index: 1; }') && miniAppSource.includes('@keyframes auroraDrift'), 'پس‌زمینهٔ شفقِ رنگی زیر محتوای اپ قرار می‌گیرد و روی کلیک‌ها اثر ندارد');
 assert(miniAppSource.includes('--purple: #d6112a;') && !miniAppSource.includes('#a8b5ff') && !miniAppSource.includes('#6d4aff'), 'هیچ رنگ بنفشی در پالت نمانده است؛ همهٔ تأکیدها قرمز پررنگ‌اند');
@@ -1478,6 +1478,8 @@ const manualMiniOrder = manualMiniCheckout.json && manualMiniCheckout.json.order
 assert(manualMiniCheckout.status === 200 && manualMiniOrder && manualMiniOrder.status === 'pending' && manualMiniOrder.payment_method === 'manual' && Number((await kvJson('u:' + U1)).referral_points_balance) === pointsBeforePendingMiniBuy, 'سفارش دستیِ در انتظار رسید تا پرداخت موفق هیچ امتیاز عضوگیری نمی‌دهد');
 const miniAppNewOrderAlert = TG.filter(x => x.method === 'sendMessage' && String(x.params.chat_id) === String(ADMIN) && String(x.params.text || '').includes('سفارش جدید #' + (manualMiniOrder && manualMiniOrder.id || ''))).at(-1);
 assert(miniAppNewOrderAlert && miniAppNewOrderAlert.params.reply_markup?.inline_keyboard?.length, 'ایجاد سفارش Mini App در نقطهٔ مرکزی به مدیران اعلان می‌دهد');
+assert(String(miniAppNewOrderAlert.params.text || '').includes('روش پرداخت مشتری') && String(miniAppNewOrderAlert.params.text || '').includes('کارت‌به‌کارت دستی'),
+  'اعلان سفارش به مدیر، روش پرداخت انتخاب‌شده توسط مشتری را نشان می‌دهد');
 const noKeyboardNoticeStart = TG.length;
 env.MINIAPP_ONLY_MODE = 'true';
 await globalThis.__adminNotifyOrder(env, manualMiniOrder);
@@ -2003,10 +2005,17 @@ assert(String(lastMsgTo(CHATU).params.text || '').includes('رسید شما ثب
   && chatOrderAfterReceipt.payment_status === 'review' && chatOrderAfterReceipt.receipt_submitted_at
   && chatOrderAfterReceipt.receipt_text === 'CHAT-RCPT-77',
   'چت: رسید متنی به همان سفارش وصل و وضعیت بررسی ثبت می‌شود');
+assert(chatAdminReceipt && String(chatAdminReceipt.params.text || '').includes('روش پرداخت مشتری')
+  && String(chatAdminReceipt.params.text || '').includes('کارت‌به‌کارت دستی'),
+  'پیام رسید سفارش داخل چت هم روش پرداخت انتخاب‌شده را به مدیر نشان می‌دهد');
 assert(chatAdminReceipt && String(chatAdminReceipt.params.text || '').includes('رسید سفارش داخل چت')
   && (chatAdminReceipt.params.reply_markup.inline_keyboard.flat().some((b) => b.callback_data === 'a_ok:' + chatOrderId)),
   'چت: رسید با دکمهٔ تأیید برای مدیر ارسال می‌شود');
 await press(ADMIN, 'a_ok:' + chatOrderId);
+const chatApprovalMsg = TG.filter((x) => ['sendMessage', 'editMessageText'].includes(x.method) && String(x.params.chat_id) === String(ADMIN)).at(-1);
+assert(chatApprovalMsg && String(chatApprovalMsg.params.text || '').includes('سفارش تأیید') && String(chatApprovalMsg.params.text || '').includes('روش پرداخت مشتری')
+  && String(chatApprovalMsg.params.text || '').includes('کارت‌به‌کارت دستی'),
+  'پیام تأیید سفارش برای مدیر، روش پرداخت انتخاب‌شدهٔ مشتری را هم نشان می‌دهد');
 const chatOrderApproved = await kvJson('o:' + chatOrderId);
 assert(chatOrderApproved.status === 'approved' && (await kvJson('discounts')).CHAT15.used['130'] === 1,
   'چت: تأیید مدیر سفارش خرید داخل چت را تکمیل می‌کند و استفادهٔ کد تخفیف شمارش می‌شود');
@@ -2067,6 +2076,8 @@ assert(String(lastMsgTo(CHATU2).params.text || '').includes('سفارش‌های
 await sendText(CHATU2, '1');
 assert(String(lastMsgTo(CHATU2).params.text || '').includes('وضعیت:') && String(lastMsgTo(CHATU2).params.text || '').includes('لینک اشتراک'),
   'چت: با شمارهٔ سفارش، جزئیات و لینک اشتراک همان سفارش دیده می‌شود');
+assert(String(lastMsgTo(CHATU2).params.text || '').includes('روش پرداخت:') && String(lastMsgTo(CHATU2).params.text || '').includes('کیف پول'),
+  'چت: جزئیات سفارش مشتری هم روش پرداخت (کیف پول) را نشان می‌دهد');
 await sendText(CHATU2, '📦 اشتراک‌های من');
 assert(String(lastMsgTo(CHATU2).params.text || '').includes('اشتراک‌های من'), 'چت: فهرست اشتراک‌ها با شماره نمایش داده می‌شود');
 await sendText(CHATU2, '1');
@@ -2554,6 +2565,12 @@ assert(guardedKb && guardedKb.keyboard[0][0].text === '📱 ورود به اپ' 
 assert(globalThis.__stripReplyKeyboardWebApps({ keyboard: [[{ text: '📱 ورود به اپ' }]] }) === null
   && globalThis.__stripReplyKeyboardWebApps({ inline_keyboard: [[{ text: 'x', web_app: { url: 'https://t.test/miniapp' } }]] }) === null,
   'نگهبان به کیبورد سالم و دکمهٔ شیشه‌ای دست نمی‌زند');
+assert(globalThis.__paymentMethodFa('wallet') === '💰 کیف پول (تحویل فوری)'
+  && globalThis.__paymentMethodFa('shetab').includes('کارت‌به‌کارت خودکار')
+  && globalThis.__paymentMethodFa('manual').includes('در انتظار رسید')
+  && globalThis.__paymentMethodFa('manual', { receipt_text: 'x' }).includes('رسید ارسال شد')
+  && globalThis.__paymentMethodFa('').includes('نامشخص'),
+  'نام روش پرداخت در پیام‌ها برای هر سه روش روشن است و برای دستی وضعیت رسید هم می‌آید');
 const entryMarkup = globalThis.__appEntryMarkup('https://t.test/miniapp');
 assert(entryMarkup.__keep_inline === true && entryMarkup.reply_markup.inline_keyboard[0][0].web_app.url === 'https://t.test/miniapp'
   && entryMarkup.reply_markup.inline_keyboard[0][0].text === '🚀 ورود به اپ',
